@@ -83,8 +83,11 @@ __author_email__ = "stefan.hendricks@awi.de"
 # Get git version (allows tracing of the exact commit)
 # TODO: This only works when the code is in a git repository (and not as installed python package)
 try:
-    __software_version__ = subprocess.check_output(["git", "log", "--pretty=format:%H", "-n", "1"])
-    __software_version__ = __software_version__.strip().decode("utf-8")
+    __software_version__ = subprocess.check_output(
+        ["git", "log", "--pretty=format:%H", "-n", "1"],
+        cwd=PACKAGE_ROOT_DIR
+    )
+    __software_version__ = __software_version__.strip().decode()
 except (FileNotFoundError, subprocess.CalledProcessError):
     __software_version__ = None
 
