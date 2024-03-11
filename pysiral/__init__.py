@@ -254,11 +254,9 @@ class LMDPysiralOutputPattern(BaseModel):
         return pattern
 
 
-
 class DataSourceEntry(BaseModel):
     name: str
-    path: Union[str, Dict]
-
+    path: Union[Path, Dict[str, Path]]
 
 class RadarAltimeterCatalogPlatformEntry(BaseModel):
     platform: str
@@ -274,6 +272,7 @@ class LMDPysiralOutput(BaseModel):
 class AuxiliaryDataTypes(BaseModel):
     auxtype: str
     sources: List[DataSourceEntry]
+
 
 class LocalMachineDefConfig(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -422,6 +421,8 @@ class _PysiralPackageConfiguration(object):
         # --- Read the configuration files ---
         self._read_config_files()
         self.local_machine = self._read_local_machine_file()
+        from devtools import debug
+        debug(self.local_machine)
         breakpoint()
 
     def _get_pysiral_path_information(self):
@@ -692,12 +693,11 @@ class _PysiralPackageConfiguration(object):
         if filename.is_file():
             try:
                 return parse_yaml_file_as(LocalMachineDefConfig, str(filename))
-            except ValidationError as validation_errors:
-                from devtools import pprint
-                for error in validation_errors.errors():
-                    pprint(error)
-
-                sys.exit()
+            except ValidationError as val_errors:
+                print(val_errors.json(indent=2))
+                raise ValueError(
+                    f"Found {val_errors.error_count()} errors in {filename} (see above)"
+                ) from val_errors
 
         msg = f"local_machine_def.yaml not found (expected: {filename})"
         logger.error(f"local-machine-def-missing: {msg}")
@@ -791,7 +791,7 @@ def get_cls(module_name, class_name, relaxed=True):
         if relaxed:
             return None, e
         else:
-            raise NotImplementedError(f"Cannot load class: {module_name}.{class_name}") from exc
+            raise NotImplementedError(f"Cannot load class: {module_name}.{class_name}") from e
 
 
 def import_submodules(package, recursive=True):
