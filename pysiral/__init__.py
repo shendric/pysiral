@@ -4,6 +4,8 @@
 pysiral is the PYthon Sea Ice Radar ALtimetry toolbox
 """
 
+
+from datetime import timezone
 __all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
            "filter", "frb", "grid",
            "l1data", "l1preproc", "l2data", "l2preproc", "l2proc", "l3proc",
@@ -11,6 +13,7 @@ __all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
            "sit", "surface", "waveform", "psrlcfg", "import_submodules", "get_cls",
            "set_psrl_cpu_count", "InterceptHandler", "__version__"]
 
+import re
 import importlib
 import logging
 import multiprocessing
@@ -23,9 +26,10 @@ import warnings
 from datetime import datetime
 from distutils import dir_util
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Iterable, Union, Dict, List
+from pydantic import BaseModel, DirectoryPath, field_validator, ValidationError, ConfigDict
+from pydantic_yaml import parse_yaml_file_as
 
-import numpy as np
 import yaml
 from attrdict import AttrDict
 from dateperiods import DatePeriod
@@ -178,7 +182,7 @@ class _MissionDefinitionCatalogue(object):
         tcs = platform_info.time_coverage.start
         tce = platform_info.time_coverage.end
         if tce is None:
-            tce = datetime.utcnow()
+            tce = datetime.now(timezone.utc)
         return tcs, tce
 
     @property
@@ -232,6 +236,47 @@ class _AuxdataCatalogueItem(object):
     @property
     def attrdict(self):
         return AttrDict(**self._config_dict)
+
+
+class LMDPysiralOutputPattern(BaseModel):
+    l1p: str
+    l2: str
+    l3: str
+
+    @classmethod
+    @field_validator("l1p", "l2", "l3")
+    def test_pysiral_output_dir_pattern(cls, pattern):
+        regex = re.compile(r"[^\w\\/{}]")
+        assert not regex.findall(pattern), f"regex failed: {pattern}"
+        return pattern
+
+
+
+class DataSourceEntry(BaseModel):
+    name: str
+    path: Union[str, Dict]
+
+
+class RadarAltimeterCatalogPlatformEntry(BaseModel):
+    platform: str
+    default: str
+    sources: List[DataSourceEntry]
+
+
+class LMDPysiralOutput(BaseModel):
+    base_directory: DirectoryPath
+    sub_directories: LMDPysiralOutputPattern
+
+
+class AuxiliaryDataTypes(BaseModel):
+    auxtype: str
+    sources: List[DataSourceEntry]
+
+class LocalMachineDefConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    pysiral_output: LMDPysiralOutput
+    radar_altimeter_catalog: List[RadarAltimeterCatalogPlatformEntry]
+    auxiliary_data_catalog: List[AuxiliaryDataTypes]
 
 
 class _AuxdataCatalogue(object):
@@ -372,8 +417,9 @@ class _PysiralPackageConfiguration(object):
         self._check_pysiral_config_path()
 
         # --- Read the configuration files ---
-        self.local_machine = None
         self._read_config_files()
+        self.local_machine = self._read_local_machine_file()
+        breakpoint()
 
     def _get_pysiral_path_information(self):
         """
@@ -632,18 +678,27 @@ class _PysiralPackageConfiguration(object):
         if permanent:
             raise NotImplementedError()
 
-    def _read_local_machine_file(self):
+    def _read_local_machine_file(self) -> Union[LocalMachineDefConfig, None]:
         """
-        :return:
+        Read the local machine definition file if it exists or return None
+        (necessary for automatic tests)
+
+        :return: The local_machine_def.yaml content as data model
         """
         filename = self.local_machine_def_filepath
-        try:
-            local_machine_def = self.get_yaml_config(filename)
-        except IOError:
-            msg = f"local_machine_def.yaml not found (expected: {filename})"
-            print(f"local-machine-def-missing: {msg}")
-            local_machine_def = None
-        self.local_machine = local_machine_def
+        if filename.is_file():
+            try:
+                return parse_yaml_file_as(LocalMachineDefConfig, str(filename))
+            except ValidationError as validation_errors:
+                from devtools import pprint
+                for error in validation_errors.errors():
+                    pprint(error)
+
+                sys.exit()
+
+        msg = f"local_machine_def.yaml not found (expected: {filename})"
+        logger.error(f"local-machine-def-missing: {msg}")
+        return None
 
     @property
     def platform_ids(self):

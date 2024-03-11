@@ -22,6 +22,8 @@ numpy
 pillow
 pandas
 parse
+pydantic
+pydantic-yaml
 pykdtree
 pyproj
 pyresample
