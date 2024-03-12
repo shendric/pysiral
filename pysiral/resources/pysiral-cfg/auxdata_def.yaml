@@ -163,7 +163,7 @@ snow:
         options:
             fyi_correction_factor: 0.5
             valid_snow_depth_range: [0, 0.6]
-        source: None
+        source: null
 
     # Merged monthly Warren99/IUP AMSR2 snow depth & density climatology (created by AWI, Stefan Hendricks)
     clim_w99amsr2:
@@ -191,7 +191,7 @@ snow:
                     dx: 6250
                     dy: 6250
             subfolders: null
-        source: None
+        source: null
 
     snow_density_seasonal_mallett:
         pyclass: SeasonalArcticSnowDensityMallett2020
@@ -199,7 +199,7 @@ snow:
         local_repository: null
         options:
             snow_density_uncertainty: 50.
-        source: None
+        source: null
 
     constant:
         pyclass: FixedSnowDepthDensity
@@ -208,7 +208,7 @@ snow:
         options:
             fixed_snow_depth: 0.3
             fixed_snow_density: 300.0
-        source: None
+        source: null
 
     icdc_climatology_south:
         pyclass: ICDCSouthernClimatology

@@ -1,26 +1,20 @@
 import re
 import multiprocessing
-import shutil
+# import shutil
 import socket
 import platform
 import psutil
 import sys
-from datetime import datetime, timezone
-from distutils import dir_util
+from datetime import datetime
+# from distutils import dir_util
 from pathlib import Path
-from typing import Iterable, Union, Dict, List, Literal
+from typing import Union, Dict, List, Literal, Optional
 from pydantic import (
-    BaseModel, RootModel, DirectoryPath, FilePath, field_validator, ValidationError, ConfigDict,
+    BaseModel, RootModel, DirectoryPath, FilePath, field_validator, ConfigDict,
     PositiveInt, PositiveFloat
 )
 from ruamel.yaml import YAML
-from pydantic_yaml import parse_yaml_file_as
-
-import yaml
-from attrdict import AttrDict
-from dateperiods import DatePeriod
-from loguru import logger
-
+# from pydantic_yaml import parse_yaml_file_as
 
 # Filenames of definitions files
 _DEFINITION_FILES = {
@@ -95,7 +89,7 @@ class AltimeterPlatforms(ConvenientRootModel):
 
 class PlatformConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=True)
-    filename: FilePath
+    filepath: FilePath
     mode_flags: AltimeterModeFlags
     platforms: AltimeterPlatforms
 
@@ -249,7 +243,7 @@ class PlatformConfig(BaseModel):
 #         return AttrDict(**self._config_dict)
 
 
-class PysiralPackageConfig(BaseModel):
+class PackageConfig(BaseModel):
     """
     Includes the path information to the package configuration (.pysiral-cfg/*)
     """
@@ -318,22 +312,46 @@ class RadarAltimeterCatalogPlatformEntry(BaseModel):
     sources: List[DataSourceEntry]
 
 
-class LMDPysiralOutput(BaseModel):
+class PysiralOutputDirectory(BaseModel):
     base_directory: DirectoryPath
     sub_directories: PysiralProductOutputPattern
 
 
-class AuxiliaryDataTypes(BaseModel):
+class AuxiliaryDataPath(BaseModel):
     auxtype: str
     sources: List[DataSourceEntry]
 
 
-class LocalMachineDef(BaseModel):
+class LocalMachineConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=True)
     filepath: FilePath
-    pysiral_output: LMDPysiralOutput
+    pysiral_output: PysiralOutputDirectory
     radar_altimeter_catalog: List[RadarAltimeterCatalogPlatformEntry]
-    auxiliary_data_catalog: List[AuxiliaryDataTypes]
+    auxiliary_data_catalog: List[AuxiliaryDataPath]
+
+
+class AuxDataDef(BaseModel):
+    pyclass: str
+    long_name: str
+    local_repository: Union[str, None]
+    filenaming: Optional[str] = None
+    filename: Optional[str] = None
+    options: Optional[Dict] = {}
+    source: Optional[Union[Dict, None]] = {}
+    sub_folders: Optional[List[str]] = []
+
+
+class AuxiliaryDataType(ConvenientRootModel):
+    root: Dict[str, AuxDataDef]
+
+
+class AuxiliaryDataTypes(ConvenientRootModel):
+    root: Dict[str, AuxiliaryDataType]
+
+
+class AuxiliaryDataConfig(BaseModel):
+    filepath: FilePath
+    types: AuxiliaryDataTypes
 
 
 # class _AuxdataCatalogue(object):
@@ -429,7 +447,7 @@ class _PysiralPackageConfiguration(object):
     - system (system properties)
     - package (pysiral package information, e.g. config path etc.)
     - platforms (information on supported platforms)
-    - local_machine (Path to data on local machine)
+    - local_path (Path to data on local machine)
     - auxdata (Data base of auxiliary datasets)
     """
 
@@ -455,7 +473,7 @@ class _PysiralPackageConfiguration(object):
 
         # Read the configuration files (package configuration needed)
         self.platforms = self._get_platform_config()
-        self.local_machine = self._get_local_machine_config()
+        self.local_path = self._get_local_machine_config()
         self.auxdata = self._get_auxdata_config()
 
     @staticmethod
@@ -478,7 +496,7 @@ class _PysiralPackageConfiguration(object):
         }
         return SystemConfig(**system_info)
 
-    def _get_package_config(self) -> PysiralPackageConfig:
+    def _get_package_config(self) -> PackageConfig:
         """
         Collect the package information and return as PysiralPackageConfig data model
 
@@ -498,7 +516,7 @@ class _PysiralPackageConfiguration(object):
             'user_home': Path.home(),
             'config_target': config_target
         }
-        return PysiralPackageConfig(**package_info)
+        return PackageConfig(**package_info)
 
     def _get_platform_config(self) -> Union[PlatformConfig, None]:
         """
@@ -507,12 +525,15 @@ class _PysiralPackageConfiguration(object):
 
         :return:
         """
-
-        target_file = self.package.package_config / _DEFINITION_FILES["platforms"]
-        if not target_file.is_file():
+        filepath = self.package.package_config / _DEFINITION_FILES["platforms"]
+        if not filepath.is_file():
             return None
 
-    def _get_local_machine_config(self) -> Union[LocalMachineDef, None]:
+        content_dict = self._get_yaml_file_raw_dict(filepath)
+        content_dict["filepath"] = filepath
+        return PlatformConfig(**content_dict)
+
+    def _get_local_machine_config(self) -> Union[LocalMachineConfig, None]:
         """
         Return the data model for `local_machine_def.yaml` if the
         file has been configured, otherwise return None
@@ -520,12 +541,30 @@ class _PysiralPackageConfiguration(object):
         :return: Local Machine Def data model
         """
 
-        if filepath := self.package.local_machine_def_filepath is None:
+        if (filepath := self.package.local_machine_def_filepath) is None:
             return None
 
         content_dict = self._get_yaml_file_raw_dict(filepath)
         content_dict["filepath"] = filepath
-        return LocalMachineDef(**content_dict)
+        return LocalMachineConfig(**content_dict)
+
+    def _get_auxdata_config(self) -> Union[AuxiliaryDataConfig, None]:
+        """
+        Return the data model for `auxdata_def.yaml` if the
+        file has been configured, otherwise return None
+
+        :return: Local Machine Def data model
+        """
+        filepath = self.package.package_config / _DEFINITION_FILES["auxdata"]
+        if not filepath.is_file():
+            return None
+
+        content_dict = self._get_yaml_file_raw_dict(filepath)
+        data_dict = {
+            "filepath": filepath,
+            "types": content_dict
+        }
+        return AuxiliaryDataConfig(**data_dict)
 
     # def _get_pysiral_path_information(self):
     #     """
@@ -563,31 +602,31 @@ class _PysiralPackageConfiguration(object):
     #     except IOError:
     #         sys.exit(f"Cannot find PYSIRAL-CFG-LOC file in package (expected: {cfg_loc_file})")
 
-    def _check_pysiral_config_path(self):
-        """
-        This class ensures that the pysiral configuration files are in the chosen
-        configuration directory
-        :return:
-        """
-
-        # Make alias of
-        config_path = Path(self.config_path)
-        package_config_path = Path(self.path.package_config_path)
-
-        # Check if current config dir is package config dir
-        # if yes -> nothing to do (files are either there or aren't)
-        if config_path == package_config_path:
-            return
-
-        # current config dir is not package dir and does not exist
-        # -> must be populated with content from the package config dir
-        if not config_path.is_dir():
-            print(f"Creating pysiral config directory: {config_path}")
-            dir_util.copy_tree(str(self.path.package_config_path), str(config_path))
-            print("Init local machine def")
-            template_filename = package_config_path / "templates" / "local_machine_def.yaml"
-            target_filename = config_path / "local_machine_def.yaml"
-            shutil.copy(str(template_filename), str(target_filename))
+    # def _check_pysiral_config_path(self):
+    #     """
+    #     This class ensures that the pysiral configuration files are in the chosen
+    #     configuration directory
+    #     :return:
+    #     """
+    #
+    #     # Make alias of
+    #     config_path = Path(self.config_path)
+    #     package_config_path = Path(self.path.package_config_path)
+    #
+    #     # Check if current config dir is package config dir
+    #     # if yes -> nothing to do (files are either there or aren't)
+    #     if config_path == package_config_path:
+    #         return
+    #
+    #     # current config dir is not package dir and does not exist
+    #     # -> must be populated with content from the package config dir
+    #     if not config_path.is_dir():
+    #         print(f"Creating pysiral config directory: {config_path}")
+    #         dir_util.copy_tree(str(self.path.package_config_path), str(config_path))
+    #         print("Init local machine def")
+    #         template_filename = package_config_path / "templates" / "local_machine_def.yaml"
+    #         target_filename = config_path / "local_machine_def.yaml"
+    #         shutil.copy(str(template_filename), str(target_filename))
 
     @staticmethod
     def _get_yaml_file_raw_dict(filepath: Path) -> Dict:
@@ -601,7 +640,7 @@ class _PysiralPackageConfiguration(object):
         :return: Dictionary with yaml file content
         """
         reader = YAML(typ="safe", pure=True)  # YAML 1.2 support
-        with filepath.open(mode="r") as f:
+        with filepath.open() as f:
             content_dict = reader.load(f)
         return content_dict
 
@@ -656,198 +695,196 @@ class _PysiralPackageConfiguration(object):
     #         settings = AttrDict(yaml.safe_load(fileobj))
     #     return settings
 
-    def get_setting_ids(self, settings_type, data_level=None):
-        lookup_directory = self.get_local_setting_path(settings_type, data_level)
-        ids, files = self.get_yaml_setting_filelist(lookup_directory)
-        return ids
+    # def get_setting_ids(self, settings_type, data_level=None):
+    #     lookup_directory = self.get_local_setting_path(settings_type, data_level)
+    #     ids, files = self.get_yaml_setting_filelist(lookup_directory)
+    #     return ids
 
-    def get_platform_period(self, platform_id):
-        """
-        Get a period definition for a given platform ID
-        :param platform_id:
-        :return: dateperiods.DatePeriod
-        """
-        tcs, tce = self.platforms.get_time_coverage(platform_id)
-        return DatePeriod(tcs, tce)
+    # def get_platform_period(self, platform_id):
+    #     """
+    #     Get a period definition for a given platform ID
+    #     :param platform_id:
+    #     :return: dateperiods.DatePeriod
+    #     """
+    #     tcs, tce = self.platforms.get_time_coverage(platform_id)
+    #     return DatePeriod(tcs, tce)
 
-    def get_processor_definition_ids(self, processor_level):
-        """
-        Returns a list of available processor definitions ids for a given processor
-        level (see self.VALID_PROCESSOR_LEVELS)
-        :param processor_level:
-        :return:
-        """
-        lookup_directory = self.get_local_setting_path("proc", processor_level)
-        return self.get_yaml_setting_filelist(lookup_directory, return_value="ids")
+    # def get_processor_definition_ids(self, processor_level):
+    #     """
+    #     Returns a list of available processor definitions ids for a given processor
+    #     level (see self.VALID_PROCESSOR_LEVELS)
+    #     :param processor_level:
+    #     :return:
+    #     """
+    #     lookup_directory = self.get_local_setting_path("proc", processor_level)
+    #     return self.get_yaml_setting_filelist(lookup_directory, return_value="ids")
 
-    def get_settings_files(self, settings_type: str, data_level: str) -> Iterable[Path]:
-        """
-        Returns all processor settings or output definitions files for a given data level.
-        :param settings_type:
-        :param data_level:
-        :return:
-        """
+    # def get_settings_files(self, settings_type: str, data_level: str) -> Iterable[Path]:
+    #     """
+    #     Returns all processor settings or output definitions files for a given data level.
+    #     :param settings_type:
+    #     :param data_level:
+    #     :return:
+    #     """
+    #
+    #     if settings_type not in VALID_SETTING_TYPES:
+    #         return []
+    #
+    #     if data_level not in VALID_DATA_LEVEL_IDS:
+    #         return []
+    #
+    #     # Get all settings files in settings/{data_level} and its
+    #     # subdirectories
+    #     lookup_directory = self.get_local_setting_path(settings_type, data_level)
+    #     _, files = self.get_yaml_setting_filelist(lookup_directory)
+    #
+    #     # Test if ids are unique and return error for the moment
+    #     return files
 
-        if settings_type not in VALID_SETTING_TYPES:
-            return []
+    # def get_settings_file(self, settings_type, data_level, setting_id_or_filename):
+    #     """ Returns a processor settings file for a given data level.
+    #     (data level: l2 or l3). The second argument can either be an
+    #     direct filename (which validity will be checked) or an id, for
+    #     which the corresponding file (id.yaml) will be looked up in
+    #     the default directory """
+    #
+    #     if settings_type not in VALID_SETTING_TYPES:
+    #         return None
+    #
+    #     if data_level not in VALID_DATA_LEVEL_IDS:
+    #         return None
+    #
+    #     # Check if filename
+    #     if Path(setting_id_or_filename).is_file():
+    #         return setting_id_or_filename
+    #
+    #     # Get all settings files in settings/{data_level} and its
+    #     # subdirectories
+    #     lookup_directory = self.get_local_setting_path(settings_type, data_level)
+    #     ids, files = self.get_yaml_setting_filelist(lookup_directory)
+    #
+    #     # Test if ids are unique and return error for the moment
+    #     if len(set(ids)) != len(ids):
+    #         msg = f"Non-unique {settings_type}-{str(data_level)} setting filename"
+    #         print(f"ambiguous-setting-files: {msg}")
+    #         sys.exit(1)
+    #
+    #     # Find filename to setting_id
+    #     try:
+    #         index = ids.index(setting_id_or_filename)
+    #         return Path(files[index])
+    #     except (IOError, ValueError):
+    #         return None
 
-        if data_level not in VALID_DATA_LEVEL_IDS:
-            return []
+    # @staticmethod
+    # def get_yaml_setting_filelist(directory, return_value="both"):
+    #     """ Retrieve all yaml files from a given directory (including
+    #     subdirectories). Directories named "obsolete" are ignored if
+    #     ignore_obsolete=True (default) """
+    #     setting_ids = []
+    #     setting_files = []
+    #     for filepath in directory.rglob("*.yaml"):
+    #         setting_ids.append(filepath.name.replace(".yaml", ""))
+    #         setting_files.append(filepath)
+    #     if return_value == "both":
+    #         return setting_ids, setting_files
+    #     elif return_value == "ids":
+    #         return setting_ids
+    #     elif return_value == "files":
+    #         return setting_files
+    #     else:
+    #         raise ValueError(f"Unknown return value {str(return_value)} [`both`, `ids`, `files`]")
 
-        # Get all settings files in settings/{data_level} and its
-        # subdirectories
-        lookup_directory = self.get_local_setting_path(settings_type, data_level)
-        _, files = self.get_yaml_setting_filelist(lookup_directory)
+    # def get_local_setting_path(self, settings_type, data_level=None):
+    #     """
+    #     Return the absolute path on the local productions system to the configuration file. The
+    #     returned path depends on the fixed structure below the `resources` directory in the pysiral
+    #     package and the choice in the config file "PYSIRAL-CFG-LOC"
+    #     :param settings_type:
+    #     :param data_level:
+    #     :return:
+    #     """
+    #     if settings_type in VALID_SETTING_TYPES and data_level in VALID_DATA_LEVEL_IDS:
+    #         args = [settings_type]
+    #         if data_level is not None:
+    #             args.append(data_level)
+    #         return Path(self.config_path) / Path(*args)
+    #     else:
+    #         return None
 
-        # Test if ids are unique and return error for the moment
-        return files
+    # def reload(self):
+    #     """
+    #     Method to trigger reading the configuration files again, e.g. after changing the config target
+    #     :return:
+    #     """
+    #     self._read_config_files()
+    #     self._check_pysiral_config_path()
 
-    def get_settings_file(self, settings_type, data_level, setting_id_or_filename):
-        """ Returns a processor settings file for a given data level.
-        (data level: l2 or l3). The second argument can either be an
-        direct filename (which validity will be checked) or an id, for
-        which the corresponding file (id.yaml) will be looked up in
-        the default directory """
+    # def set_config_target(self, config_target, permanent=False):
+    #     """
+    #     Set the configuration target
+    #     :param config_target:
+    #     :param permanent:
+    #     :return:
+    #     """
+    #
+    #     # Input validation
+    #     if config_target in VALID_CONFIG_TARGETS or Path(config_target).is_dir():
+    #         self._path["config_target"] = config_target
+    #     else:
+    #         msg = "Invalid config_target: {} must be {} or valid path"
+    #         msg = msg.format(str(config_target), ", ".join(VALID_CONFIG_TARGETS))
+    #         raise ValueError(msg)
+    #
+    #     if permanent:
+    #         raise NotImplementedError()
 
-        if settings_type not in VALID_SETTING_TYPES:
-            return None
+    # def _read_local_machine_file(self) -> Union[LocalMachineConfig, None]:
+    #     """
+    #     Read the local machine definition file if it exists or return None
+    #     (necessary for automatic tests)
+    #
+    #     :return: The local_machine_def.yaml content as data model
+    #     """
+    #     filename = self.local_machine_def_filepath
+    #     if filename.is_file():
+    #         return parse_yaml_file_as(LocalMachineConfig, str(filename))
+    #
+    #     msg = f"local_machine_def.yaml not found (expected: {filename})"
+    #     logger.error(f"local-machine-def-missing: {msg}")
+    #     return None
 
-        if data_level not in VALID_DATA_LEVEL_IDS:
-            return None
-
-        # Check if filename
-        if Path(setting_id_or_filename).is_file():
-            return setting_id_or_filename
-
-        # Get all settings files in settings/{data_level} and its
-        # subdirectories
-        lookup_directory = self.get_local_setting_path(settings_type, data_level)
-        ids, files = self.get_yaml_setting_filelist(lookup_directory)
-
-        # Test if ids are unique and return error for the moment
-        if len(set(ids)) != len(ids):
-            msg = f"Non-unique {settings_type}-{str(data_level)} setting filename"
-            print(f"ambiguous-setting-files: {msg}")
-            sys.exit(1)
-
-        # Find filename to setting_id
-        try:
-            index = ids.index(setting_id_or_filename)
-            return Path(files[index])
-        except (IOError, ValueError):
-            return None
-
-    @staticmethod
-    def get_yaml_setting_filelist(directory, return_value="both"):
-        """ Retrieve all yaml files from a given directory (including
-        subdirectories). Directories named "obsolete" are ignored if
-        ignore_obsolete=True (default) """
-        setting_ids = []
-        setting_files = []
-        for filepath in directory.rglob("*.yaml"):
-            setting_ids.append(filepath.name.replace(".yaml", ""))
-            setting_files.append(filepath)
-        if return_value == "both":
-            return setting_ids, setting_files
-        elif return_value == "ids":
-            return setting_ids
-        elif return_value == "files":
-            return setting_files
-        else:
-            raise ValueError(f"Unknown return value {str(return_value)} [`both`, `ids`, `files`]")
-
-    def get_local_setting_path(self, settings_type, data_level=None):
-        """
-        Return the absolute path on the local productions system to the configuration file. The
-        returned path depends on the fixed structure below the `resources` directory in the pysiral
-        package and the choice in the config file "PYSIRAL-CFG-LOC"
-        :param settings_type:
-        :param data_level:
-        :return:
-        """
-        if settings_type in VALID_SETTING_TYPES and data_level in VALID_DATA_LEVEL_IDS:
-            args = [settings_type]
-            if data_level is not None:
-                args.append(data_level)
-            return Path(self.config_path) / Path(*args)
-        else:
-            return None
-
-    def reload(self):
-        """
-        Method to trigger reading the configuration files again, e.g. after changing the config target
-        :return:
-        """
-        self._read_config_files()
-        self._check_pysiral_config_path()
-
-    def set_config_target(self, config_target, permanent=False):
-        """
-        Set the configuration target
-        :param config_target:
-        :param permanent:
-        :return:
-        """
-
-        # Input validation
-        if config_target in VALID_CONFIG_TARGETS or Path(config_target).is_dir():
-            self._path["config_target"] = config_target
-        else:
-            msg = "Invalid config_target: {} must be {} or valid path"
-            msg = msg.format(str(config_target), ", ".join(VALID_CONFIG_TARGETS))
-            raise ValueError(msg)
-
-        if permanent:
-            raise NotImplementedError()
-
-    def _read_local_machine_file(self) -> Union[LocalMachineDef, None]:
-        """
-        Read the local machine definition file if it exists or return None
-        (necessary for automatic tests)
-
-        :return: The local_machine_def.yaml content as data model
-        """
-        filename = self.local_machine_def_filepath
-        if filename.is_file():
-            return parse_yaml_file_as(LocalMachineDef, str(filename))
-
-        msg = f"local_machine_def.yaml not found (expected: {filename})"
-        logger.error(f"local-machine-def-missing: {msg}")
-        return None
-
-    @property
-    def platform_ids(self):
-        return self.platforms.ids
-
-    @property
-    def package_path(self) -> Path:
-        return Path(self._package_root_dir)
-
-    @property
-    def current_config_target(self):
-        return str(self._path["config_target"])
-
-    @property
-    def config_target(self):
-        return str(self._path["config_target"])
-
-    @property
-    def config_path(self):
-        """
-        nstruct the target config path based on the value in `PYSIRAL-CFG-LOC`
-        :return:
-        """
-        # Case 1 (default): pysiral config path is in user home
-        if self._path["config_target"] == "USER_HOME":
-            return Path(self._path["userhome_config_path"])
-
-        # Case 2: pysiral config path is the package itself
-        elif self._path["config_target"] == "PACKAGE":
-            return Path(self._path["package_config_path"])
-
-        # Case 3: package specific config path
-        else:
-            # This should be an existing path, but in the case it is not, it is created
-            return Path(self._path["config_target"])
-
-
+    # @property
+    # def platform_ids(self):
+    #     return self.platforms.ids
+    #
+    # @property
+    # def package_path(self) -> Path:
+    #     return Path(self._package_root_dir)
+    #
+    # @property
+    # def current_config_target(self):
+    #     return str(self._path["config_target"])
+    #
+    # @property
+    # def config_target(self):
+    #     return str(self._path["config_target"])
+    #
+    # @property
+    # def config_path(self):
+    #     """
+    #     nstruct the target config path based on the value in `PYSIRAL-CFG-LOC`
+    #     :return:
+    #     """
+    #     # Case 1 (default): pysiral config path is in user home
+    #     if self._path["config_target"] == "USER_HOME":
+    #         return Path(self._path["userhome_config_path"])
+    #
+    #     # Case 2: pysiral config path is the package itself
+    #     elif self._path["config_target"] == "PACKAGE":
+    #         return Path(self._path["package_config_path"])
+    #
+    #     # Case 3: package specific config path
+    #     else:
+    #         # This should be an existing path, but in the case it is not, it is created
+    #         return Path(self._path["config_target"])
