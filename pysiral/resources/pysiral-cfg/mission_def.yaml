@@ -23,7 +23,7 @@ platforms:
         time_coverage:
             start: 2010-07-17T00:00:00.00
             end: null
-        sea_ice_radar_modes: ["sar", "sin"]
+        sea_ice_radar_modes: ["sar", "sin", "plrm"]
         orbit_max_latitude: 88.0
 
     envisat:
@@ -44,7 +44,7 @@ platforms:
             start: 1991-08-03T00:00:00.00
             end: 1996-06-02T23:59:59.99
         sea_ice_radar_modes: ["lrm"]
-        orbit_max_latitude: 82.5
+        orbit_max_latitude: 81.5
 
     ers2:
         long_name: ERS-2
@@ -54,7 +54,7 @@ platforms:
             start: 1995-05-14T00:00:00.00
             end: 2003-07-02T23:59:59.99
         sea_ice_radar_modes: ["lrm"]
-        orbit_max_latitude: 82.5
+        orbit_max_latitude: 81.5
 
     sentinel3a:
         long_name: Sentinel-3A

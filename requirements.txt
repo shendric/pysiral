@@ -22,6 +22,7 @@ numpy
 pillow
 pandas
 parse
+psutil
 pydantic
 pydantic-yaml
 pykdtree
