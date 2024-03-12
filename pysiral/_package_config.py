@@ -13,6 +13,7 @@ from pydantic import (
     BaseModel, RootModel, DirectoryPath, FilePath, field_validator, ValidationError, ConfigDict,
     PositiveInt, PositiveFloat
 )
+from ruamel.yaml import YAML
 from pydantic_yaml import parse_yaml_file_as
 
 import yaml
@@ -267,8 +268,11 @@ class PysiralPackageConfig(BaseModel):
 
         :return: Path to `local_machine_def.yaml` or None if it hasn't been created yet
         """
-        file_path = self.config_path / _LOCAL_MACHINE_DEF_FILE
-        return file_path if file_path.is_file() else None
+        if self.config_target != "PACKAGE":
+            filepath = self.config_path / _LOCAL_MACHINE_DEF_FILE
+        else:
+            filepath = self.user_home / ".pysiral-cfg" / _LOCAL_MACHINE_DEF_FILE
+        return filepath if filepath.is_file() else None
 
     @property
     def config_path(self) -> Path:
@@ -508,6 +512,21 @@ class _PysiralPackageConfiguration(object):
         if not target_file.is_file():
             return None
 
+    def _get_local_machine_config(self) -> Union[LocalMachineDef, None]:
+        """
+        Return the data model for `local_machine_def.yaml` if the
+        file has been configured, otherwise return None
+
+        :return: Local Machine Def data model
+        """
+
+        if filepath := self.package.local_machine_def_filepath is None:
+            return None
+
+        content_dict = self._get_yaml_file_raw_dict(filepath)
+        content_dict["filepath"] = filepath
+        return LocalMachineDef(**content_dict)
+
     # def _get_pysiral_path_information(self):
     #     """
     #     Get the different path information for pysiral. This method will add the following
@@ -569,6 +588,22 @@ class _PysiralPackageConfiguration(object):
             template_filename = package_config_path / "templates" / "local_machine_def.yaml"
             target_filename = config_path / "local_machine_def.yaml"
             shutil.copy(str(template_filename), str(target_filename))
+
+    @staticmethod
+    def _get_yaml_file_raw_dict(filepath: Path) -> Dict:
+        """
+        Get a yaml file as raw dict. This is intended to be used
+        if the content of a file are to be amended before passing
+        to a pydantic model)
+
+        :param filepath: Path to yaml file
+
+        :return: Dictionary with yaml file content
+        """
+        reader = YAML(typ="safe", pure=True)  # YAML 1.2 support
+        with filepath.open(mode="r") as f:
+            content_dict = reader.load(f)
+        return content_dict
 
     # def _read_config_files(self):
     #     """
