@@ -862,7 +862,7 @@ class L1PreProcCustomOrbitSegment(L1PreProcBase):
 
         # Step: Split the l1 segments at time discontinuities.
         # NOTE: This step is optional. It requires the presence of the options branch `timestamp_discontinuities`
-        #       in the l1proc config file
+        #       in the L1 pre-processor config file
         if "timestamp_discontinuities" in self.cfg:
             logger.info("- split at time discontinuities")
             l1_list = self.split_at_time_discontinuities(l1_list)
@@ -926,7 +926,7 @@ class L1PreProcHalfOrbit(L1PreProcBase):
 
         # Step: Split the l1 segments at time discontinuities.
         # NOTE: This step is optional. It requires the presence of the options branch `timestamp_discontinuities`
-        #       in the l1proc config file
+        #       in the L1 pre-processor config file
         if "timestamp_discontinuities" in self.cfg:
             logger.info("- split at time discontinuities")
             l1_list = self.split_at_time_discontinuities(l1_list)
@@ -991,7 +991,7 @@ class L1PreProcFullOrbit(L1PreProcBase):
 
         # Step: Split the l1 segments at time discontinuities.
         # NOTE: This step is optional. It requires the presence of the options branch `timestamp_discontinuities`
-        #       in the l1proc config file
+        #       in the L1 pre-processor config file
         if "timestamp_discontinuities" in self.cfg:
             l1_list = self.split_at_time_discontinuities(l1_list)
             logger.info(f"- split at time discontinuities -> {len(l1_list)} segments")
