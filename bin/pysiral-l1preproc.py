@@ -53,14 +53,14 @@ def pysiral_l1preproc(job):
 
         # 5.2 Output management
         # Note: This is only relevant, if the --remove-old keyword is set
-        output_handler.remove_old_if_applicable(period)
+        # output_handler.remove_old_if_applicable(period)
 
         # 5.3 Run the pre-processor
         l1preproc.process_input_files(file_list)
 
     # Report processing time
-    job.stopwatch.stop()
-    logger.info(f"Level-1 PreProcessor finished in {job.stopwatch.get_duration()}")
+    # job.stopwatch.stop()
+    # logger.info(f"Level-1 PreProcessor finished in {job.stopwatch.get_duration()}")
 
 
 class Level1PreProcArgParser(object):

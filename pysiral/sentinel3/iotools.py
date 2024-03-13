@@ -10,12 +10,11 @@ from dateperiods import DatePeriod
 from loguru import logger
 from parse import parse
 
-from pysiral.core import DefaultLoggingClass
-from pysiral.core.clocks import StopWatch
+from pysiral.core.clocks import debug_timer
 from pysiral.core.errorhandler import ErrorStatus
 
 
-class Sentinel3FileList(DefaultLoggingClass):
+class Sentinel3FileList(object):
     """
     Class for the construction of a list of Sentinel-3 SRAL L2 files
     sorted by acquisition time
@@ -61,11 +60,11 @@ class Sentinel3FileList(DefaultLoggingClass):
                 match = [f[0] for f in l2_file_list if re.search(daystr, f[1])]
                 self._sorted_list.extend(sorted(match))
 
-    def _get_toplevel_search_folder(self, year, month):
-        return Path(self.folder) / "%4g" % year / "%02g" % month
+    def _get_toplevel_search_folder(self, year: int, month: int) -> Path:
+        return Path(self.folder) / f"{year:04g}" / f"{month:02g}"
 
 
-class CodaL2SralFileDiscovery(DefaultLoggingClass):
+class CodaL2SralFileDiscovery(object):
     """ Class to retrieve Sentinel-3 SRAL files from the Copernicus Online Data Archive """
 
     def __init__(self, cfg):
@@ -120,7 +119,7 @@ class CodaL2SralFileDiscovery(DefaultLoggingClass):
 
     def _get_toplevel_search_folder(self, year, month):
         """ Get the folder for the file search """
-        return Path(self.cfg.lookup_dir) / "%4g" % year / "%02g" % month
+        return Path(self.cfg.lookup_dir) / f"{year:04g}" / f"{month:02g}"
 
     def _reset_file_list(self):
         """ Resets the result of previous file searches """
@@ -147,15 +146,13 @@ class L2SeaIceFileDiscovery(object):
 
         # Create inventory
         logger.info(f"Sentinel-3 source directory: {cfg.lookup_dir}")
-        timer = StopWatch().start()
         self.catalogue = self._get_dataset_catalogue()
         logger.info(f"Found {self.n_catalogue_files} files ({self.cfg.filename_search})")
-        timer.stop()
-        logger.debug(f"Created Sentinel-3 file catalogue in {timer.get_seconds():.04f} seconds")
 
         # Init empty file lists
         self._reset_file_list()
 
+    @debug_timer("S3 file catalog creation")
     def _get_dataset_catalogue(self):
         """
         Create a catalogues with the time coverage of the files on the server
@@ -222,41 +219,6 @@ def get_sentinel3_l1b_filelist(folder, target_nc_filename):
                 datestr = os.path.split(root)[-1].split("_")[7]
                 s3_file_list.append((os.path.join(root, name), datestr))
     return s3_file_list
-
-
-def get_sentinel3_sral_l1_from_l2(l2_filename, target="enhanced_measurement.nc"):
-    """ Returns the corresponding sral l1 file to a given l2 filename """
-
-    # XXX: This is based on the data structure of the early access
-    #      for expert users
-
-    # Step 1: Replace product tag in folder structure
-    l1nc_filename = l2_filename.replace("SR_2_LAN", "SR_1_SRA")
-
-    # folder name for L1 and L2 data files are different, need to replace
-    # one date tag with asterisk and search for match
-
-    # split the directories
-    directories = Path(l1nc_filename).parent.parts
-
-    # split the dates with asterisk, orbit number should provide unique
-    # match for the test data set
-    s3_orbit_dir = directories[-1]
-    s3_orbit_dir_components = s3_orbit_dir.split("_")
-    s3_orbit_dir_components[7] = "*"     # Start time
-    s3_orbit_dir_components[8] = "*"     # Stop time
-    s3_orbit_dir_components[9] = "*"     # product creation time
-    s3_orbit_dir_components[10] = "*"    # some version code
-
-    # Compile the folder again with search pattern
-    search_s3_l1b_folder = "_".join(s3_orbit_dir_components)
-    sral_l1_folder = Path(*directories[:-1]).glob(search_s3_l1b_folder)
-
-    if len(sral_l1_folder) > 0:
-        l1nc_filename = sral_l1_folder[0] / target
-    else:
-        return None
-    return l1nc_filename
 
 
 class S3FileNaming(object):
