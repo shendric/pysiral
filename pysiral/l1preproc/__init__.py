@@ -1196,7 +1196,7 @@ class Level1PreProcJobDef(object):
         """
         local_machine_def_tag = self.l1pprocdef.input_handler.options.local_machine_def_tag
         source_name = self._source_repo_id if self._source_repo_id is not None else local_machine_def_tag
-        source_lookup_dir = psrlcfg.platforms.get_source(self.platform, source_name)
+        source_lookup_dir = psrlcfg.platforms.get_source(self.platform, source_name, raise_if_none=True)
         self.l1pprocdef.input_handler["options"]["lookup_dir"] = source_lookup_dir
 
     def _check_if_unambiguous_platform(self) -> None:
