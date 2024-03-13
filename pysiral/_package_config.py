@@ -66,32 +66,36 @@ class SystemConfig(BaseModel):
     python_version: str
 
 
-class AltimeterModeFlags(ConvenientRootModel):
+class _AltimeterModeFlags(ConvenientRootModel):
     root: Dict[str, int]
 
 
-class AltimeterTimeCoverage(BaseModel):
+class _AltimeterTimeCoverage(BaseModel):
     start: datetime
     end: Union[None, datetime]
 
 
-class AltimeterPlatform(BaseModel):
+class _AltimeterPlatform(BaseModel):
     long_name: str
     docstr: str
     sensor: str
-    time_coverage: AltimeterTimeCoverage
+    time_coverage: _AltimeterTimeCoverage
     sea_ice_radar_modes: List[str]
 
 
-class AltimeterPlatforms(ConvenientRootModel):
-    root: Dict[str, AltimeterPlatform]
+class _AltimeterPlatforms(ConvenientRootModel):
+    root: Dict[str, _AltimeterPlatform]
 
 
 class PlatformConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=True)
     filepath: FilePath
-    mode_flags: AltimeterModeFlags
-    platforms: AltimeterPlatforms
+    mode_flags: _AltimeterModeFlags
+    platforms: _AltimeterPlatforms
+
+    @property
+    def ids(self) -> List[str]:
+        return list(self.platforms.items)
 
 
 # class _MissionDefinitionCatalogue(object):
@@ -288,7 +292,7 @@ class PackageConfig(BaseModel):
             return self.config_target
 
 
-class PysiralProductOutputPattern(BaseModel):
+class _PysiralProductOutputPattern(BaseModel):
     l1p: str
     l2: str
     l3: str
@@ -301,36 +305,36 @@ class PysiralProductOutputPattern(BaseModel):
         return pattern
 
 
-class DataSourceEntry(BaseModel):
+class _DataSourceEntry(BaseModel):
     name: str
     path: Union[str, Dict]
 
 
-class RadarAltimeterCatalogPlatformEntry(BaseModel):
+class _RadarAltimeterCatalogPlatformEntry(BaseModel):
     platform: str
     default: str
-    sources: List[DataSourceEntry]
+    sources: List[_DataSourceEntry]
 
 
-class PysiralOutputDirectory(BaseModel):
+class _PysiralOutputDirectory(BaseModel):
     base_directory: DirectoryPath
-    sub_directories: PysiralProductOutputPattern
+    sub_directories: _PysiralProductOutputPattern
 
 
-class AuxiliaryDataPath(BaseModel):
+class _AuxiliaryDataPath(BaseModel):
     auxtype: str
-    sources: List[DataSourceEntry]
+    sources: List[_DataSourceEntry]
 
 
 class LocalMachineConfig(BaseModel):
     model_config = ConfigDict(extra="ignore", frozen=True)
     filepath: FilePath
-    pysiral_output: PysiralOutputDirectory
-    radar_altimeter_catalog: List[RadarAltimeterCatalogPlatformEntry]
-    auxiliary_data_catalog: List[AuxiliaryDataPath]
+    pysiral_output: _PysiralOutputDirectory
+    radar_altimeter_catalog: List[_RadarAltimeterCatalogPlatformEntry]
+    auxiliary_data_catalog: List[_AuxiliaryDataPath]
 
 
-class AuxDataDef(BaseModel):
+class _AuxDataDef(BaseModel):
     pyclass: str
     long_name: str
     local_repository: Union[str, None]
@@ -341,17 +345,66 @@ class AuxDataDef(BaseModel):
     sub_folders: Optional[List[str]] = []
 
 
-class AuxiliaryDataType(ConvenientRootModel):
-    root: Dict[str, AuxDataDef]
+class _AuxiliaryDataType(ConvenientRootModel):
+    root: Dict[str, _AuxDataDef]
 
 
-class AuxiliaryDataTypes(ConvenientRootModel):
-    root: Dict[str, AuxiliaryDataType]
+class _AuxiliaryDataTypes(ConvenientRootModel):
+    root: Dict[str, _AuxiliaryDataType]
 
 
 class AuxiliaryDataConfig(BaseModel):
     filepath: FilePath
-    types: AuxiliaryDataTypes
+    types: _AuxiliaryDataTypes
+
+
+class _YamlDefEntry(BaseModel):
+    id: str
+    filepath: FilePath
+
+
+class ProcDefCatalog(BaseModel):
+    l1: Dict[str, _YamlDefEntry]
+    l2: Dict[str, _YamlDefEntry]
+    l3: Dict[str, _YamlDefEntry]
+
+    def get(
+            self,
+            proc_level: Literal["l1", "l2", "l3"],
+            yaml_id: str,
+            raise_if_none: bool = False
+    ) -> Optional[Path]:
+        """
+        Return the file path for processor definition config base from the
+        processing level and yaml file id.
+
+        :param proc_level: A valid processor definition (l1, l2, l3)
+        :param yaml_id: The id of the yaml file (filepath.setm)
+        :param raise_if_none: Boolean flag defining action if yaml file does not exist
+
+        :raises KeyError: `proc_level` not a valid processing level for processor
+                definition files.
+
+        :raises FileNotFoundError: Target yaml file does not exist and `raise_if_none=True`
+
+        :return: filepath or None
+
+        """
+        if proc_level not in self.model_fields:
+            raise KeyError(f"{proc_level=} not a valid processor level [l1, l2, l3]")
+
+        yaml_def_entry = getattr(self, proc_level).get(yaml_id)
+        if yaml_def_entry is None and raise_if_none:
+            raise FileNotFoundError(f"No file found for {proc_level}:{yaml_id}")
+        elif yaml_def_entry is None:
+            return None
+        return yaml_def_entry.filepath
+
+
+class OutputDefCatalog(BaseModel):
+    l2i: Dict[str, _YamlDefEntry]
+    l2p: Dict[str, _YamlDefEntry]
+    l3: Dict[str, _YamlDefEntry]
 
 
 # class _AuxdataCatalogue(object):
@@ -468,13 +521,18 @@ class _PysiralPackageConfiguration(object):
         self._version = version
 
         # Get system and package information (needed for config files)
-        self.system = self._get_system_config()
-        self.package = self._get_package_config()
+        self._system = self._get_system_config()
+        self._package = self._get_package_config()
 
         # Read the configuration files (package configuration needed)
-        self.platforms = self._get_platform_config()
-        self.local_path = self._get_local_machine_config()
-        self.auxdata = self._get_auxdata_config()
+        self._platforms = self._get_platform_config()
+        self._auxdata = self._get_auxdata_config()
+        self._local_path = self._get_local_machine_config()
+
+        # Create a catalog of processor and output definition files
+        # (catalog only, validation of files is done on demand)
+        self._procdef = self._get_procdef_catalog()
+        self._outputdef = self._get_outputdef_catalog()
 
     @staticmethod
     def _get_system_config() -> SystemConfig:
@@ -525,7 +583,7 @@ class _PysiralPackageConfiguration(object):
 
         :return:
         """
-        filepath = self.package.package_config / _DEFINITION_FILES["platforms"]
+        filepath = self._package.package_config / _DEFINITION_FILES["platforms"]
         if not filepath.is_file():
             return None
 
@@ -541,7 +599,7 @@ class _PysiralPackageConfiguration(object):
         :return: Local Machine Def data model
         """
 
-        if (filepath := self.package.local_machine_def_filepath) is None:
+        if (filepath := self._package.local_machine_def_filepath) is None:
             return None
 
         content_dict = self._get_yaml_file_raw_dict(filepath)
@@ -555,7 +613,7 @@ class _PysiralPackageConfiguration(object):
 
         :return: Local Machine Def data model
         """
-        filepath = self.package.package_config / _DEFINITION_FILES["auxdata"]
+        filepath = self._package.package_config / _DEFINITION_FILES["auxdata"]
         if not filepath.is_file():
             return None
 
@@ -565,6 +623,83 @@ class _PysiralPackageConfiguration(object):
             "types": content_dict
         }
         return AuxiliaryDataConfig(**data_dict)
+
+    def _get_procdef_catalog(self) -> Union[ProcDefCatalog, None]:
+        """
+        Create a catolog of processor definition yaml files in
+        the pysiral configuration path (if known)
+        :return:
+        """
+        dir_path = self._package.package_config / "proc"
+        if not dir_path.is_dir():
+            return None
+        proc_levels = VALID_PROCESSOR_LEVELS
+        return ProcDefCatalog(**self._get_yaml_ctlg_dict(dir_path, proc_levels))
+
+    def _get_outputdef_catalog(self) -> Union[OutputDefCatalog, None]:
+        """
+        Create a catolog of processor definition yaml files in
+        the pysiral configuration path (if known)
+        :return:
+        """
+        dir_path = self._package.package_config / "output"
+        if not dir_path.is_dir():
+            return None
+
+        # Only output definitions for l2i, l2p, and l3c
+        proc_levels = list(VALID_DATA_LEVEL_IDS)
+        proc_levels.remove("l1")
+        proc_levels.remove("l2")
+        proc_levels.remove(None)
+        return OutputDefCatalog(**self._get_yaml_ctlg_dict(dir_path, proc_levels))
+
+    @staticmethod
+    def _get_yaml_ctlg_dict(dir_path: Path, proc_levels: List[str]) -> Dict:
+        """
+        Get a list of yaml files in all subdirectories of dirpath
+        and return a dictionary with format needed for
+        pysiral._package_config._YamlDefEntry
+
+        :param dir_path: The lookup directory
+
+        :return: dictionary catalog
+        """
+        ctlg_dict = {}
+        for proc_level in proc_levels:
+            lookup_dir = dir_path / proc_level
+            yaml_files = sorted(list(lookup_dir.rglob("*.yaml")))
+            ids = [y.stem for y in yaml_files]
+            yaml_def_entries = [{"id": i, "filepath": f} for i, f in zip(ids, yaml_files)]
+            ctlg_dict[proc_level] = dict(zip(ids, yaml_def_entries))
+        return ctlg_dict
+
+    @property
+    def system(self) -> SystemConfig:
+        return self._system.model_copy()
+
+    @property
+    def package(self) -> PackageConfig:
+        return self._package.model_copy()
+
+    @property
+    def platforms(self) -> Union[PlatformConfig, None]:
+        return self._platforms.model_copy()
+
+    @property
+    def auxdata(self) -> Union[AuxiliaryDataConfig, None]:
+        return self._auxdata.model_copy()
+
+    @property
+    def local_path(self) -> Union[LocalMachineConfig, None]:
+        return self._local_path.model_copy()
+
+    @property
+    def procdef(self) -> Union[ProcDefCatalog, None]:
+        return self._procdef.model_copy()
+
+    @property
+    def outputdef(self) -> Union[OutputDefCatalog, None]:
+        return self._outputdef.model_copy()
 
     # def _get_pysiral_path_information(self):
     #     """

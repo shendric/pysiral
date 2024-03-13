@@ -1145,8 +1145,6 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         self.error = ErrorStatus()
 
         # Get pysiral configuration
-        # TODO: Move to global
-        self._cfg = psrlcfg
         self._l1pprocdef = None
 
         # Store command line options
@@ -1218,30 +1216,21 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         # 4. update hemisphere for input adapter
         self._l1pprocdef["level1_preprocessor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
 
-    def _get_l1p_proc_def_filename(self, l1p_settings_id_or_file: Union[str, Path]) -> Union[str, Path]:
+    @staticmethod
+    def _get_l1p_proc_def_filename(l1p_settings_id_or_file: Union[str, Path]) -> Path:
         """
-        Query pysiral config to obtain filename for processor definition file
+        Resolve the filepath for the processor configuration file. The input can
+        be a processor file id when the processor configuration file is stored
+        in the pysiral configuration directory or a filepath to a configuration
+        file at an arbitraty location.
 
-        :param l1p_settings_id_or_file:
+        :param l1p_settings_id_or_file: procdef file id or filepaths
 
-        :return: The full file path
+        :return: file path
         """
-
-        # A. Check if already filename
         if Path(l1p_settings_id_or_file).is_file():
             return l1p_settings_id_or_file
-
-        # B. Not a file, try to resolve filename via pysiral config
-        filename = self.pysiral_cfg.get_settings_file("proc", "l1", l1p_settings_id_or_file)
-        if filename is None:
-            msg = "Invalid Level-1 pre-processor definition filename or id: %s\n" % l1p_settings_id_or_file
-            msg = msg + " \nRecognized Level-1 pre-processor definitions ids:\n"
-            ids = self.pysiral_cfg.get_setting_ids("proc", "l1")
-            for output_id in ids:
-                msg = f'{msg}    - {output_id}' + "\n"
-            self.error.add_error("invalid-l1p-outputdef", msg)
-            self.error.raise_on_error()
-        return filename
+        return psrlcfg.procdef.get("l1", l1p_settings_id_or_file, raise_if_none=True)
 
     def _get_local_input_directory(self) -> None:
         """
@@ -1250,7 +1239,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         input_handler_cfg = self.l1pprocdef.input_handler.options
         local_machine_def_tag = input_handler_cfg.local_machine_def_tag
-        primary_input_def = self.pysiral_cfg.local_machine.l1b_repository
+        primary_input_def = psrlcfg.local_machine.l1b_repository
         platform, tag = self.platform, local_machine_def_tag
 
         # Overwrite the tag if specifically supplied
@@ -1343,10 +1332,6 @@ class Level1PreProcJobDef(DefaultLoggingClass):
     def target_hemisphere(self) -> str:
         values = {"north": ["north"], "south": ["south"], "global": ["north", "south"]}
         return values[self.hemisphere]
-
-    @property
-    def pysiral_cfg(self) -> AttrDict:
-        return self._cfg
 
     @property
     def l1pprocdef(self) -> AttrDict:
