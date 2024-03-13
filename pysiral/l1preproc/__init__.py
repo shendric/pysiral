@@ -1166,7 +1166,7 @@ class Level1PreProcJobDef(object):
         self._check_if_unambiguous_platform()
 
         # 3. Expand info (input data lookup directories)
-        self._get_local_input_directory()
+        self._set_actual_input_directory()
 
         # 4. update hemisphere for input adapter
         self._l1pprocdef["level1_preprocessor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
@@ -1187,57 +1187,17 @@ class Level1PreProcJobDef(object):
             return l1p_settings_id_or_file
         return psrlcfg.procdef.get("l1", l1p_settings_id_or_file, raise_if_none=True)
 
-    def _get_local_input_directory(self) -> None:
+    def _set_actual_input_directory(self) -> None:
         """
-        Replace the tag for local machine def with the actual path info
+        Replace the source data id with the actual data source path in-place.
+        This path is taken from the local machine path definition in the pysiral
+        package configuration. The data set source can be overwritten by the
+        CLI parameters.
         """
-
-        input_handler_cfg = self.l1pprocdef.input_handler.options
-        local_machine_def_tag = input_handler_cfg.local_machine_def_tag
-        primary_input_def = psrlcfg.local_machine.l1b_repository
-        platform, tag = self.platform, local_machine_def_tag
-
-        # Overwrite the tag if specifically supplied
-        if self._source_repo_id is not None:
-            tag = self._source_repo_id
-
-        # Get the value
-        expected_branch_name = f"root.l1b_repository.{platform}.{tag}"
-        try:
-            branch = AttrDict(primary_input_def[platform][tag])
-        except KeyError as e:
-            raise KeyError(
-                f"Missing definition {expected_branch_name} in {psrlcfg.local_machine_def_filepath}"
-            ) from e
-
-        # Sanity Checks
-        # TODO: Obsolete?
-        if branch is None:
-            raise KeyError(f"Missing definition in `local_machine_def.yaml`. Expected branch: {expected_branch_name}")
-
-        # Validity checks
-        # TODO: These checks are probably better located in a separate method?
-        for key in ["source", "l1p"]:
-
-            # 1. Branch must have specific keys for input and output
-            if key not in branch:
-                raise KeyError("Missing definition in `local_machine_def.yaml`. Expected value: %s.%s")
-
-            # 2. The value of each branch must be a valid directory or an
-            #    attr (e.g. for different radar modes) with a list of directories
-            directory_or_attrdict = branch[key]
-            try:
-                directories = directory_or_attrdict.values()
-            except AttributeError:
-                directories = [directory_or_attrdict]
-
-            for directory in directories:
-                if not Path(directory).is_dir():
-                    logger.warning(f"l1p directory does not exist -> creating: {directory}")
-                    Path(directory).mkdir(parents=True)
-
-        # Update the lookup dir parameter
-        self.l1pprocdef.input_handler["options"]["lookup_dir"] = branch.source
+        local_machine_def_tag = self.l1pprocdef.input_handler.options.local_machine_def_tag
+        source_name = self._source_repo_id if self._source_repo_id is not None else local_machine_def_tag
+        source_lookup_dir = psrlcfg.platforms.get_source(self.platform, source_name)
+        self.l1pprocdef.input_handler["options"]["lookup_dir"] = source_lookup_dir
 
     def _check_if_unambiguous_platform(self) -> None:
         """

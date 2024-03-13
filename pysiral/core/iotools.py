@@ -8,17 +8,14 @@ TODO: Evaluate usefulness (or move to internal module)
 
 """
 
-import tempfile
-import uuid
-from pathlib import Path
 
+import contextlib
 import numpy as np
 from cftime import num2pydate
 from netCDF4 import Dataset
 
-from pysiral import psrlcfg
 from pysiral.core.errorhandler import ErrorStatus
-from pysiral.core.output import NCDateNumDef, PysiralOutputFilenaming
+from pysiral.core.output import NCDateNumDef
 
 
 # TODO: Replace by xarray
@@ -56,19 +53,15 @@ class ReadNC(object):
         try:
             f = Dataset(self.filename)
             f.set_auto_scale(self.autoscale)
-        except RuntimeError:
-            msg = "Cannot read netCDF file: %s" % self.filename
-            self.error.add_error("nc-runtime-error", msg)
-            self.error.raise_on_error()
+        except RuntimeError as re:
+            raise RuntimeError(f"Cannot read netCDF file: {self.filename}") from re
 
         # Try to update the time units
         # NOTE: This has become necessary with the use of
         #       variable epochs
-        try:
+        with contextlib.suppress(KeyError, AttributeError):
             time_units = f.variables["time"].units
             self.time_def.units = time_units
-        except (KeyError, AttributeError):
-            pass
 
         # Get the global attributes
         for attribute_name in f.ncattrs():
@@ -109,56 +102,3 @@ class ReadNC(object):
                     print(key)
             self.parameters = f.variables.keys()
         f.close()
-
-
-class NCMaskedGridData(object):
-
-    def __init__(self, filename, squeeze=True):
-        self.squeeze = squeeze
-        self.filename = filename
-        self.parse()
-
-    def parse(self):
-
-        nc = ReadNC(self.filename)
-
-        self.parameters = nc.parameters
-        for parameter in nc.parameters:
-            data = np.ma.array(getattr(nc, parameter))
-            if self.squeeze:
-                data = np.squeeze(data)
-            data.mask = np.isnan(data)
-            setattr(self, parameter, data)
-
-        self.attributes = nc.attributes
-        for attribute in nc.attributes:
-            setattr(self, attribute, getattr(nc, attribute))
-
-    def get_by_name(self, parameter_name):
-        try:
-            return getattr(self, parameter_name)
-        except:
-            return None
-
-
-def get_temp_png_filename():
-    return Path(tempfile.gettempdir()) / str(uuid.uuid4())+".png"
-
-
-def get_l1bdata_files(mission_id, hemisphere, year, month, config=None, version="default"):
-    if config is None:
-        config = psrlcfg
-    l1b_repo = config.local_machine.l1b_repository[mission_id][version].l1bdata
-    directory = Path(l1b_repo) / hemisphere / "%04g" % year / "%02g" % month
-    l1bdata_files = sorted(directory.glob("*.nc"))
-    return l1bdata_files
-
-
-
-
-def l1bdata_get_baseline(filename):
-    """ Returns version string in l1bdata filename  """
-    # Parse infos from l1bdata filename
-    fnattr = PysiralOutputFilenaming()
-    fnattr.parse_filename(filename)
-    return fnattr.version

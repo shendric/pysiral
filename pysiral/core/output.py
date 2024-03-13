@@ -16,12 +16,11 @@ from loguru import logger
 from netCDF4 import Dataset, date2num
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.config import get_yaml_config
 from pysiral.core.errorhandler import ErrorStatus
 
 
-class OutputHandlerBase(DefaultLoggingClass):
+class OutputHandlerBase(object):
     """
     A class that defines properties of output files (content, location, format)
     based on the output definition, data container and other processor settings
@@ -52,8 +51,6 @@ class OutputHandlerBase(DefaultLoggingClass):
         """
 
         # Init the parent
-        super(OutputHandlerBase, self).__init__(self.__class__.__name__)
-        self.pysiral_config = psrlcfg
         self.error = ErrorStatus()
         self._basedir = "n/a"
 
@@ -360,7 +357,7 @@ class NCDateNumDef(object):
         self.calendar = "standard"
 
 
-class NCDataFile(DefaultLoggingClass):
+class NCDataFile(object):
 
     def __init__(self, output_handler):
         """
@@ -369,10 +366,7 @@ class NCDataFile(DefaultLoggingClass):
         :param output_handler: An output handler class for the different processing level
         """
 
-        # Init parent
-        class_name = self.__class__.__name__
-        super(NCDataFile, self).__init__(class_name)
-        self.error = ErrorStatus(caller_id=class_name)
+        self.error = ErrorStatus(caller_id=self.__class__.__name__)
 
         # Output handler property
         self.output_handler = output_handler
@@ -580,11 +574,6 @@ class NCDataFile(DefaultLoggingClass):
         else:
             return dict(self.parameter_attributes[parameter])
 
-    def _write_processor_settings(self):
-        settings = self._proc_settings
-        for item in settings.iterkeys():
-            self._rootgrp.setncattr(item, str(settings[item]))
-
     def _open_file(self):
         try:
             self._rootgrp = Dataset(self.full_path, "w")
@@ -614,7 +603,7 @@ class NCDataFile(DefaultLoggingClass):
         return Path(self.export_path) / self.export_filename
 
 
-class L1bDataNC(DefaultLoggingClass):
+class L1bDataNC(object):
     """
     Class to export a L1bdata object into a netcdf file
     NOTE: This class is different from the other netCDF output classes as
@@ -622,8 +611,6 @@ class L1bDataNC(DefaultLoggingClass):
     """
 
     def __init__(self):
-
-        super(L1bDataNC, self).__init__(self.__class__.__name__)
 
         self.datagroups = ["waveform", "surface_type", "time_orbit", "classifier", "correction"]
         self.filename = None

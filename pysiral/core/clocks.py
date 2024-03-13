@@ -15,7 +15,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-def debug_timer(func, message: str = None):
+def debug_timer(message: str = None):
     """
     Decorator function that logs the time in seconds for a function/method
     if python is run in debug mode (python -O, __debug__=True)
@@ -26,17 +26,19 @@ def debug_timer(func, message: str = None):
 
     :return:
     """
-    def wrapped_func(*args, **kwargs):
-        stack = inspect.stack()
-        caller_obj = stack[1][0].f_locals["self"]
-        caller = caller_obj if message is None else message
-        t0 = time.time()
-        func(*args, **kwargs)
-        t1 = time.time()
-        elapsed_seconds = t1 - t0
-        if __debug__:
-            logger.debug(f"{caller} run in {elapsed_seconds:.3f} seconds ({get_duration(elapsed_seconds)})")
-    return wrapped_func()
+    def decorated_func(func):
+        def wrapped_func(*args, **kwargs):
+            stack = inspect.stack()
+            caller_obj = stack[1][0].f_locals["self"]
+            caller = caller_obj if message is None else message
+            t0 = time.time()
+            func(*args, **kwargs)
+            t1 = time.time()
+            elapsed_seconds = t1 - t0
+            if __debug__:
+                logger.debug(f"{caller} run in {elapsed_seconds:.3f} seconds ({get_duration(elapsed_seconds)})")
+        return wrapped_func
+    return decorated_func
 
 
 def get_duration(elapsed_seconds, fmt="%H:%M:%S"):
@@ -44,6 +46,7 @@ def get_duration(elapsed_seconds, fmt="%H:%M:%S"):
     datum = datetime(1900, 1, 1)
     duration = datum + relativedelta(seconds=elapsed_seconds)
     return duration.strftime(fmt)
+
 
 class StopWatch(object):
 

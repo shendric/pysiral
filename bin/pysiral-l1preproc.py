@@ -22,7 +22,7 @@ def pysiral_l1preproc(job):
     """
 
     # Take the time
-    job.stopwatch.start()
+    # job.stopwatch.start()
 
     # 1. Get the input handler
     input_handler_def = job.l1pprocdef.input_handler

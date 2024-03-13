@@ -6,15 +6,10 @@ Created on Tue Jul 21 18:04:43 2015
 TODO: Is this still being used?
 """
 
-import calendar
-import time
-from datetime import datetime
 from typing import List, Tuple
 
 import numpy as np
 from dateutil import parser as dtparser
-from dateutil.relativedelta import relativedelta
-from dateutil.rrule import DAILY, MONTHLY, rrule
 
 
 def get_multiprocessing_1d_array_chunks(
@@ -100,40 +95,6 @@ def rle(inarray):
     return z, p, ia[i]
 
 
-def month_iterator(start_year, start_month, end_year, end_month):
-    """ returns an iterator over months """
-    start = datetime(start_year, start_month, 1)
-    end = datetime(end_year, end_month, 1)
-    return [(d.year, d.month) for d in rrule(MONTHLY,
-            dtstart=start, until=end)]
-
-
-def days_iterator(year, month):
-    """ returns an iterator over all days in given month """
-    all_days = calendar.monthrange(year, month)
-    start = datetime(year, month, 1)
-    end = datetime(year, month, all_days[-1])
-    return [(d.year, d.month, d.day) for d in rrule(DAILY,
-            dtstart=start, until=end)]
-
-
-def get_month_time_range(year, month):
-    """ Returns the start and stop datetime object for a given month """
-    start_dt = datetime(year, month, 1)
-    stop_dt = start_dt + relativedelta(months=1, microseconds=-1)
-    return start_dt, stop_dt
-
-
-def validate_year_month_list(year_month_list, label):
-    try:
-        datetime(year_month_list[0], year_month_list[1], 1)
-    except ValueError:
-        print(
-            f"Error: Invalid {label}"
-            + " (%04g, %02g)" % (year_month_list[0], year_month_list[1])
-        )
-
-
 class ProgressIndicator(object):
 
     def __init__(self, n_steps):
@@ -155,33 +116,3 @@ class ProgressIndicator(object):
     @property
     def percent(self):
         return float(self.step)/float(self.n_steps)*100.
-
-
-class SimpleTimer(object):
-
-    def __init__(self, name=''):
-        self.name = name
-        self.start = time.time()
-        self.last_event = time.time()
-
-    @property
-    def elapsed(self):
-        return time.time() - self.last_event
-
-    @property
-    def total(self):
-        return time.time() - self.start
-
-    def checkpoint(self, name=''):
-        print('{timer} {checkpoint} took {elapsed} seconds'.format(
-            timer=self.name,
-            checkpoint=name,
-            elapsed=self.elapsed,
-        ).strip())
-        self.last_event = time.time()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        print('%s completed in %.8f seconds' % (self.name, self.total))

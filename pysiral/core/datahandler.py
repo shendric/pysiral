@@ -9,7 +9,7 @@ import re
 from datetime import datetime, timedelta
 from itertools import product
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional, Dict
 
 from attrdict import AttrDict
 from dateperiods import DatePeriod
@@ -18,12 +18,11 @@ from loguru import logger
 
 from pysiral import get_cls, psrlcfg
 from pysiral.auxdata import AuxClassConfig
-from pysiral.core.class_template import DefaultLoggingClass
 from pysiral.core.errorhandler import PYSIRAL_ERROR_CODES, ErrorStatus
 from pysiral.core.output import PysiralOutputFilenaming
 
 
-class DefaultAuxdataClassHandler(DefaultLoggingClass):
+class DefaultAuxdataClassHandler(object):
     """ Class for retrieving handler classes for auxiliary data
     (mss, sic, sitype, snow). The classes are initialized with directory
     information from the local machine definition and the auxdata information
@@ -31,7 +30,6 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
     """
 
     def __init__(self):
-        super(DefaultAuxdataClassHandler, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus(caller_id=self.__class__.__name__)
 
     def get_pyclass(self, auxdata_class, auxdata_id, l2_procdef_opt):
@@ -119,18 +117,23 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
 
         return auxclass(cfg)
 
-    def get_local_repository(self, auxdata_class, auxdata_id):
-        """ Get the local repository for the the auxdata type and id """
+    def get_local_repository(self, auxdata_class, auxdata_id) -> Optional[Dict]:
+        """
+        Get the local repository for the auxdata type and id
+        
+        :param auxdata_class:
+        :param auxdata_id:
+        :return:
+        """
         if auxdata_id is None:
             return None
         aux_repo_defs = psrlcfg.local_machine.auxdata_repository
         try:
             local_repo_auxclass = aux_repo_defs[auxdata_class]
-        except KeyError:
-            local_repo_auxclass = {}
-            msg = "Missing auxdata definition in local_machine_def.yaml: auxdata_repository.%s" % auxdata_class
-            self.error.add_error("missing-localmachinedef-tag", msg)
-            self.error.raise_on_error()
+        except KeyError as e:
+            raise KeyError(
+                f"Missing auxdata definition in local_machine_def.yaml: auxdata_repository.{auxdata_class}"
+            ) from e
         return local_repo_auxclass.get(auxdata_id, None)
 
     def get_auxdata_def(self, auxdata_class: str, auxdata_id: str) -> "AttrDict":
@@ -150,7 +153,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
         return auxdata_def.attrdict
 
 
-class L1PDataHandler(DefaultLoggingClass):
+class L1PDataHandler(object):
     """ Class for querying L1P data files """
 
     def __init__(self,
@@ -167,7 +170,6 @@ class L1PDataHandler(DefaultLoggingClass):
         :param: file_version: The file version of the l1p data (e.g. v1p1).
             NOTE: Only newer l1p files use the version subfolder. Thus, this is optional.
         """
-        super(L1PDataHandler, self).__init__(self.__class__.__name__)
 
         # Save args
         self._platform = platform
@@ -176,19 +178,16 @@ class L1PDataHandler(DefaultLoggingClass):
         self._file_version = file_version if file_version is not None else self._autodetect_file_version()
         self._last_directory = None
 
-    def get_files_from_time_range(self, time_range: DatePeriod) -> List[str]:
+    def get_files_from_time_range(self, time_range: DatePeriod) -> List[Union[str, Path]]:
         """
-        Query l1p files for a a given time range.
+        Query l1p files for a given time range.
         :param time_range: a dateperiods.DatePeriod instance
         :return:
         """
 
         # Validate time_range (needs to be of type DatePeriod)
         if not isinstance(time_range, DatePeriod):
-            error = ErrorStatus()
-            msg = f"Invalid type of time_range, required: dateperiods.DatePeriod, was {type(time_range)}"
-            error.add_error("invalid-timerange-type", msg)
-            error.raise_on_error()
+            raise ValueError(f"Invalid type of time_range, required: dateperiods.DatePeriod, was {type(time_range)}")
 
         # 1) get list of all files for monthly folders
         yyyy, mm = "%04g" % time_range.tcs.year, "%02g" % time_range.tcs.month
@@ -232,9 +231,7 @@ class L1PDataHandler(DefaultLoggingClass):
         else:
             msg = f"l1p file version autodetect failure: Multiple versions found [{file_versions}]"
             msg = f"{msg} -> specify file_version"
-            self.error.add_error("l1p-input-error", msg)
-            self.error.raise_on_error()
-        return None
+            raise ValueError(msg)
 
     @staticmethod
     def l1p_in_trange(fn: str, tr: DatePeriod) -> bool:
@@ -258,16 +255,12 @@ class L1PDataHandler(DefaultLoggingClass):
         # TODO: Evaluate use of function (properties shouldn't raise errors?)
         :return:
         """
-        l1p_base_dir = None
         try:
-            l1p_base_dir = psrlcfg.local_machine.l1b_repository[self._platform][self._source_version]["l1p"]
-        except (AttributeError, KeyError):
+            return psrlcfg.local_machine.l1b_repository[self._platform][self._source_version]["l1p"]
+        except (AttributeError, KeyError) as e:
             msg = f"missing entry `l1bdata.{self._platform}.{self._source_version}.l1p` in local_machine_def.yaml"
             msg = f"{msg} ({psrlcfg.local_machine_def_filepath})"
-            error_id = "l1bdata_missing_localrepo_def"
-            self.error.add_error(error_id, msg)
-            self.error.raise_on_error()
-        return l1p_base_dir
+            raise AttributeError(msg) from e
 
     @property
     def last_directory(self) -> str:
