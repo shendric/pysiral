@@ -93,6 +93,36 @@ class PlatformConfig(BaseModel):
     mode_flags: _AltimeterModeFlags
     platforms: _AltimeterPlatforms
 
+    def get_source(
+            self,
+            platform_id: str,
+            source_name: str,
+            raise_if_none: bool = False
+    ) -> Optional[Union[Path, Dict]]:
+        """
+        Return the source path(s) of a specific dataset from `local_machine_def.yaml`
+
+        :param platform_id: Must be valid platform id
+        :param source_name: Must be valid source name for platform id
+        :param raise_if_none: Boolean flag defining action if yaml file does not exist
+
+        :raises KeyError: Incorrect platform id
+        :raises KeyError: Incorrect source name
+
+        :return: Either Path or Dict[Path]
+        """
+        if platform_id not in self.model_fields:
+            if raise_if_none:
+                raise KeyError(f"{platform_id=} not a valid platform_id [{self.platforms.items}]")
+            return None
+
+        platform_source = getattr(self, platform_id).get(source_name)
+        if platform_source is None and raise_if_none:
+            raise KeyError(f"No platform data definition {platform_id=}:{source_name=}")
+        elif platform_source is None:
+            return None
+        return platform_source.source
+
     @property
     def ids(self) -> List[str]:
         return list(self.platforms.items)
@@ -391,7 +421,9 @@ class ProcDefCatalog(BaseModel):
 
         """
         if proc_level not in self.model_fields:
-            raise KeyError(f"{proc_level=} not a valid processor level [l1, l2, l3]")
+            if raise_if_none:
+                raise KeyError(f"{proc_level=} not a valid processor level [l1, l2, l3]")
+            return None
 
         yaml_def_entry = getattr(self, proc_level).get(yaml_id)
         if yaml_def_entry is None and raise_if_none:
