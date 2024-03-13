@@ -7,7 +7,6 @@ TODO: Is this still being used?
 """
 
 import calendar
-import multiprocessing
 import time
 from datetime import datetime
 from typing import List, Tuple
@@ -94,12 +93,11 @@ def rle(inarray):
     n = len(ia)
     if n == 0:
         return None, None, None
-    else:
-        y = np.array(ia[1:] != ia[:-1])      # pairwise unequal (string safe)
-        i = np.append(np.where(y), n - 1)    # must include last element posi
-        z = np.diff(np.append(-1, i))        # run lengths
-        p = np.cumsum(np.append(0, z))[:-1]  # positions
-        return z, p, ia[i]
+    y = np.array(ia[1:] != ia[:-1])      # pairwise unequal (string safe)
+    i = np.append(np.where(y), n - 1)    # must include last element posi
+    z = np.diff(np.append(-1, i))        # run lengths
+    p = np.cumsum(np.append(0, z))[:-1]  # positions
+    return z, p, ia[i]
 
 
 def month_iterator(start_year, start_month, end_year, end_month):
@@ -120,7 +118,7 @@ def days_iterator(year, month):
 
 
 def get_month_time_range(year, month):
-    """ Returns the a start and stop datetime object for a given month """
+    """ Returns the start and stop datetime object for a given month """
     start_dt = datetime(year, month, 1)
     stop_dt = start_dt + relativedelta(months=1, microseconds=-1)
     return start_dt, stop_dt
@@ -130,7 +128,10 @@ def validate_year_month_list(year_month_list, label):
     try:
         datetime(year_month_list[0], year_month_list[1], 1)
     except ValueError:
-        print("Error: Invalid "+label+" (%04g, %02g)" % (year_month_list[0], year_month_list[1]))
+        print(
+            f"Error: Invalid {label}"
+            + " (%04g, %02g)" % (year_month_list[0], year_month_list[1])
+        )
 
 
 class ProgressIndicator(object):
@@ -184,4 +185,3 @@ class SimpleTimer(object):
 
     def __exit__(self, type, value, traceback):
         print('%s completed in %.8f seconds' % (self.name, self.total))
-        pass

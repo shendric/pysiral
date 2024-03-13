@@ -11,9 +11,6 @@ from operator import attrgetter
 from pathlib import Path
 from typing import Dict, List, Tuple, TypeVar, Union
 
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import matplotlib.pyplot as plt
 import numpy as np
 from attrdict import AttrDict
 from dateperiods import DatePeriod, PeriodIterator
@@ -21,39 +18,34 @@ from geopy import distance
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
-from pysiral.core.clocks import StopWatch
+from pysiral.core.clocks import debug_timer
 from pysiral.core.config import get_yaml_config
-from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
                                  get_last_array_index, rle)
 from pysiral.core.output import L1bDataNC
 from pysiral.l1data import L1bMetaData, Level1bData
 from pysiral.l1preproc.procitems import L1PProcItemDef
+from pysiral.l1preproc.debug import l1p_debug_map
 
-SHOW_DEBUG_MAP = False
 
-
-class Level1PInputHandlerBase(DefaultLoggingClass):
+class Level1PInputHandlerBase(object):
     """
     Base class (mostly for type checking).
     """
 
-    def __init__(self,
-                 cfg: AttrDict,
-                 raise_on_error: bool = False,
-                 cls_name: str = None
-                 ) -> None:
+    def __init__(
+        self,
+        cfg: AttrDict,
+        raise_on_error: bool = False,
+    ) -> None:
         """
         Base class for all input handlers implemented in the `l1_adapter` package
         of the individual altimeter platform packages. Not to be called directly.
 
         :param cfg: Config dictionary
         :param raise_on_error: Flag how to handle errors
-        :param cls_name: children class name (for error status)
         """
-        super(Level1PInputHandlerBase, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
+
         self.cfg = cfg
         self.raise_on_error = raise_on_error
 
@@ -70,26 +62,19 @@ class Level1PInputHandlerBase(DefaultLoggingClass):
         raise NotImplementedError("Level1PInputHandlerBase is to be inherited only")
 
 
-class Level1POutputHandler(DefaultLoggingClass):
+class Level1POutputHandler(object):
     """
     The output handler for l1p product files
     NOTE: This is not a subclass of OutputHandlerbase due to the special nature of pysiral l1p products
     """
 
     def __init__(self, cfg: AttrDict) -> None:
-        cls_name = self.__class__.__name__
-        super(Level1POutputHandler, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
         self.cfg = cfg
-
-        self.pysiral_cfg = psrlcfg
-
-        # Init class properties
         self._path = None
         self._filename = None
 
     @staticmethod
-    def remove_old_if_applicable(perid: DatePeriod) -> None:
+    def remove_old_if_applicable() -> None:
         logger.warning("Not implemented: self.remove_old_if_applicable")
         return
 
@@ -130,8 +115,7 @@ class Level1POutputHandler(DefaultLoggingClass):
             msg = "Missing mandatory option %s in l1p processor definition file -> aborting"
             msg %= "root.output_handler.options.local_machine_def_tag"
             msg = msg + "\nOptions: \n" + self.cfg.makeReport()
-            self.error.add_error("missing-option", msg)
-            self.error.raise_on_error()
+            raise KeyError(msg)
 
         # TODO: Move to config file
         filename_template = "pysiral-l1p-{platform}-{source}-{timeliness}-{hemisphere}-{tcs}-{tce}-{file_version}.nc"
@@ -145,7 +129,7 @@ class Level1POutputHandler(DefaultLoggingClass):
                   "file_version": self.cfg.version.version_file_tag}
         self._filename = filename_template.format(**values)
 
-        local_repository = self.pysiral_cfg.local_machine.l1b_repository
+        local_repository = psrlcfg.local_machine.l1b_repository
         export_folder = Path(local_repository[l1.info.mission][local_machine_def_tag]["l1p"])
         yyyy = "%04g" % l1.time_orbit.timestamp[0].year
         mm = "%02g" % l1.time_orbit.timestamp[0].month
@@ -167,18 +151,18 @@ class Level1POutputHandler(DefaultLoggingClass):
 L1PInputCLS = TypeVar("L1PInputCLS", bound=Level1PInputHandlerBase)
 
 
-class L1PreProcBase(DefaultLoggingClass):
+class L1PreProcBase(object):
 
-    def __init__(self,
-                 cls_name: str,
-                 input_adapter: L1PInputCLS,
-                 output_handler: Level1POutputHandler,
-                 cfg: AttrDict
-                 ) -> None:
+    def __init__(
+        self,
+        cls_name: str,
+        input_adapter: L1PInputCLS,
+        output_handler: Level1POutputHandler,
+        cfg: AttrDict
+    ) -> None:
 
         # Make sure the logger/error handler has the name of the parent class
         super(L1PreProcBase, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
 
         # The class that translates a given input file into an L1BData object
         self.input_adapter = input_adapter
@@ -252,7 +236,7 @@ class L1PreProcBase(DefaultLoggingClass):
 
         # A class that is passed to the input adapter to check if the pre-processor wants the
         # content of the current file
-        polar_ocean_check = L1PreProcPolarOceanCheck(self.__class__.__name__, self.polar_ocean_props)
+        polar_ocean_check = L1PreProcPolarOceanCheck(self.polar_ocean_props)
 
         # The stack of connected l1 segments is a list of l1 objects that together form a
         # continuous trajectory over polar oceans. This stack will be emptied and its content
@@ -275,7 +259,7 @@ class L1PreProcBase(DefaultLoggingClass):
             if l1 is None:
                 logger.info("- No polar ocean data for curent job -> skip file")
                 continue
-            if SHOW_DEBUG_MAP:
+            if __debug__:
                 l1p_debug_map([l1], title="Source File")
 
             # Step 2: Apply processor items on source data
@@ -287,7 +271,7 @@ class L1PreProcBase(DefaultLoggingClass):
             # It is the job of the L1PReProc children class to return only the relevant
             # segments over polar ocean as a list of l1 objects.
             l1_po_segments = self.extract_polar_ocean_segments(l1)
-            if SHOW_DEBUG_MAP:
+            if __debug__:
                 l1p_debug_map(l1_po_segments, title="Polar Ocean Segments")
 
             # Optional Step 4 (needs to be specifically activated in l1 processor config file)
@@ -309,7 +293,7 @@ class L1PreProcBase(DefaultLoggingClass):
             # l1p_debug_map(l1_connected_stack, title="Polar Ocean Segments - Stack")
             if not l1_export_list:
                 continue
-            if SHOW_DEBUG_MAP:
+            if __debug__:
                 l1p_debug_map(l1_export_list, title="Polar Ocean Segments - Export")
 
             # Step 4: Processor items post
@@ -321,7 +305,7 @@ class L1PreProcBase(DefaultLoggingClass):
             for l1_export in l1_export_list:
                 self.l1_export_to_netcdf(l1_export)
 
-            if SHOW_DEBUG_MAP:
+            if __debug__:
                 l1p_debug_map(l1_connected_stack, title="Stack after Export")
 
         # Step : Export the last item in the stack (if it exists)
@@ -380,6 +364,7 @@ class L1PreProcBase(DefaultLoggingClass):
             else self._l1_apply_proc_item(l1, stage_name)
         )
 
+    @debug_timer("L1 processor items")
     def _l1_apply_proc_item_list(self,
                                  l1_list: List["Level1bData"],
                                  stage_name: str
@@ -392,31 +377,19 @@ class L1PreProcBase(DefaultLoggingClass):
 
         :return:
         """
-        timer = StopWatch().start()
         for procitem, label in self.processor_item_dict.get(stage_name, []):
             procitem.apply_list(l1_list)
-        timer.stop()
-        msg = f"- L1 processing items applied in {timer.get_seconds():.3f} seconds"
-        logger.debug(msg)
 
-    def _l1_apply_proc_item(self,
-                            l1_item: "Level1bData",
-                            stage_name: str
-                            ) -> None:
+    @debug_timer("L1 processor items")
+    def _l1_apply_proc_item(self, l1: "Level1bData", stage_name: str) -> None:
         """
-        Apply a list of
+        Apply l1 processor items
 
-        :param l1_item:
-        :param stage_name:
-
-        :return:
+        :param l1: The L1 data containier
+        :param stage_name: processor stage
         """
-        timer = StopWatch().start()
         for procitem, label in self.processor_item_dict.get(stage_name, []):
-            procitem.apply(l1_item)
-        timer.stop()
-        msg = f"- L1 processing items applied in {timer.get_seconds():.3f} seconds"
-        logger.debug(msg)
+            procitem.apply(l1)
 
     def l1_get_output_segments(self,
                                l1_connected_stack: List["Level1bData"],
@@ -579,10 +552,7 @@ class L1PreProcBase(DefaultLoggingClass):
                 is_polar = l1.time_orbit.latitude <= (-1.0 * polar_threshold)
 
             else:
-                msg = f"Unknown hemisphere: {hemisphere} [north|south]"
-                self.error.add_error("invalid-hemisphere", msg)
-                self.error.raise_on_error()
-                return None
+                raise ValueError(f"Unknown {hemisphere=} [north|south]")
 
             # Extract the subset (if applicable)
             polar_subset = np.where(is_polar)[0]
@@ -655,15 +625,10 @@ class L1PreProcBase(DefaultLoggingClass):
             # Compute full polar subset range
             if hemisphere == "north":
                 is_polar = l1.time_orbit.latitude >= polar_threshold
-
             elif hemisphere == "south":
                 is_polar = l1.time_orbit.latitude <= (-1.0 * polar_threshold)
-
             else:
-                msg = f"Unknown hemisphere: {hemisphere} [north|south]"
-                self.error.add_error("invalid-hemisphere", msg)
-                self.error.raise_on_error()
-                return None
+                raise ValueError(f"Unknown {hemisphere=} [north|south]")
 
             # Step: Extract the polar ocean segment for the given hemisphere
             polar_subset = np.where(is_polar)[0]
@@ -692,11 +657,13 @@ class L1PreProcBase(DefaultLoggingClass):
 
     def filter_small_ocean_segments(self, l1: "Level1bData") -> "Level1bData":
         """
-        This method sets the surface type flag of very small ocean segments to land. This action should prevent
-        large portions of land staying in the l1 segment is a small fjord et cetera is crossed. It should also filter
-        out smaller ocean segments that do not have a realistic chance of freeboard retrieval.
+        This method sets the surface type flag of very small ocean segments to land.
+        This action should prevent large portions of land staying in the l1 segment
+        is a small fjord et cetera is crossed. It should also filter out smaller
+        ocean segments that do not have a realistic chance of freeboard retrieval.
 
         :param l1: A pysiral.l1bdata.Level1bData instance
+
         :return: filtered l1 object
         """
 
@@ -842,17 +809,13 @@ class L1PreProcBase(DefaultLoggingClass):
     @property
     def polar_ocean_props(self) -> Union[Dict, AttrDict]:
         if "polar_ocean" not in self.cfg:
-            msg = "Missing configuration key `polar_ocean` in Level-1 Pre-Processor Options"
-            self.error.add_error("l1preproc-missing-option", msg)
-            self.error.raise_on_error()
+            raise KeyError("Missing configuration key `polar_ocean` in Level-1 Pre-Processor Options")
         return self.cfg.polar_ocean
 
     @property
     def orbit_segment_connectivity_props(self) -> Union[Dict, AttrDict]:
         if "orbit_segment_connectivity" not in self.cfg:
-            msg = "Missing configuration key `orbit_segment_connectivity` in Level-1 Pre-Processor Options"
-            self.error.add_error("l1preproc-missing-option", msg)
-            self.error.raise_on_error()
+            raise KeyError("Missing configuration key `orbit_segment_connectivity` in Level-1 Pre-Processor Options")
         return self.cfg.orbit_segment_connectivity
 
 
@@ -1058,19 +1021,15 @@ class L1PreProcFullOrbit(L1PreProcBase):
         return l1_list
 
 
-class L1PreProcPolarOceanCheck(DefaultLoggingClass):
+class L1PreProcPolarOceanCheck(object):
     """
     A small helper class that can be passed to input adapter to check whether the l1 segment is
     wanted or not
     """
 
     def __init__(self,
-                 log_name: str,
                  cfg: AttrDict
                  ) -> None:
-        cls_name = self.__class__.__name__
-        super(L1PreProcPolarOceanCheck, self).__init__(log_name)
-        self.error = ErrorStatus(caller_id=cls_name)
 
         # Save Parameter
         self.cfg = cfg
@@ -1108,20 +1067,22 @@ class L1PreProcPolarOceanCheck(DefaultLoggingClass):
         return True
 
 
-class Level1PreProcJobDef(DefaultLoggingClass):
+class Level1PreProcJobDef(object):
     """
     A class that contains all information necessary for the Level-1 pre-processor.
     """
 
-    def __init__(self,
-                 l1p_settings_id_or_file: Union[str, Path],
-                 tcs: List[int],
-                 tce: List[int],
-                 exclude_month: List[int] = None,
-                 hemisphere: str = "global",
-                 platform: str = None,
-                 output_handler_cfg: Union[dict, AttrDict] = None,
-                 source_repo_id: str = None):
+    def __init__(
+        self,
+        l1p_settings_id_or_file: Union[str, Path],
+        tcs: List[int],
+        tce: List[int],
+        exclude_month: List[int] = None,
+        hemisphere: str = "global",
+        platform: str = None,
+        output_handler_cfg: Union[dict, AttrDict] = None,
+        source_repo_id: str = None
+    ):
         """
         The settings for the Level-1 pre-processor job
 
@@ -1140,9 +1101,6 @@ class Level1PreProcJobDef(DefaultLoggingClass):
                                      (input_handler.options.local_machine_def_tag &
                                       output_handler.options.local_machine_def_tag)
         """
-
-        super(Level1PreProcJobDef, self).__init__(self.__class__.__name__)
-        self.error = ErrorStatus()
 
         # Get pysiral configuration
         self._l1pprocdef = None
@@ -1164,9 +1122,6 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         if output_handler_cfg is None:
             output_handler_cfg = {}
         self._output_handler_cfg = output_handler_cfg
-
-        # Measure execution time
-        self.stopwatch = StopWatch()
 
     @classmethod
     def from_args(cls, args: AttrDict) -> "Level1PreProcJobDef":
@@ -1248,21 +1203,17 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         # Get the value
         expected_branch_name = f"root.l1b_repository.{platform}.{tag}"
-        branch = None
         try:
             branch = AttrDict(primary_input_def[platform][tag])
-        except KeyError:
-            msg = f"Missing definition {expected_branch_name} in {psrlcfg.local_machine_def_filepath}"
-            self.error.add_error("local-machine-def-missing-tag", msg)
-            self.error.raise_on_error()
+        except KeyError as e:
+            raise KeyError(
+                f"Missing definition {expected_branch_name} in {psrlcfg.local_machine_def_filepath}"
+            ) from e
 
         # Sanity Checks
         # TODO: Obsolete?
         if branch is None:
-            msg = "Missing definition in `local_machine_def.yaml`. Expected branch: %s"
-            msg %= expected_branch_name
-            self.error.add_error("local-machine-def-missing-tag", msg)
-            self.error.raise_on_error()
+            raise KeyError(f"Missing definition in `local_machine_def.yaml`. Expected branch: {expected_branch_name}")
 
         # Validity checks
         # TODO: These checks are probably better located in a separate method?
@@ -1270,10 +1221,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
             # 1. Branch must have specific keys for input and output
             if key not in branch:
-                msg = "Missing definition in `local_machine_def.yaml`. Expected value: %s.%s"
-                msg %= (expected_branch_name, key)
-                self.error.add_error("local-machine-def-missing-tag", msg)
-                self.error.raise_on_error()
+                raise KeyError("Missing definition in `local_machine_def.yaml`. Expected value: %s.%s")
 
             # 2. The value of each branch must be a valid directory or an
             #    attr (e.g. for different radar modes) with a list of directories
@@ -1388,56 +1336,6 @@ def get_preproc(preproc_type: str,
         msg += "\nKnown types:"
         for key in preproc_class_lookup_dict:
             msg += "\n - %s" % key
-        error = ErrorStatus(caller_id="Level1PreProcessor")
-        error.add_error("invalid-l1preproc-class", msg)
-        error.raise_on_error()
-
+        raise ImportError(msg)
     # Return the initialized class
     return cls(input_adapter, output_handler, cfg)
-
-
-def l1p_debug_map(l1p_list: List["Level1bData"],
-                  title: str = None
-                  ) -> None:
-    """
-    Create an interactive map of l1p segment
-
-    :param l1p_list:
-    :param title:
-
-    :return:
-    """
-
-    title = title if title is not None else ""
-    proj = ccrs.PlateCarree(central_longitude=0.0)
-
-    plt.figure(dpi=150)
-    fig_manager = plt.get_current_fig_manager()
-    try:
-        fig_manager.window.showMaximized()
-    except AttributeError:
-        fig_manager.window.state('zoomed')
-    ax = plt.axes(projection=proj)
-    ax.set_global()
-    ax.set_title(title)
-    ax.coastlines(resolution='50m', color="0.25", linewidth=0.25, zorder=201)
-    ax.add_feature(cfeature.OCEAN, color="#D0CFD4", zorder=150)
-    ax.add_feature(cfeature.LAND, color="#EAEAEA", zorder=200)
-
-    for i, l1p in enumerate(l1p_list):
-        ax.scatter(l1p.time_orbit.longitude, l1p.time_orbit.latitude,
-                   s=1, zorder=300, linewidths=0.0,
-                   transform=proj
-                   )
-        ax.scatter(l1p.time_orbit.longitude[0], l1p.time_orbit.latitude[0],
-                   s=10, zorder=300, linewidths=0.5, color="none", edgecolors="black",
-                   transform=proj
-                   )
-
-        ax.annotate(f"{i+1}",
-                    xy=(l1p.time_orbit.longitude[0], l1p.time_orbit.latitude[0]),
-                    xycoords=proj._as_mpl_transform(ax), zorder=300,
-                    xytext=(10, 10), textcoords="offset pixels",
-                    fontsize=6
-                    )
-    plt.show()
