@@ -297,8 +297,8 @@ class _PysiralProductOutputPattern(BaseModel):
     l2: str
     l3: str
 
-    @classmethod
     @field_validator("l1p", "l2", "l3")
+    @classmethod
     def test_pysiral_output_dir_pattern(cls, pattern):
         regex = re.compile(r"[^\w\\/{}]")
         assert not regex.findall(pattern), f"regex failed: {pattern}"

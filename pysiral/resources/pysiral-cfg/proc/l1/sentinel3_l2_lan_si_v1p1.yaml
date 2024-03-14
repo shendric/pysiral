@@ -1,6 +1,6 @@
 # NOTE: A separate config file is necessary for Sentinel-3B, since the Level-1 pre-processor
 #       expects one config file per platform (at least for now)
-platform: sentinel3a, sentinel3b
+supported_platforms: [sentinel3a, sentinel3b]
 
 # Information of getting an input file list
 input_handler:

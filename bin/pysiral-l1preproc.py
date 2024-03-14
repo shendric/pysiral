@@ -12,50 +12,57 @@ from pysiral.core.config import DefaultCommandLineArguments
 from pysiral.l1preproc import Level1POutputHandler, L1pProcessorConfig, get_preproc
 
 
-def pysiral_l1preproc(job):
+def pysiral_l1preproc():
     """
     Workflow script of the pysiral l1b preprocessor.
 
-    :param job: A pysiral.l1preproc.Level1PreProcJobDef instance
     :return: None
     """
 
     # Take the time
     # job.stopwatch.start()
 
-    # 1. Get the input handler
-    input_handler_def = job.l1pprocdef.input_handler
-    input_handler_cls, err = get_cls(input_handler_def.module_name, input_handler_def.class_name, relaxed=False)
-    input_handler = input_handler_cls(input_handler_def.options)
+    # Get the command line arguments
+    cli = Level1PreProcArgParser()
+    cli.parse_command_line_arguments()
 
-    # 2. Get the adapter class that transfers
-    adapter_def = job.l1pprocdef.input_adapter
-    input_adapter_cls, err = get_cls(adapter_def.module_name, adapter_def.class_name, relaxed=False)
-    input_adapter = input_adapter_cls(adapter_def.options)
+    # Create the job definitions
+    cfg = L1pProcessorConfig.from_yaml(cli.args.l1p_settings, platform=cli.args.platform)
 
-    # 3. Get the output handler
-    output_handler_def = job.l1pprocdef.output_handler
-    output_handler = Level1POutputHandler(output_handler_def.options)
-    output_handler.cfg.update(**job.output_handler_cfg)
-
-    # 4. Get the pre-processor
-    preproc_def = job.l1pprocdef.level1_preprocessor
-    l1preproc = get_preproc(preproc_def.type, input_adapter, output_handler, preproc_def.options)
-
-    # 5. Loop over monthly periods
-    for period in job.period_segments:
-
-        # 5.1 Get input files
-        file_list = input_handler.get_file_for_period(period)
-        if len(file_list) == 0:
-            logger.warning(f"No input files found for period: {period.date_label}, skipping")
-
-        # 5.2 Output management
-        # Note: This is only relevant, if the --remove-old keyword is set
-        # output_handler.remove_old_if_applicable(period)
-
-        # 5.3 Run the pre-processor
-        l1preproc.process_input_files(file_list)
+    breakpoint()
+    # # 1. Get the input handler
+    # input_handler_def = job.l1pprocdef.input_handler
+    # input_handler_cls, err = get_cls(input_handler_def.module_name, input_handler_def.class_name, relaxed=False)
+    # input_handler = input_handler_cls(input_handler_def.options)
+    #
+    # # 2. Get the adapter class that transfers
+    # adapter_def = job.l1pprocdef.input_adapter
+    # input_adapter_cls, err = get_cls(adapter_def.module_name, adapter_def.class_name, relaxed=False)
+    # input_adapter = input_adapter_cls(adapter_def.options)
+    #
+    # # 3. Get the output handler
+    # output_handler_def = job.l1pprocdef.output_handler
+    # output_handler = Level1POutputHandler(output_handler_def.options)
+    # output_handler.cfg.update(**job.output_handler_cfg)
+    #
+    # # 4. Get the pre-processor
+    # preproc_def = job.l1pprocdef.level1_preprocessor
+    # l1preproc = get_preproc(preproc_def.type, input_adapter, output_handler, preproc_def.options)
+    #
+    # # 5. Loop over monthly periods
+    # for period in job.period_segments:
+    #
+    #     # 5.1 Get input files
+    #     file_list = input_handler.get_file_for_period(period)
+    #     if len(file_list) == 0:
+    #         logger.warning(f"No input files found for period: {period.date_label}, skipping")
+    #
+    #     # 5.2 Output management
+    #     # Note: This is only relevant, if the --remove-old keyword is set
+    #     # output_handler.remove_old_if_applicable(period)
+    #
+    #     # 5.3 Run the pre-processor
+    #     l1preproc.process_input_files(file_list)
 
     # Report processing time
     # job.stopwatch.stop()
@@ -140,12 +147,5 @@ class Level1PreProcArgParser(object):
 
 if __name__ == "__main__":
 
-    # Get the command line arguments
-    cmd_args = Level1PreProcArgParser()
-    cmd_args.parse_command_line_arguments()
-
-    # Create the job definitions
-    job = L1pProcessorConfig.from_args(cmd_args.args)
-
     # Execute Level-1 Pre-Processor Workflow
-    pysiral_l1preproc(job)
+    pysiral_l1preproc()
