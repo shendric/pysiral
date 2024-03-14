@@ -13,7 +13,6 @@ from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.config import DefaultCommandLineArguments
 from pysiral.core.datahandler import L1PDataHandler
 from pysiral.core.errorhandler import ErrorStatus
@@ -130,10 +129,9 @@ def pysiral_l2proc_l1b_predef_job(args):
     logger.info(f"Run completed in {str(timedelta(seconds=seconds))}")
 
 
-class Level2ProcArgParser(DefaultLoggingClass):
+class Level2ProcArgParser(object):
 
     def __init__(self):
-        super(Level2ProcArgParser, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus()
         self.pysiral_config = psrlcfg
         self._args = None

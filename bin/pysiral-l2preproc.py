@@ -11,7 +11,6 @@ from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.config import DefaultCommandLineArguments
 from pysiral.core.datahandler import L2iDataHandler
 from pysiral.core.errorhandler import ErrorStatus
@@ -73,7 +72,7 @@ def pysiral_l2preproc():
     for day in days:
 
         # Do some extra logging
-        logger.info("Processing Day [%s]" % day.label)
+        logger.info(f"Processing Day [{day.label}]")
 
 #        XXX: This needs a bit more thought
 #        # Product Data Management
@@ -97,10 +96,9 @@ def pysiral_l2preproc():
     logger.info("Run completed in %s" % str(timedelta(seconds=seconds)))
 
 
-class Level2PreProcArgParser(DefaultLoggingClass):
+class Level2PreProcArgParser(object):
 
     def __init__(self):
-        super(Level2PreProcArgParser, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus()
         self._args = None
 
