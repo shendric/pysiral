@@ -17,7 +17,6 @@ from geopy.distance import great_circle
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.iotools import ReadNC
 from pysiral.l1data import L1bMetaData, L1bTimeOrbit
@@ -813,10 +812,9 @@ class L2DataArray(np.ndarray):
         self.uncertainty[indices] = np.nan
 
 
-class Level2PContainer(DefaultLoggingClass):
+class Level2PContainer(object):
 
     def __init__(self, period):
-        super(Level2PContainer, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus()
         self._period = period
         self._l2i_stack = []

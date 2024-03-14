@@ -1,19 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import os
 from collections import deque
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
-import numpy as np
 from dateperiods import DatePeriod
-from loguru import logger
 
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.errorhandler import ErrorStatus
 
 
-class EnvisatSGDRNC(DefaultLoggingClass):
+class EnvisatSGDRNC(object):
 
     def __init__(self, cfg) -> None:
         """
@@ -21,9 +17,7 @@ class EnvisatSGDRNC(DefaultLoggingClass):
         :param cfg:
         """
 
-        cls_name = self.__class__.__name__
-        super(EnvisatSGDRNC, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
+        self.error = ErrorStatus(caller_id=self.__class__.__name__)
 
         # Save config
         self.cfg = cfg

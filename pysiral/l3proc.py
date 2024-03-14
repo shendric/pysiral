@@ -19,7 +19,6 @@ from scipy.ndimage import maximum_filter
 from xarray import open_dataset
 
 from pysiral import __version__, get_cls, psrlcfg
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.config import get_yaml_config
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT, ORCondition
@@ -31,10 +30,10 @@ from pysiral.sit import frb2sit_errprop
 
 # %% Level 3 Processor
 
-class Level3Processor(DefaultLoggingClass):
+
+class Level3Processor(object):
 
     def __init__(self, product_def):
-        super(Level3Processor, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus(caller_id=self.__class__.__name__)
         self._job = product_def
         self._l3_progress_percent = 0.0
@@ -202,7 +201,7 @@ class Level3Processor(DefaultLoggingClass):
 
 # %% Data Containers
 
-class L2iDataStack(DefaultLoggingClass):
+class L2iDataStack(object):
 
     def __init__(self, griddef, l2_parameter):
         """ A container for stacking l2i variables (geophysical parameter at sensor resolution) in L3 grid cells.
@@ -218,7 +217,6 @@ class L2iDataStack(DefaultLoggingClass):
             class instance
 
         """
-        super(L2iDataStack, self).__init__(self.__class__.__name__)
 
         # Grid Definition Type
         self.griddef = griddef
@@ -313,15 +311,13 @@ class L2iDataStack(DefaultLoggingClass):
         return self._l2i_info
 
 
-class L3DataGrid(DefaultLoggingClass):
+class L3DataGrid(object):
     """
     Container for computing gridded data sets based on a l2i data stack
     (averaged l2i parameter, grid cell statistics)
     """
 
     def __init__(self, job, stack, period, doi=""):
-
-        super(L3DataGrid, self).__init__(self.__class__.__name__)
 
         self.error = ErrorStatus(caller_id=self.__class__.__name__)
 
@@ -975,7 +971,7 @@ class Level3GridDefinition(GridDefinition):
         self.set_from_griddef_file(l3_settings_file)
 
 
-class Level3ProductDefinition(DefaultLoggingClass):
+class Level3ProductDefinition(object):
 
     def __init__(self, l3_settings_file, grid, output, period):
         """ Container for the Level3Processor settings
@@ -985,7 +981,6 @@ class Level3ProductDefinition(DefaultLoggingClass):
             grid (pysiral.grid.GridDefinition): Output grid class
             output (Level-3 compliant output handler from pysiral.core.output)
         """
-        super(Level3ProductDefinition, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus(caller_id=self.__class__.__name__)
         self._l3_settings_file = l3_settings_file
         self._output = output
@@ -1072,7 +1067,7 @@ class Level3ProductDefinition(DefaultLoggingClass):
         return [self.l3def.l3_parameter[n] for n in l3_parameter]
 
 
-class Level3ProcessorItem(DefaultLoggingClass):
+class Level3ProcessorItem(object):
     """
     A parent class for processing items to be selected in the Level-3 processor settings
     and applied in the Level3Processor
@@ -1084,8 +1079,6 @@ class Level3ProcessorItem(DefaultLoggingClass):
         :param l3grid: the Level3DataGrid instance to be processed
         :param cfg: The option dictionary/treedict from the config settings file
         """
-
-        super(Level3ProcessorItem, self).__init__(self.__class__.__name__)
 
         # Add error handler
         self.error = ErrorStatus(caller_id=self.__class__.__name__)

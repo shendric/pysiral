@@ -8,11 +8,10 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.errorhandler import ErrorStatus
 
 
-class CryoSat2MonthlyFileListAllModes(DefaultLoggingClass):
+class CryoSat2MonthlyFileListAllModes(object):
     """
     Class for the construction of a list of CryoSat-2 SAR/SIN files
     sorted by acquisition time
@@ -21,7 +20,6 @@ class CryoSat2MonthlyFileListAllModes(DefaultLoggingClass):
     def __init__(self):
 
         name = self.__class__.__name__
-        super(CryoSat2MonthlyFileListAllModes, self).__init__(name)
 
         self.folder_sar = None
         self.folder_sin = None
@@ -104,12 +102,10 @@ class CryoSat2MonthlyFileListAllModes(DefaultLoggingClass):
         self._sorted_list.sort(order='start_time')
 
 
-class BaselineDFileDiscovery(DefaultLoggingClass):
+class BaselineDFileDiscovery(object):
 
     def __init__(self, cfg):
-        cls_name = self.__class__.__name__
-        super(BaselineDFileDiscovery, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
+        self.error = ErrorStatus(caller_id=self.__class__.__name__)
 
         # Save config
         self.cfg = cfg
@@ -135,7 +131,7 @@ class BaselineDFileDiscovery(DefaultLoggingClass):
     def _append_files(self, mode, period):
         lookup_year, lookup_month = period.tcs.year, period.tcs.month
         lookup_dir = self._get_lookup_dir(lookup_year, lookup_month, mode)
-        logger.info("Search directory: %s" % lookup_dir)
+        logger.info(f"Search directory: {lookup_dir}")
         n_files = 0
         for daily_period in period.get_segments("day"):
             # Search for specific day

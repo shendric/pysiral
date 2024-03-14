@@ -12,11 +12,10 @@ import numpy as np
 from loguru import logger
 from parse import compile
 
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.errorhandler import ErrorStatus
 
 
-class ERSFileList(DefaultLoggingClass):
+class ERSFileList(object):
     """
     Class for the construction of a list of Envisat N1 files
     sorted by acquisition time
@@ -24,7 +23,6 @@ class ERSFileList(DefaultLoggingClass):
     """
 
     def __init__(self):
-        super(ERSFileList, self).__init__(self.__class__.__name__)
         self.folder = None
         self.year = None
         self.month = None
@@ -91,7 +89,7 @@ class ERSFileList(DefaultLoggingClass):
         return folder
 
 
-class ERSCycleBasedSGDR(DefaultLoggingClass):
+class ERSCycleBasedSGDR(object):
 
     def __init__(self, cfg):
         """
@@ -100,7 +98,6 @@ class ERSCycleBasedSGDR(DefaultLoggingClass):
         """
 
         cls_name = self.__class__.__name__
-        super(ERSCycleBasedSGDR, self).__init__(cls_name)
         self.error = ErrorStatus(caller_id=cls_name)
 
         # Save config

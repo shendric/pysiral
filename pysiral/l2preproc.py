@@ -12,16 +12,14 @@ from pathlib import Path
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.output import Level2Output, OutputHandlerBase
 from pysiral.l2data import L2iNCFileImport, Level2Data, Level2PContainer
 
 
-class Level2PreProcessor(DefaultLoggingClass):
+class Level2PreProcessor(object):
 
     def __init__(self, product_def):
-        super(Level2PreProcessor, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus()
 
         # Sanity check of product definition object
@@ -65,12 +63,10 @@ class Level2PreProcessor(DefaultLoggingClass):
         return self._job
 
 
-class Level2PreProcProductDefinition(DefaultLoggingClass):
+class Level2PreProcProductDefinition(object):
 
     def __init__(self):
         self._output_handler = None
-        class_name = self.__class__.__name__
-        super(Level2PreProcProductDefinition, self).__init__(class_name)
 
     def add_output_definition(self, l2i_product_dir, output_def_file,
                               period="default", overwrite_protection=True,
