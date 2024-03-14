@@ -9,8 +9,7 @@ from loguru import logger
 
 from pysiral import get_cls, set_psrl_cpu_count
 from pysiral.core.config import DefaultCommandLineArguments
-from pysiral.l1preproc import (Level1POutputHandler, Level1PreProcJobDef,
-                               get_preproc)
+from pysiral.l1preproc import Level1POutputHandler, L1pProcessorConfig, get_preproc
 
 
 def pysiral_l1preproc(job):
@@ -146,7 +145,7 @@ if __name__ == "__main__":
     cmd_args.parse_command_line_arguments()
 
     # Create the job definitions
-    job = Level1PreProcJobDef.from_args(cmd_args.args)
+    job = L1pProcessorConfig.from_args(cmd_args.args)
 
     # Execute Level-1 Pre-Processor Workflow
     pysiral_l1preproc(job)

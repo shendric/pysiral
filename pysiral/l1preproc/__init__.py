@@ -19,12 +19,13 @@ from loguru import logger
 
 from pysiral import psrlcfg
 from pysiral.core.clocks import debug_timer
-from pysiral.core.config import get_yaml_config
 from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
                                  get_last_array_index, rle)
 from pysiral.core.output import L1bDataNC
 from pysiral.l1data import L1bMetaData, Level1bData
 from pysiral.l1preproc.procitems import L1PProcItemDef
+from pysiral.l1preproc.config import L1pProcessorConfig
+
 from pysiral.l1preproc.debug import l1p_debug_map
 
 
@@ -1067,200 +1068,203 @@ class L1PreProcPolarOceanCheck(object):
         return True
 
 
-class Level1PreProcJobDef(object):
-    """
-    A class that contains all information necessary for the Level-1 pre-processor.
-    """
 
-    def __init__(
-        self,
-        l1p_settings_id_or_file: Union[str, Path],
-        tcs: List[int],
-        tce: List[int],
-        exclude_month: List[int] = None,
-        hemisphere: str = "global",
-        platform: str = None,
-        output_handler_cfg: Union[dict, AttrDict] = None,
-        source_repo_id: str = None
-    ):
-        """
-        The settings for the Level-1 pre-processor job
 
-        :param l1p_settings_id_or_file: An id of a proc/l1 processor config file (filename excluding the .yaml
-                                        extension) or a full filepath to a yaml config file
-        :param tcs: [int list] Time coverage start (YYYY MM [DD])
-        :param tce: [int list] Time coverage end (YYYY MM [DD]) [int list]
-        :param exclude_month: [int list] A list of month that will be ignored
-        :param hemisphere: [str] The target hemisphere (`north`, `south`, `global`:default).
-        :param platform: [str] The target platform (pysiral id). Required if l1p settings files is valid for
-                               multiple platforms (e.g. ERS-1/2, ...)
-        :param output_handler_cfg: [dict] An optional dictionary with options of the output handler
-                                   (`overwrite_protection`: [True, False], `remove_old`: [True, False])
-        :param source_repo_id: [str] The tag in local_machine_def.yaml (l1b_repository.<platform>.<source_repo_id>)
-                                  -> Overwrites the default source repo in the l1p settings
-                                     (input_handler.options.local_machine_def_tag &
-                                      output_handler.options.local_machine_def_tag)
-        """
 
-        # Get pysiral configuration
-        self._l1pprocdef = None
-
-        # Store command line options
-        self._hemisphere = hemisphere
-        self._platform = platform
-        self._source_repo_id = source_repo_id
-        self._exclude_month = exclude_month
-
-        # Parse the l1p settings file
-        self._set_l1p_processor_def(l1p_settings_id_or_file)
-
-        # Get full requested time range
-        self._time_range = DatePeriod(tcs, tce)
-        logger.info(f"Requested time range is {self.time_range.label}")
-
-        # Store the data handler options
-        if output_handler_cfg is None:
-            output_handler_cfg = {}
-        self._output_handler_cfg = output_handler_cfg
-
-    @classmethod
-    def from_args(cls, args: AttrDict) -> "Level1PreProcJobDef":
-        """
-        Init the Processor Definition from the pysiral-l1preproc command line argument object
-
-        :param args:
-        :return:
-        """
-
-        # Optional Keywords
-        kwargs = {}
-        if args.exclude_month is not None:
-            kwargs["exclude_month"] = args.exclude_month
-        data_handler_cfg = {"overwrite_protection": args.overwrite_protection, "remove_old": args.remove_old}
-
-        if args.source_repo_id is not None:
-            data_handler_cfg["local_machine_def_tag"] = args.source_repo_id
-        kwargs["output_handler_cfg"] = data_handler_cfg
-        kwargs["hemisphere"] = args.hemisphere
-        kwargs["platform"] = args.platform
-        kwargs["source_repo_id"] = args.source_repo_id
-
-        # Return the initialized class
-        return cls(args.l1p_settings, args.start_date, args.stop_date, **kwargs)
-
-    def _set_l1p_processor_def(self, l1p_settings_id_or_file: Union[str, Path]) -> None:
-        """
-        Parse the content of the processor definition file
-
-        :param l1p_settings_id_or_file: A pysiral known id or list
-
-        :return:
-        """
-
-        # 1. Resolve the absolute file path
-        procdef_file_path = self._get_l1p_proc_def_filename(l1p_settings_id_or_file)
-
-        # 2. Read the content
-        logger.info(f"Parsing L1P processor definition file: {procdef_file_path}")
-        self._l1pprocdef = get_yaml_config(procdef_file_path)
-        self._check_if_unambiguous_platform()
-
-        # 3. Expand info (input data lookup directories)
-        self._set_actual_input_directory()
-
-        # 4. update hemisphere for input adapter
-        self._l1pprocdef["level1_preprocessor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
-
-    @staticmethod
-    def _get_l1p_proc_def_filename(l1p_settings_id_or_file: Union[str, Path]) -> Path:
-        """
-        Resolve the filepath for the processor configuration file. The input can
-        be a processor file id when the processor configuration file is stored
-        in the pysiral configuration directory or a filepath to a configuration
-        file at an arbitraty location.
-
-        :param l1p_settings_id_or_file: procdef file id or filepaths
-
-        :return: file path
-        """
-        if Path(l1p_settings_id_or_file).is_file():
-            return l1p_settings_id_or_file
-        return psrlcfg.procdef.get("l1", l1p_settings_id_or_file, raise_if_none=True)
-
-    def _set_actual_input_directory(self) -> None:
-        """
-        Replace the source data id with the actual data source path in-place.
-        This path is taken from the local machine path definition in the pysiral
-        package configuration. The data set source can be overwritten by the
-        CLI parameters.
-        """
-        local_machine_def_tag = self.l1pprocdef.input_handler.options.local_machine_def_tag
-        source_name = self._source_repo_id if self._source_repo_id is not None else local_machine_def_tag
-        source_lookup_dir = psrlcfg.platforms.get_source(self.platform, source_name, raise_if_none=True)
-        self.l1pprocdef.input_handler["options"]["lookup_dir"] = source_lookup_dir
-
-    def _check_if_unambiguous_platform(self) -> None:
-        """
-        Checks if the platform is unique, since some l1 processor definitions are valid for a series of
-        platforms, such as ERS-1/2, Sentinel-3A/B, etc. The indicator is that the platform tag in the
-        l1 preprocessor settings is comma separated list.
-
-        For the location of the source data, it is however necessary that the exact platform is known.
-        It must therefore be specified explicitly by the -platform argument
-
-        :raises SysExit:
-
-        """
-
-        settings_is_ambigous = "," in self._l1pprocdef.platform
-        platform_is_known = self.platform is not None
-
-        if settings_is_ambigous:
-
-            if not platform_is_known:
-                msg = "Error: platform in l1p settings is ambiguous (%s), but no platform has been given (-platform)"
-                msg %= self._l1pprocdef.platform
-                sys.exit(msg)
-
-            if platform_is_known and self.platform not in str(self._l1pprocdef.platform):
-                msg = "Error: platform in l1p settings (%s) and given platform (%s) do not match"
-                msg %= (self._l1pprocdef.platform, self.platform)
-                sys.exit(msg)
-
-        # If platform in settings is unambiguous, but not provided -> get platform from settings
-        if not settings_is_ambigous and not platform_is_known:
-            self._platform = self._l1pprocdef.platform
-            logger.info(f"- get platform from l1p settings -> {self.platform}")
-
-    @property
-    def hemisphere(self) -> str:
-        return self._hemisphere
-
-    @property
-    def target_hemisphere(self) -> str:
-        values = {"north": ["north"], "south": ["south"], "global": ["north", "south"]}
-        return values[self.hemisphere]
-
-    @property
-    def l1pprocdef(self) -> AttrDict:
-        return self._l1pprocdef
-
-    @property
-    def time_range(self) -> DatePeriod:
-        return self._time_range
-
-    @property
-    def period_segments(self) -> PeriodIterator:
-        # TODO: Implement exclude months
-        return self._time_range.get_segments("month", crop_to_period=True)
-
-    @property
-    def output_handler_cfg(self) -> AttrDict:
-        return self._output_handler_cfg
-
-    @property
-    def platform(self) -> str:
-        return self._platform
+# class Level1PreProcJobDef(object):
+#     """
+#     A class that contains all information necessary for the Level-1 pre-processor.
+#     """
+#
+#     def __init__(
+#         self,
+#         l1p_settings_id_or_file: Union[str, Path],
+#         tcs: List[int],
+#         tce: List[int],
+#         exclude_month: List[int] = None,
+#         hemisphere: str = "global",
+#         platform: str = None,
+#         output_handler_cfg: Union[dict, AttrDict] = None,
+#         source_repo_id: str = None
+#     ):
+#         """
+#         The settings for the Level-1 pre-processor job
+#
+#         :param l1p_settings_id_or_file: An id of a proc/l1 processor config file (filename excluding the .yaml
+#                                         extension) or a full filepath to a yaml config file
+#         :param tcs: [int list] Time coverage start (YYYY MM [DD])
+#         :param tce: [int list] Time coverage end (YYYY MM [DD]) [int list]
+#         :param exclude_month: [int list] A list of month that will be ignored
+#         :param hemisphere: [str] The target hemisphere (`north`, `south`, `global`:default).
+#         :param platform: [str] The target platform (pysiral id). Required if l1p settings files is valid for
+#                                multiple platforms (e.g. ERS-1/2, ...)
+#         :param output_handler_cfg: [dict] An optional dictionary with options of the output handler
+#                                    (`overwrite_protection`: [True, False], `remove_old`: [True, False])
+#         :param source_repo_id: [str] The tag in local_machine_def.yaml (l1b_repository.<platform>.<source_repo_id>)
+#                                   -> Overwrites the default source repo in the l1p settings
+#                                      (input_handler.options.local_machine_def_tag &
+#                                       output_handler.options.local_machine_def_tag)
+#         """
+#
+#         # Get pysiral configuration
+#         self._l1pprocdef = None
+#
+#         # Store command line options
+#         self._hemisphere = hemisphere
+#         self._platform = platform
+#         self._source_repo_id = source_repo_id
+#         self._exclude_month = exclude_month
+#
+#         # Parse the l1p settings file
+#         self._set_l1p_processor_def(l1p_settings_id_or_file)
+#
+#         # Get full requested time range
+#         self._time_range = DatePeriod(tcs, tce)
+#         logger.info(f"Requested time range is {self.time_range.label}")
+#
+#         # Store the data handler options
+#         if output_handler_cfg is None:
+#             output_handler_cfg = {}
+#         self._output_handler_cfg = output_handler_cfg
+#
+#     @classmethod
+#     def from_args(cls, args: AttrDict) -> "Level1PreProcJobDef":
+#         """
+#         Init the Processor Definition from the pysiral-l1preproc command line argument object
+#
+#         :param args:
+#         :return:
+#         """
+#
+#         # Optional Keywords
+#         kwargs = {}
+#         if args.exclude_month is not None:
+#             kwargs["exclude_month"] = args.exclude_month
+#         data_handler_cfg = {"overwrite_protection": args.overwrite_protection, "remove_old": args.remove_old}
+#
+#         if args.source_repo_id is not None:
+#             data_handler_cfg["local_machine_def_tag"] = args.source_repo_id
+#         kwargs["output_handler_cfg"] = data_handler_cfg
+#         kwargs["hemisphere"] = args.hemisphere
+#         kwargs["platform"] = args.platform
+#         kwargs["source_repo_id"] = args.source_repo_id
+#
+#         # Return the initialized class
+#         return cls(args.l1p_settings, args.start_date, args.stop_date, **kwargs)
+#
+#     def _set_l1p_processor_def(self, l1p_settings_id_or_file: Union[str, Path]) -> None:
+#         """
+#         Parse the content of the processor definition file
+#
+#         :param l1p_settings_id_or_file: A pysiral known id or list
+#
+#         :return:
+#         """
+#
+#         # 1. Resolve the absolute file path
+#         procdef_file_path = self._get_l1p_proc_def_filename(l1p_settings_id_or_file)
+#
+#         # 2. Read the content
+#         logger.info(f"Parsing L1P processor definition file: {procdef_file_path}")
+#         self._l1pprocdef = get_yaml_config(procdef_file_path)
+#         self._check_if_unambiguous_platform()
+#
+#         # 3. Expand info (input data lookup directories)
+#         self._set_actual_input_directory()
+#
+#         # 4. update hemisphere for input adapter
+#         self._l1pprocdef["level1_preprocessor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
+#
+#     @staticmethod
+#     def _get_l1p_proc_def_filename(l1p_settings_id_or_file: Union[str, Path]) -> Path:
+#         """
+#         Resolve the filepath for the processor configuration file. The input can
+#         be a processor file id when the processor configuration file is stored
+#         in the pysiral configuration directory or a filepath to a configuration
+#         file at an arbitraty location.
+#
+#         :param l1p_settings_id_or_file: procdef file id or filepaths
+#
+#         :return: file path
+#         """
+#         if Path(l1p_settings_id_or_file).is_file():
+#             return l1p_settings_id_or_file
+#         return psrlcfg.procdef.get("l1", l1p_settings_id_or_file, raise_if_none=True)
+#
+#     def _set_actual_input_directory(self) -> None:
+#         """
+#         Replace the source data id with the actual data source path in-place.
+#         This path is taken from the local machine path definition in the pysiral
+#         package configuration. The data set source can be overwritten by the
+#         CLI parameters.
+#         """
+#         local_machine_def_tag = self.l1pprocdef.input_handler.options.local_machine_def_tag
+#         source_name = self._source_repo_id if self._source_repo_id is not None else local_machine_def_tag
+#         source_lookup_dir = psrlcfg.platforms.get_source(self.platform, source_name, raise_if_none=True)
+#         self.l1pprocdef.input_handler["options"]["lookup_dir"] = source_lookup_dir
+#
+#     def _check_if_unambiguous_platform(self) -> None:
+#         """
+#         Checks if the platform is unique, since some l1 processor definitions are valid for a series of
+#         platforms, such as ERS-1/2, Sentinel-3A/B, etc. The indicator is that the platform tag in the
+#         l1 preprocessor settings is comma separated list.
+#
+#         For the location of the source data, it is however necessary that the exact platform is known.
+#         It must therefore be specified explicitly by the -platform argument
+#
+#         :raises SysExit:
+#
+#         """
+#
+#         settings_is_ambigous = "," in self._l1pprocdef.platform
+#         platform_is_known = self.platform is not None
+#
+#         if settings_is_ambigous:
+#
+#             if not platform_is_known:
+#                 msg = "Error: platform in l1p settings is ambiguous (%s), but no platform has been given (-platform)"
+#                 msg %= self._l1pprocdef.platform
+#                 sys.exit(msg)
+#
+#             if platform_is_known and self.platform not in str(self._l1pprocdef.platform):
+#                 msg = "Error: platform in l1p settings (%s) and given platform (%s) do not match"
+#                 msg %= (self._l1pprocdef.platform, self.platform)
+#                 sys.exit(msg)
+#
+#         # If platform in settings is unambiguous, but not provided -> get platform from settings
+#         if not settings_is_ambigous and not platform_is_known:
+#             self._platform = self._l1pprocdef.platform
+#             logger.info(f"- get platform from l1p settings -> {self.platform}")
+#
+#     @property
+#     def hemisphere(self) -> str:
+#         return self._hemisphere
+#
+#     @property
+#     def target_hemisphere(self) -> str:
+#         values = {"north": ["north"], "south": ["south"], "global": ["north", "south"]}
+#         return values[self.hemisphere]
+#
+#     @property
+#     def l1pprocdef(self) -> AttrDict:
+#         return self._l1pprocdef
+#
+#     @property
+#     def time_range(self) -> DatePeriod:
+#         return self._time_range
+#
+#     @property
+#     def period_segments(self) -> PeriodIterator:
+#         # TODO: Implement exclude months
+#         return self._time_range.get_segments("month", crop_to_period=True)
+#
+#     @property
+#     def output_handler_cfg(self) -> AttrDict:
+#         return self._output_handler_cfg
+#
+#     @property
+#     def platform(self) -> str:
+#         return self._platform
 
 
 # Custom type hints
