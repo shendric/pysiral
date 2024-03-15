@@ -28,16 +28,40 @@ from pysiral.l1preproc.config import L1pProcessorConfig
 
 from pysiral.l1preproc.debug import l1p_debug_map
 
+_REGISTERED_L1_INPUT_CLASSES = {}
 
+
+class Level1InputHandler(object):
+    """
+    This class collects all Level-1 input handler classes
+    (A catalog of classes is created when sub-classing this class)
+
+    Usage:
+
+        Level1InputHandler.get_class(class_name, **kwargs)
+
+    """
+
+    def __init_subclass__(cls, **kwargs):
+        # if "search" not in cls.__dict__:
+        #     raise NotImplementedError(f"class {cls.__name__} does not implement method `search`")
+        _REGISTERED_L1_INPUT_CLASSES[cls.__name__] = cls
+
+    @classmethod
+    def get_cls(cls, class_name: str, **kwargs):
+        return _REGISTERED_L1_INPUT_CLASSES[class_name](kwargs)
+
+
+# TODO: To be refactord to "Input Adapter base"
 class Level1PInputHandlerBase(object):
     """
     Base class (mostly for type checking).
     """
 
     def __init__(
-        self,
-        cfg: AttrDict,
-        raise_on_error: bool = False,
+            self,
+            cfg: AttrDict,
+            raise_on_error: bool = False,
     ) -> None:
         """
         Base class for all input handlers implemented in the `l1_adapter` package
@@ -149,17 +173,29 @@ class Level1POutputHandler(object):
         return self.path / self.filename
 
 
-L1PInputCLS = TypeVar("L1PInputCLS", bound=Level1PInputHandlerBase)
+L1PInputCLS = TypeVar("L1PInputCLS", bound=Level1InputHandler)
+
+
+class Level1PreProcessor(object):
+
+    def __init__(self, cfg):
+        self.cfg = cfg
+
+        self.input_handler = Level1InputHandler.get_cls(
+            cfg.input_handler.class_name,
+            **cfg.input_handler.options
+        )
+        breakpoint()
 
 
 class L1PreProcBase(object):
 
     def __init__(
-        self,
-        cls_name: str,
-        input_adapter: L1PInputCLS,
-        output_handler: Level1POutputHandler,
-        cfg: AttrDict
+            self,
+            cls_name: str,
+            input_adapter: L1PInputCLS,
+            output_handler: Level1POutputHandler,
+            cfg: AttrDict
     ) -> None:
 
         # Make sure the logger/error handler has the name of the parent class
@@ -433,7 +469,7 @@ class L1PreProcBase(object):
         # next iteration of the file list
         merged_l1_list = [copy.deepcopy(all_l1_po_segments[0])]
         for idx, is_connected in enumerate(are_connected):
-            target_l1 = all_l1_po_segments[idx+1]
+            target_l1 = all_l1_po_segments[idx + 1]
             if is_connected:
                 merged_l1_list[-1].append(target_l1, remove_overlap=True)
             else:
@@ -466,7 +502,7 @@ class L1PreProcBase(object):
                 change_idxs = np.where(np.ediff1d(l1.waveform.radar_mode))[0] + 1
 
                 segment_start_idxs = np.insert(change_idxs, 0, 0)
-                segment_end_idxs = np.insert(change_idxs-1, len(change_idxs), l1.n_records-1)
+                segment_end_idxs = np.insert(change_idxs - 1, len(change_idxs), l1.n_records - 1)
 
                 for start_idx, end_idx in zip(segment_start_idxs, segment_end_idxs):
                     l1_radar_mode_subset = l1.extract_subset(np.arange(start_idx, end_idx))
@@ -1024,8 +1060,8 @@ class L1PreProcFullOrbit(L1PreProcBase):
 
 class L1PreProcPolarOceanCheck(object):
     """
-    A small helper class that can be passed to input adapter to check whether the l1 segment is
-    wanted or not
+    A small helper class that can be passed to input adapter to check
+    whether the l1 segment is wanted or not
     """
 
     def __init__(self,
@@ -1066,9 +1102,6 @@ class L1PreProcPolarOceanCheck(object):
 
         # 4. All tests passed
         return True
-
-
-
 
 
 # class Level1PreProcJobDef(object):

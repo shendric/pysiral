@@ -23,6 +23,7 @@ __all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
            "sit", "surface", "waveform", "psrlcfg", "import_submodules", "get_cls",
            "set_psrl_cpu_count", "InterceptHandler", "__version__"]
 
+
 warnings.filterwarnings("ignore")
 
 # Set standard logger format
@@ -141,3 +142,8 @@ def set_psrl_cpu_count(cpu_count: int) -> None:
     if cpu_count > cpu_count_mp:
         logger.warning(f"Specified number of CPU's ({cpu_count}) > number of CPU's ({cpu_count_mp})")
     psrlcfg.CPU_COUNT = cpu_count
+
+
+for loader, module_name, is_pkg in pkgutil.walk_packages(__path__):
+    _module = loader.find_module(module_name).load_module(module_name)
+    globals()[module_name] = _module

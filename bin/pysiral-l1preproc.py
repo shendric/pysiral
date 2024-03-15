@@ -9,7 +9,7 @@ from loguru import logger
 
 from pysiral import get_cls, set_psrl_cpu_count
 from pysiral.core.config import DefaultCommandLineArguments
-from pysiral.l1preproc import Level1POutputHandler, L1pProcessorConfig, get_preproc
+from pysiral.l1preproc import Level1PreProcessor, L1pProcessorConfig
 
 
 def pysiral_l1preproc():
@@ -28,6 +28,8 @@ def pysiral_l1preproc():
 
     # Create the job definitions
     cfg = L1pProcessorConfig.from_yaml(cli.args.l1p_settings, platform=cli.args.platform)
+
+    l1preproc = Level1PreProcessor(cfg)
 
     breakpoint()
     # # 1. Get the input handler

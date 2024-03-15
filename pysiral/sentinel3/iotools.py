@@ -12,9 +12,10 @@ from parse import parse
 
 from pysiral.core.clocks import debug_timer
 from pysiral.core.errorhandler import ErrorStatus
+from pysiral.l1preproc import Level1InputHandler
 
 
-class Sentinel3FileList(object):
+class Sentinel3FileList(Level1InputHandler):
     """
     Class for the construction of a list of Sentinel-3 SRAL L2 files
     sorted by acquisition time
@@ -64,7 +65,7 @@ class Sentinel3FileList(object):
         return Path(self.folder) / f"{year:04g}" / f"{month:02g}"
 
 
-class CodaL2SralFileDiscovery(object):
+class CodaL2SralFileDiscovery(Level1InputHandler):
     """ Class to retrieve Sentinel-3 SRAL files from the Copernicus Online Data Archive """
 
     def __init__(self, cfg):
@@ -132,7 +133,7 @@ class CodaL2SralFileDiscovery(object):
         return self._sorted_list
 
 
-class L2SeaIceFileDiscovery(object):
+class L2SeaIceFileDiscovery(Level1InputHandler):
     """ Class to retrieve Sentinel-3 SRAL files from the Copernicus Online Data Archive """
 
     def __init__(self, cfg):

@@ -9,17 +9,16 @@ import numpy as np
 from loguru import logger
 
 from pysiral.core.errorhandler import ErrorStatus
+from pysiral.l1preproc import Level1InputHandler
 
 
-class CryoSat2MonthlyFileListAllModes(object):
+class CryoSat2MonthlyFileListAllModes(Level1InputHandler):
     """
     Class for the construction of a list of CryoSat-2 SAR/SIN files
     sorted by acquisition time
     """
 
     def __init__(self):
-
-        name = self.__class__.__name__
 
         self.folder_sar = None
         self.folder_sin = None

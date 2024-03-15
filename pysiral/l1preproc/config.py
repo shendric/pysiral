@@ -155,7 +155,6 @@ class L1pProcessorConfig(BaseModel):
 
         :raise ValueError: platform field is empty and Level-1 pre-processor definition
             supports multiple platforms
-
         """
         print("target_platform_must_be_specified")
         if self.platform is None:
@@ -166,9 +165,13 @@ class L1pProcessorConfig(BaseModel):
                 )
             else:
                 self.platform = self.supported_platforms
+        return self
 
     @model_validator(mode="after")
     def pass_down_platform(self):
+        """
+        Ensure that the input handler and adap
+        """
         print("pass_down_platform")
         self.input_handler.options["platform"] = self.platform
-        breakpoint()
+        return self
