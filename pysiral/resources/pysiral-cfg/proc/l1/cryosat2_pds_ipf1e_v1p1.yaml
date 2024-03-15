@@ -1,4 +1,4 @@
-platform: cryosat2
+supported_platforms: cryosat2
 
 # Information of getting an input file list
 input_handler:
