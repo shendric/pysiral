@@ -71,8 +71,8 @@ class L1pProcessorConfig(BaseModel):
     Configuration data for the Level-1 pre-processor
     """
     filepath: Optional[FilePath] = Field(description="Filepath to the Level-1 pre-processor configuration object")
-    supported_platforms: Union[str, List[str]] = Field(description="Supported platforms")
-    platform: Optional[str] = Field(description="Target platform", default=None, validate_default=False)
+    supported_datasets: Union[str, List[str]] = Field(description="Supported datasets")
+    dataset: Optional[str] = Field(description="Target platform", default=None, validate_default=False)
     input_handler: ClassConfig
     input_adapter: ClassConfig
     output_handler: L1POutputHandlerConfig

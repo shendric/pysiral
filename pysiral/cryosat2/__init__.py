@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-plib A collection of python libraries
+
 """
 
 from loguru import logger

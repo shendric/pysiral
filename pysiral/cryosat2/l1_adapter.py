@@ -35,7 +35,7 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
     def translate_opmode2radar_mode(op_mode):
         """ Converts the ESA operation mode str in the pysiral compliant version """
         translate_dict = {"sar": "sar", "lrm": "lrm", "sarin": "sin"}
-        return translate_dict.get(op_mode, None)
+        return translate_dict.get(op_mode)
 
     def get_l1(self, filepath, polar_ocean_check=None):
         """
@@ -515,6 +515,7 @@ class ESACryoSat2PDSBaselineDPatchFESArctide(ESACryoSat2PDSBaselineDPatchFES):
         p = re.compile('TEST')
         newpath = p.sub('LTA_', newpath)
         return newpath
+
 
 class ESACryoSat2PDSBaselineDPatchFESArctideDiscrim(ESACryoSat2PDSBaselineDPatchFESArctide):
     def __init__(self, cfg, raise_on_error=False):

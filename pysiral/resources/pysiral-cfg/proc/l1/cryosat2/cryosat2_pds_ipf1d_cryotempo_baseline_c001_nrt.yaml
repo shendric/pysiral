@@ -7,10 +7,10 @@ input_handler:
     class_name: BaselineDFileDiscovery
     
     options:
-        local_machine_def_tag: baseline_e  # -> l1b_repository.$platform.$input_tag in (local_machine_def.yaml)
+        local_machine_def_tag: baseline_d  # -> l1b_repository.$platform.$input_tag in (local_machine_def.yaml)
         lookup_dir: null  # Leave emtpy: This will be automatically filled with information from local_machine_def
         lookup_modes: [sar, sin]
-        filename_search: CS_*_SIR_*1B_{year:04d}{month:02d}{day:02d}*_E*.nc
+        filename_search: "CS_*_SIR_*1B_{year:04d}{month:02d}{day:02d}*_E*.nc"
         filename_sep: _   # character to split the filename
         tcs_str_index: 5  # index of time_coverage_start string in file (when splitting filename with filename_sep)
 
@@ -19,11 +19,11 @@ input_handler:
 input_adapter:
     
     module_name: pysiral.cryosat2.l1_adapter
-    class_name: ESACryoSat2PDSBaselineD
+    class_name: ESACryoSat2PDSBaselineDPatchFES
     
     options:
         
-        name: "CryoSat-2 Level-1b data of the ESA PDS Instrument Processing Facility (algorithm baseline E)"
+        name: "CryoSat-2 Level-1b data of the ESA PDS Instrument Processing Facility (algorithm baseline D)"
         
         range_correction_targets:
             dry_troposphere: mod_dry_tropo_cor_01
@@ -49,6 +49,11 @@ input_adapter:
             stack_centre_look_angle: stack_centre_look_angle_20_ku
             transmit_power: transmit_pwr_20_ku
             noise_power: noise_power_20_ku
+            look_angle_start: look_angle_start_20_ku
+            look_angle_stop: look_angle_stop_20_ku
+            stack_beams: stack_number_after_weighting_20_ku
+            uso_cor: uso_cor_20_ku
+            window_delay: window_del_20_ku
 
         # This is a flag that prevents L1b files with a predicted orbits with
         # potentially erroneous platform altitude to be processed towards l1p
@@ -63,10 +68,10 @@ input_adapter:
 output_handler:
    
     options:
-        local_machine_def_tag: baseline_e
+        local_machine_def_tag: baseline_d
         version:
-            source_file_tag: esa_pds_ipf1e
-            version_file_tag: v1p0
+            source_file_tag: esa_pds_ipf1d
+            version_file_tag: v1p3
 
 
 # Settings for the pre-processor
@@ -87,6 +92,31 @@ level1_preprocessor:
         
         # NOTE: if no options are required use an empty mapping {} instead of null!
         processing_items:
+
+            # Resample SIN waveforms to the same size as SAR waveforms
+            # NOTE: This will only have an effect of SIN segments
+            - label: "High Resolution Land Mask"
+              stage: post_source_file
+              module_name: pysiral.mask
+              class_name: L1PHighResolutionLandMask
+              options:
+                  local_machine_def_auxclass: mask
+                  local_machine_def_tag: landmask_highres
+                  dummy_val:
+                      land_ocean_flag: -1
+                      distance_to_coast: .nan
+                  filename: cryotempo-landoceanmask-nh-250m-v1p0.nc
+                  valid_latitude_range: [45.0, 88.0]
+                  grid_def:
+                      projection:
+                          proj: laea
+                          lon_0: 0.0
+                          lat_0: 90
+                      dimension:
+                          n_cols: 40000
+                          n_lines: 40000
+                          dx: 250
+                          dy: 250
 
             # Compute pulse peakiness
             - label: "Compute Pulse Peakiness"
@@ -114,7 +144,7 @@ level1_preprocessor:
               class_name: L1PWaveformResampleSIN
               options:
                   sin_target_bins: 256
-
+            
             # Compute the leading edge width parameters (full, first half & second half)
             - label: "Compute Leading Edge Width"
               stage: post_ocean_segment_extraction
@@ -122,13 +152,12 @@ level1_preprocessor:
               class_name: L1PLeadingEdgeWidth
               options:
                   tfmra_leading_edge_start: 0.05
-                  tfmra_leading_edge_center: 0.5
                   tfmra_leading_edge_end: 0.95
                   tfmra_options: 
                     noise_level_range_bin_idx: [0, 5]
                     wfm_smoothing_window_size: [11, 11, 21]
                     first_maximum_ignore_leading_bins: 0
-
+            
             # Compute the leading edge quality indicator
             # This class will add three parameters to the l1p classifier data group:
             #  1. Leading edge quality
@@ -182,3 +211,15 @@ level1_preprocessor:
 
                   # CryoSat-2 radar mode sigma0 biases
                   sigma0_bias: [0.0, 0.0, 0.0]
+
+            # Compute the leading edge peakiness
+            # This class will add three parameters to the l1p classifier data group: 
+            #  1. Leading edge peakiness
+            - label: "Compute Leading Edge Peakiness"
+              stage: post_ocean_segment_extraction
+              module_name: pysiral.waveform
+              class_name: L1PLeadingEdgePeakiness
+              options:
+                # Power threshold for the normalized waveform
+                # that the first maximum has to exceed
+                window_size: 3

@@ -1,11 +1,9 @@
-supported_platforms: cryosat2
+supported_data_sets:
+  - cryosat2
 
 # Information of getting an input file list
 input_handler:
-    
-    module_name: pysiral.cryosat2.iotools
-    class_name: BaselineDFileDiscovery
-    
+
     options:
         local_machine_def_tag: baseline_d  # -> l1b_repository.$platform.$input_tag in (local_machine_def.yaml)
         lookup_dir: null  # Leave emtpy: This will be automatically filled with information from local_machine_def
@@ -20,10 +18,8 @@ input_adapter:
     
     module_name: pysiral.cryosat2.l1_adapter
     class_name: ESACryoSat2PDSBaselineDPatchFESArctide
-    
+
     options:
-        
-        name: "CryoSat-2 Level-1b data of the ESA PDS Instrument Processing Facility (algorithm baseline D)"
         
         range_correction_targets:
             dry_troposphere: mod_dry_tropo_cor_01
