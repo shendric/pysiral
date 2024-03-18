@@ -222,11 +222,4 @@ level1_preprocessor:
               options:
                 # Power threshold for the normalized waveform
                 # that the first maximum has to exceed
-                window_size: 3     
-
-
-
-
-
-
-
+                window_size: 3
