@@ -16,17 +16,24 @@ sea ice radar altimetry (pysiral) toolbox.
    :maxdepth: 2
    :caption: Getting started
 
+   what_is_pysiral
    installation
    configuration
    core_concepts
-   database
+   datasets
 
 .. toctree::
    :maxdepth: 2
    :caption: Using pysiral
 
-   workflow
-   cookbook
+   processors
+   scripts
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Roadmap
+
+   roadmap
 
 .. toctree::
    :maxdepth: 2
@@ -34,8 +41,3 @@ sea ice radar altimetry (pysiral) toolbox.
 
    codingconv
 
-.. toctree::
-   :maxdepth: 2
-   :caption: Module Index
-
-   modules
