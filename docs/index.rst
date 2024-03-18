@@ -6,7 +6,8 @@
 Welcome to pysiral's documentation!
 ===================================
 
-This is the main page for the documentation of the python sea ice radar altimetry (pysiral) toolbox. 
+This is the main page for the documentation of the python
+sea ice radar altimetry (pysiral) toolbox.
 
 .. note::
    This page is work in progress.
@@ -17,6 +18,7 @@ This is the main page for the documentation of the python sea ice radar altimetr
 
    installation
    configuration
+   core_concepts
    database
 
 .. toctree::
@@ -37,4 +39,3 @@ This is the main page for the documentation of the python sea ice radar altimetr
    :caption: Module Index
 
    modules
-

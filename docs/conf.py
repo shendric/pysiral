@@ -21,13 +21,14 @@ sys.path.insert(0, os.path.abspath('../'))
 
 
 def run_apidoc(_):
-    modules = [os.path.join("..", "pysiral")]
-    for module in modules:
-        cmd_path = 'sphinx-apidoc'
-        if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv
-            # If we are, assemble the path manually
-            cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
-        subprocess.check_call([cmd_path, '-e', '-o', ".", module, '--force'])
+    pass
+    # modules = [os.path.join("..", "pysiral")]
+    # for module in modules:
+    #     cmd_path = 'sphinx-apidoc'
+    #     if hasattr(sys, 'real_prefix'):  # Check to see if we are in a virtualenv
+    #         # If we are, assemble the path manually
+    #         cmd_path = os.path.abspath(os.path.join(sys.prefix, 'bin', 'sphinx-apidoc'))
+    #     subprocess.check_call([cmd_path, '-e', '-o', ".", module, '--force'])
 
 
 def setup(app):
