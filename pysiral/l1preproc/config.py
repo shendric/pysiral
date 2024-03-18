@@ -121,28 +121,28 @@ class L1pProcessorConfig(BaseModel):
     def supports_multiple_platforms(self) -> bool:
         return isinstance(self.supported_platforms, list)
 
-    @field_validator("supported_platforms", "platform")
+    @field_validator("supported_datasets", "dataset")
     @classmethod
-    def platform_must_be_known(cls, platforms):
+    def platform_must_be_known(cls, dataset_id):
         """
         Ensures that the tag `supported_platforms` in the L1 processor definition file
         only contains platform id's known to pysiral.
 
-        :param platforms: str of list of string that should contain pysiral platforms id's
+        :param dataset_id: str of list of string that should contain pysiral dataset id's
 
         :raises AssertionError: Invalid platform id
 
         :return: Validated supported_platforms
         """
-        err_msg = f"Non pysiral-recognized platform(s): {platforms=} {psrlcfg.platforms.ids}"
-        if isinstance(platforms, str):
-            assert platforms in psrlcfg.platforms.ids, err_msg
-        elif isinstance(platforms, list):
-            assert all(p in psrlcfg.platforms.ids for p in platforms), err_msg
+        err_msg = f"Non pysiral-recognized datasets(s): {dataset_id=} {psrlcfg.platforms.dataset_id}"
+        if isinstance(dataset_id, str):
+            assert dataset_id in psrlcfg.platforms.ids, err_msg
+        elif isinstance(dataset_id, list):
+            assert all(p in psrlcfg.platforms.ids for p in dataset_id), err_msg
         # This shouldn't happen (to be caught by pydantic type validation)
         else: 
-            raise TypeError(f"Invalid type {platforms=} {type(platforms)}")
-        return platforms
+            raise TypeError(f"Invalid type {dataset_id=} {type(dataset_id)}")
+        return dataset_id
 
     @model_validator(mode="after")
     def target_platform_must_be_specified(self):

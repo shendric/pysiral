@@ -18,7 +18,6 @@ from ruamel.yaml import YAML
 
 # Filenames of definitions files
 _DEFINITION_FILES = {
-    "platforms": "mission_def.yaml",
     "auxdata": "auxdata_def.yaml",
 }
 
@@ -75,27 +74,48 @@ class _AltimeterTimeCoverage(BaseModel):
     end: Union[None, datetime]
 
 
-class _AltimeterPlatform(BaseModel):
+class _AltimeterSourceDataset(BaseModel):
     long_name: str
-    docstr: str
-    sensor: str
+    reference: str
+    file_discovery_options: dict
+    l1_input_adapter_options: dict
+
+
+class _AltimeterSourceDatasets(ConvenientRootModel):
+    root: Dict[str, _AltimeterSourceDataset]
+
+
+class _AltimeterSensor(BaseModel):
+    name: str
+    modes: Dict
+
+
+class _AltimeterPlatform(BaseModel):
+    name: str
+    long_name: str
+    sensor: _AltimeterSensor
     time_coverage: _AltimeterTimeCoverage
     sea_ice_radar_modes: List[str]
+    orbit_max_latitude: float
 
 
 class _AltimeterPlatforms(ConvenientRootModel):
     root: Dict[str, _AltimeterPlatform]
 
 
-class PlatformConfig(BaseModel):
-    model_config = ConfigDict(extra="ignore", frozen=True)
+class _MissionDefinition(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     filepath: FilePath
-    mode_flags: _AltimeterModeFlags
-    platforms: _AltimeterPlatforms
+    platform: _AltimeterPlatforms
+    source_datasets: _AltimeterSourceDatasets
+
+
+class PlatformConfig(ConvenientRootModel):
+    root: Dict[str, _MissionDefinition]
 
     @property
     def ids(self) -> List[str]:
-        return list(self.platforms.items)
+        return list(self.items)
 
 
 # class _MissionDefinitionCatalogue(object):
@@ -614,13 +634,20 @@ class _PysiralPackageConfiguration(object):
 
         :return:
         """
-        filepath = self._package.package_config / _DEFINITION_FILES["platforms"]
-        if not filepath.is_file():
+        lookup_dir = self._package.package_config / "missions"
+        if not lookup_dir.is_dir():
             return None
 
-        content_dict = self._get_yaml_file_raw_dict(filepath)
-        content_dict["filepath"] = filepath
-        return PlatformConfig(**content_dict)
+        # Get all yaml files
+        yaml_files = sorted(list(lookup_dir.glob("*.yaml")))
+        platforms_dict = {}
+        for yaml_filepath in yaml_files:
+            platform_id = yaml_filepath.stem
+            content_dict = self._get_yaml_file_raw_dict(yaml_filepath)
+            content_dict["filepath"] = yaml_filepath
+            platforms_dict[platform_id] = content_dict
+
+        return PlatformConfig(**platforms_dict)
 
     def _get_local_machine_config(self) -> Union[LocalMachineConfig, None]:
         """

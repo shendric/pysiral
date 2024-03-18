@@ -1,22 +1,22 @@
 
 # --- Platform Metadata ---
 platform:
-  id: cryosat2
-  name: CryoSat-2
-  docstr: Cryosphere radar altimeter mission of the European Space Agency (ESA)
-  sensor: SIRAL
-  time_coverage:
-    start: 2010-07-17T00:00:00.00
-    end: null
-  sea_ice_radar_modes: [ "sar", "sin", "plrm" ]
-  orbit_max_latitude: 88.0
 
-# --- Sensor Data ---  (TODO: to be defined)
-sensors_attributes:
-  sar: null
-  sin: null
-  plrm: null
+  cryosat2:
 
+    name: CryoSat-2
+    long_name: Cryosphere radar altimeter mission of the European Space Agency (ESA)
+    sensor:
+      name: SIRAL
+      modes:
+        sar: null
+        sin: null
+        plrm: null
+    time_coverage:
+      start: 2010-07-17T00:00:00.00
+      end: null
+    sea_ice_radar_modes: [ "sar", "sin", "plrm" ]
+    orbit_max_latitude: 88.0
 
 
 # --- Source Data sets ---

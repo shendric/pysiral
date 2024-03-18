@@ -1,0 +1,25 @@
+# --- Platform Metadata ---
+platform:
+
+  envisat:
+    name: Envisat
+    long_name: Envisat (Enviromental Satellite) of the European Space Agency (ESA)
+    sensor:
+      name: RA-2
+      modes:
+        lrm: {}
+    time_coverage:
+        start: 2002-05-14T00:00:00.00
+        end: 2012-03-31T23:59:59.99
+    sea_ice_radar_modes: ["lrm"]
+    orbit_max_latitude: 81.5
+
+
+source_datasets:
+
+  envisat_rep_esasgdr_v3p0:
+
+    long_name: ""
+    reference: ""
+    file_discovery_options: {}
+    l1_input_adapter_options: {}

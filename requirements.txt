@@ -1,5 +1,4 @@
 astropy
-attrdict
 bottleneck
 cartopy
 cftime
@@ -12,9 +11,7 @@ h5py
 isort
 loguru
 lxml
-isodate
 isort
-joblib
 matplotlib
 mypy
 netCDF4
@@ -43,9 +40,6 @@ sphinxcontrib-mermaid
 statsmodels
 torch
 xarray
-xgboost
 xmltodict
-
-dateperiods
 packaging
 pytz

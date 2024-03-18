@@ -1,0 +1,44 @@
+# --- Platform Metadata ---
+platform:
+
+  ers1:
+
+    name: ERS-1
+    long_name: Earth Remote Sensing Satellite 1 of the European Space Agency (ESA)
+    sensor:
+      name: RA
+      modes:
+        lrm: {}
+
+    time_coverage:
+      start: 1991-08-03T00:00:00.00
+      end: 1996-06-02T23:59:59.99
+    sea_ice_radar_modes: ["lrm"]
+    orbit_max_latitude: 81.5
+
+  ers2:
+
+    name: ERS-2
+    long_name: Earth Remote Sensing Satellite 2 of the European Space Agency (ESA)
+    sensor:
+      name: RA
+      modes:
+        lrm: {}
+
+    time_coverage:
+        start: 1995-05-14T00:00:00.00
+        end: 2003-07-02T23:59:59.99
+    sea_ice_radar_modes: ["lrm"]
+    orbit_max_latitude: 81.5
+
+
+source_datasets:
+
+  ers_rep_esasgdr_v1p8:
+
+    long_name: ""
+    reference: ""
+
+    file_discovery_options: {}
+
+    l1_input_adapter_options: {}

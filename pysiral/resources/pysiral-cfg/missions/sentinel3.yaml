@@ -1,0 +1,64 @@
+
+# --- Platform Metadata ---
+platform:
+
+  sentinel3a:
+
+    name: Sentinel-3A
+    long_name: Cryosphere radar altimeter mission of the European Space Agency (ESA)
+    sensor:
+      name: SRAL
+      modes:
+        sar: {}
+        plrm: {}
+    time_coverage:
+        start: 2016-04-01T00:00:00.00
+        end: null
+    sea_ice_radar_modes: ["sar", "plrm"]
+    orbit_max_latitude: 81.35
+
+  sentinel3b:
+
+    name: Sentinel-3A
+    long_name: Cryosphere radar altimeter mission of the European Space Agency (ESA)
+    sensor:
+      name: SRAL
+      modes:
+        sar: {}
+        plrm: {}
+    time_coverage:
+        start: 2018-11-10T00:00:00.00
+        end: null
+    sea_ice_radar_modes: ["sar", "plrm"]
+    orbit_max_latitude: 81.35
+
+
+source_datasets:
+
+  sentinel3a_rep_l2lansi_v5p0:
+
+    long_name: ""
+    reference: ""
+    file_discovery_options: {}
+    l1_input_adapter_options: {}
+
+  sentinel3a_nrt_l2lansi_v5p0:
+
+    long_name: ""
+    reference: ""
+    file_discovery_options: {}
+    l1_input_adapter_options: {}
+
+  sentinel3b_rep_l2lansi_v5p0:
+
+    long_name: ""
+    reference: ""
+    file_discovery_options: {}
+    l1_input_adapter_options: {}
+
+  sentinel3b_nrt_l2lansi_v5p0:
+
+    long_name: ""
+    reference: ""
+    file_discovery_options: {}
+    l1_input_adapter_options: {}
