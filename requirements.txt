@@ -1,9 +1,9 @@
 astropy
 attrdict
 bottleneck
-cartopy>=0.22
+cartopy
 cftime
-cython==0.29.35
+cython
 dateperiods @ git+https://github.com/shendric/dateperiods.git@main#egg=dateperiods
 dateutils
 flake8
@@ -45,3 +45,7 @@ torch
 xarray
 xgboost
 xmltodict
+
+dateperiods
+packaging
+pytz

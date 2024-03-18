@@ -20,8 +20,27 @@ from typing import Dict, Union
 
 import yaml
 from attrdict import AttrDict
+from packaging.version import Version
 
 from pysiral import psrlcfg
+
+
+class DataVersion(Version):
+    """
+    A small modification of packaging.version.Version
+    allowing conversion to and from filenames
+    (1.0 -> v1p0 -> 1.0)
+    """
+
+    def __init__(self, version_str) -> None:
+        version_str = version_str.replace("v", "")
+        version_str = version_str.replace("p", ".")
+        super(DataVersion, self).__init__(version_str)
+
+    @property
+    def filename(self) -> str:
+        file_version = self.public.replace(".", "p")
+        return f"v{file_version}"
 
 
 # TODO: Marked as obsolete -> flag_dict now in mission_def yaml.
