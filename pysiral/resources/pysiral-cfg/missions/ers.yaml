@@ -1,5 +1,5 @@
 # --- Platform Metadata ---
-platform:
+platforms:
 
   ers1:
 
@@ -15,6 +15,18 @@ platform:
       end: 1996-06-02T23:59:59.99
     sea_ice_radar_modes: ["lrm"]
     orbit_max_latitude: 81.5
+
+
+    source_datasets:
+
+      ers1_rep_esasgdr_v1p8:
+
+        long_name: ""
+        reference: ""
+
+        file_discovery_options: {}
+
+        l1_input_adapter_options: {}
 
   ers2:
 
@@ -32,13 +44,14 @@ platform:
     orbit_max_latitude: 81.5
 
 
-source_datasets:
+    source_datasets:
 
-  ers_rep_esasgdr_v1p8:
+      ers2_rep_esasgdr_v1p8:
 
-    long_name: ""
-    reference: ""
+        long_name: ""
+        reference: ""
 
-    file_discovery_options: {}
+        file_discovery_options: {}
 
-    l1_input_adapter_options: {}
+        l1_input_adapter_options: {}
+

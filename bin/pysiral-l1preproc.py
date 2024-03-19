@@ -27,7 +27,10 @@ def pysiral_l1preproc():
     cli.parse_command_line_arguments()
 
     # Create the job definitions
-    cfg = L1pProcessorConfig.from_yaml(cli.args.l1p_settings, platform=cli.args.platform)
+    cfg = L1pProcessorConfig.from_yaml(
+        cli.args.l1p_settings,
+        input_dataset_id=cli.args.platform
+    )
 
     l1preproc = Level1PreProcessor(cfg)
 

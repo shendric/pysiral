@@ -88,7 +88,7 @@ class DefaultCommandLineArguments(object):
             "mission": {
                 "action": 'store',
                 "dest": 'mission_id',
-                "choices": psrlcfg.platforms.ids,
+                "choices": psrlcfg.missions.platform_ids,
                 "required": True,
                 "help": "pysiral recognized mission id"
             },
@@ -97,7 +97,7 @@ class DefaultCommandLineArguments(object):
             "platform": {
                 "action": 'store',
                 "dest": 'platform',
-                "choices": psrlcfg.platforms.ids,
+                "choices": psrlcfg.missions.platform_ids,
                 "required": True,
                 "default": None,
                 "help": "pysiral recognized platform id"

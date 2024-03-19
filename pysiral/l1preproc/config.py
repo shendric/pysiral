@@ -82,7 +82,7 @@ class L1pProcessorConfig(BaseModel):
     def from_yaml(
             cls,
             filename_or_proc_id: Union[str, Path],
-            platform: str = None,
+            input_dataset_id: str = None,
     ) -> "L1pProcessorConfig":
         """
         Initialize the class from the Level-1 pre-processor definition (yaml) file.
@@ -90,8 +90,9 @@ class L1pProcessorConfig(BaseModel):
 
         :param filename_or_proc_id: A file id (must be known to the pysiral package configuration) or
             filepath to
-        :param platform: (Optional) platform id for the target platform. This parameter is needed
-            for Level-1 pre-processor definitions that support multiple platforms.
+        :param input_dataset_id: (Optional) input data set id for the target dataset.
+            This parameter is needed for Level-1 pre-processor definitions that support multiple
+            datasets.
 
         :return: Initialized instance
         """
@@ -102,7 +103,8 @@ class L1pProcessorConfig(BaseModel):
         else:
             config_filepath = psrlcfg.procdef.get("l1", filename_or_proc_id)
 
-        # Read the file content to a raw dicti
+        # Read the file content to a raw dictionay
+        # TODO: boilerpolate, move to function
         reader = YAML(typ="safe", pure=True)
         with config_filepath.open() as f:
             content_dict = reader.load(f)
@@ -112,8 +114,8 @@ class L1pProcessorConfig(BaseModel):
 
         # Set target platform
         # (needed for Level-1 processor definitions that support multiple platforms)
-        if platform is not None:
-            content_dict["platform"] = platform
+        if input_dataset_id is not None:
+            content_dict["dataset"] = input_dataset_id
 
         return cls(**content_dict)
 

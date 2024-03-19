@@ -1,6 +1,6 @@
 
 # --- Platform Metadata ---
-platform:
+platforms:
 
   sentinel3a:
 
@@ -17,6 +17,22 @@ platform:
     sea_ice_radar_modes: ["sar", "plrm"]
     orbit_max_latitude: 81.35
 
+    source_datasets:
+
+      sentinel3a_rep_l2lansi_v5p0:
+
+        long_name: ""
+        reference: ""
+        file_discovery_options: {}
+        l1_input_adapter_options: {}
+
+      sentinel3a_nrt_l2lansi_v5p0:
+
+        long_name: ""
+        reference: ""
+        file_discovery_options: {}
+        l1_input_adapter_options: {}
+
   sentinel3b:
 
     name: Sentinel-3A
@@ -32,33 +48,20 @@ platform:
     sea_ice_radar_modes: ["sar", "plrm"]
     orbit_max_latitude: 81.35
 
+    source_datasets:
 
-source_datasets:
+      sentinel3b_rep_l2lansi_v5p0:
 
-  sentinel3a_rep_l2lansi_v5p0:
+        long_name: ""
+        reference: ""
+        file_discovery_options: {}
+        l1_input_adapter_options: {}
 
-    long_name: ""
-    reference: ""
-    file_discovery_options: {}
-    l1_input_adapter_options: {}
+      sentinel3b_nrt_l2lansi_v5p0:
 
-  sentinel3a_nrt_l2lansi_v5p0:
+        long_name: ""
+        reference: ""
+        file_discovery_options: {}
+        l1_input_adapter_options: {}
 
-    long_name: ""
-    reference: ""
-    file_discovery_options: {}
-    l1_input_adapter_options: {}
 
-  sentinel3b_rep_l2lansi_v5p0:
-
-    long_name: ""
-    reference: ""
-    file_discovery_options: {}
-    l1_input_adapter_options: {}
-
-  sentinel3b_nrt_l2lansi_v5p0:
-
-    long_name: ""
-    reference: ""
-    file_discovery_options: {}
-    l1_input_adapter_options: {}

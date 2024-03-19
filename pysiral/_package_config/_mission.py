@@ -43,6 +43,7 @@ class _AltimeterPlatform(BaseModel):
     time_coverage: _AltimeterTimeCoverage
     sea_ice_radar_modes: List[str]
     orbit_max_latitude: float
+    source_datasets: _AltimeterSourceDatasets
 
 
 class _AltimeterPlatforms(ConvenientRootModel):
@@ -52,13 +53,24 @@ class _AltimeterPlatforms(ConvenientRootModel):
 class _MissionDefinition(BaseModel):
     model_config = ConfigDict(extra="ignore")
     filepath: FilePath
-    platform: _AltimeterPlatforms
-    source_datasets: _AltimeterSourceDatasets
+    platforms: _AltimeterPlatforms
 
 
-class PlatformConfig(ConvenientRootModel):
+class MissionConfig(ConvenientRootModel):
     root: Dict[str, _MissionDefinition]
 
     @property
-    def ids(self) -> List[str]:
+    def mission_ids(self) -> List[str]:
         return list(self.items)
+
+    @property
+    def platform_ids(self) -> List[str]:
+        return sorted(self.platform_mission_dict.keys())
+
+    @property
+    def platform_mission_dict(self) -> Dict:
+        platform_mission_dict = {}
+        for mission_id in self.items:
+            for platform in self[mission_id].platforms.items:
+                platform_mission_dict[platform] = mission_id
+        return platform_mission_dict

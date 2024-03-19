@@ -1,7 +1,8 @@
 # --- Platform Metadata ---
-platform:
+platforms:
 
   envisat:
+
     name: Envisat
     long_name: Envisat (Enviromental Satellite) of the European Space Agency (ESA)
     sensor:
@@ -15,11 +16,11 @@ platform:
     orbit_max_latitude: 81.5
 
 
-source_datasets:
+    source_datasets:
 
-  envisat_rep_esasgdr_v3p0:
+      envisat_rep_esasgdr_v3p0:
 
-    long_name: ""
-    reference: ""
-    file_discovery_options: {}
-    l1_input_adapter_options: {}
+        long_name: ""
+        reference: ""
+        file_discovery_options: {}
+        l1_input_adapter_options: {}

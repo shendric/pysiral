@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""
 
+"""
+Configuration data model for the pysiral package configuration and
+methods to get the necessary information
+(only to be called from pysiral.__init__ during initial pysiral import)
 """
 
 import multiprocessing
@@ -16,7 +19,7 @@ from ruamel.yaml import YAML
 
 from ._auxdata import AuxiliaryDataConfig
 from ._local_machine import LocalMachineConfig
-from ._mission import PlatformConfig
+from ._mission import MissionConfig
 from ._output import OutputDefCatalog
 from ._proc import ProcDefCatalog
 
@@ -133,7 +136,7 @@ class _PysiralPackageConfiguration(object):
         self._package = self._get_package_config()
 
         # Read the configuration files (package configuration needed)
-        self._platforms = self._get_platform_config()
+        self._missions = self._get_mission_config()
         self._auxdata = self._get_auxdata_config()
         self._local_path = self._get_local_machine_config()
 
@@ -184,7 +187,7 @@ class _PysiralPackageConfiguration(object):
         }
         return PackageConfig(**package_info)
 
-    def _get_platform_config(self) -> Union[PlatformConfig, None]:
+    def _get_mission_config(self) -> Union[MissionConfig, None]:
         """
         Get the pysiral radar altimeter platform configuration ('mission_def.yaml') data model
         if the pysiral configuration is already configured.
@@ -204,7 +207,7 @@ class _PysiralPackageConfiguration(object):
             content_dict["filepath"] = yaml_filepath
             platforms_dict[platform_id] = content_dict
 
-        return PlatformConfig(**platforms_dict)
+        return MissionConfig(**platforms_dict)
 
     def _get_local_machine_config(self) -> Union[LocalMachineConfig, None]:
         """
@@ -297,8 +300,8 @@ class _PysiralPackageConfiguration(object):
         return self._package.model_copy()
 
     @property
-    def platforms(self) -> Union[PlatformConfig, None]:
-        return self._platforms.model_copy()
+    def missions(self) -> Union[MissionConfig, None]:
+        return self._missions.model_copy()
 
     @property
     def auxdata(self) -> Union[AuxiliaryDataConfig, None]:
