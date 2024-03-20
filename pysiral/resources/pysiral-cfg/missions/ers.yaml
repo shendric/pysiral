@@ -19,7 +19,7 @@ platforms:
 
     source_datasets:
 
-      ers1_rep_esasgdr_v1p8:
+      ers1_sgdr_esa_v1p8:
 
         long_name: ""
         reference: ""

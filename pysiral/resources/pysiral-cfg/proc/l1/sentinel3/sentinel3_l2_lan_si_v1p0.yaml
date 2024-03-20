@@ -1,6 +1,10 @@
 # NOTE: A separate config file is necessary for Sentinel-3B, since the Level-1 pre-processor
 #       expects one config file per platform (at least for now)
-supported_platforms: [sentinel3a, sentinel3b]
+pysiral_package_config:
+  id: "lan_l2_si_v1p0"
+  version: 1.0
+  supported_source_datasets:
+    - "sentinel3a_rep_l2lansi_v5p0"
 
 # Information of getting an input file list
 input_handler:

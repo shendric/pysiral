@@ -8,10 +8,12 @@ import sys
 from loguru import logger
 
 from pysiral import psrlcfg, set_psrl_cpu_count
-from pysiral.core.config import DefaultCommandLineArguments
+from pysiral.core.clocks import debug_timer
+from pysiral.core.cli import DefaultCommandLineArguments
 from pysiral.l1preproc import Level1PreProcessor, L1pProcessorConfig
 
 
+@debug_timer
 def pysiral_l1preproc():
     """
     Workflow script of the pysiral l1b preprocessor.
@@ -27,8 +29,8 @@ def pysiral_l1preproc():
     cli.parse_command_line_arguments()
 
     # Create the Level-1 preprocessor configuration
-    l1p_settings_filepath = psrlcfg.proc.get_l1procdef_filepath(
-        cli.args.dataset_id,
+    l1p_settings_filepath = psrlcfg.procdef.get_l1_from_dataset_id(
+        cli.args.source_dataset_id,
         cli.args.l1p_settings
     )
     cfg = L1pProcessorConfig.from_yaml(
@@ -120,7 +122,7 @@ class Level1PreProcArgParser(object):
         # List of command line option required for pre-processor
         # (argname, argtype (see config module), destination, required flag)
         options = [
-            ("--source", "source_dataset", "source_dataset", True),
+            ("--source", "source_dataset_id", "source_dataset_id", True),
             ("--l1p-settings", "l1p_settings", "l1p_settings", True),
             ("--start", "date", "start_date", True),
             ("--stop", "date", "stop_date", True),

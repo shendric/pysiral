@@ -1,5 +1,8 @@
-supported_data_sets:
-  - cryosat2
+pysiral_package_config:
+  id: "cryotempo_c001_rep"
+  version: 1.0
+  supported_source_datasets:
+    - "cryosat2_rep_esapds_ice_b00E"
 
 # Information of getting an input file list
 input_handler:
@@ -15,12 +18,12 @@ input_handler:
 # Class that will generate the initial l1p data object from
 # the input data
 input_adapter:
-    
+
     module_name: pysiral.cryosat2.l1_adapter
     class_name: ESACryoSat2PDSBaselineDPatchFESArctide
 
     options:
-        
+
         range_correction_targets:
             dry_troposphere: mod_dry_tropo_cor_01
             wet_troposphere: mod_wet_tropo_cor_01
@@ -33,7 +36,7 @@ input_adapter:
             ocean_loading_tide: load_tide_01
             solid_earth_tide: solid_earth_tide_01
             geocentric_polar_tide: pole_tide_01
-        
+
         classifier_targets:
             stack_peakiness: stack_peakiness_20_ku
             stack_skewness: stack_skewness_20_ku
@@ -62,7 +65,7 @@ input_adapter:
 
 # Output handler (will always be default handler -> only options)
 output_handler:
-   
+
     options:
         local_machine_def_tag: baseline_d
         version:
@@ -72,20 +75,20 @@ output_handler:
 
 # Settings for the pre-processor
 level1_preprocessor:
-    
+
     type: custom_orbit_segment
-    
+
     options:
-        
+
         polar_ocean:
             target_hemisphere: [north, south]
             polar_latitude_threshold: 45.0
             input_file_is_single_hemisphere: True
             allow_nonocean_segment_nrecords: 1000
-    
+
         orbit_segment_connectivity:
             max_connected_segment_timedelta_seconds: 10
-        
+
         # NOTE: if no options are required use an empty mapping {} instead of null!
         processing_items:
 
@@ -140,7 +143,7 @@ level1_preprocessor:
               class_name: L1PWaveformResampleSIN
               options:
                   sin_target_bins: 256
-            
+
             # Compute the leading edge width parameters (full, first half & second half)
             - label: "Compute Leading Edge Width"
               stage: post_ocean_segment_extraction
@@ -149,11 +152,11 @@ level1_preprocessor:
               options:
                   tfmra_leading_edge_start: 0.05
                   tfmra_leading_edge_end: 0.95
-                  tfmra_options: 
+                  tfmra_options:
                     noise_level_range_bin_idx: [0, 5]
                     wfm_smoothing_window_size: [11, 11, 21]
                     first_maximum_ignore_leading_bins: 0
-            
+
             # Compute the leading edge quality indicator
             # This class will add three parameters to the l1p classifier data group:
             #  1. Leading edge quality
@@ -209,7 +212,7 @@ level1_preprocessor:
                   sigma0_bias: [0.0, 0.0, 0.0]
 
             # Compute the leading edge peakiness
-            # This class will add three parameters to the l1p classifier data group: 
+            # This class will add three parameters to the l1p classifier data group:
             #  1. Leading edge peakiness
             - label: "Compute Leading Edge Peakiness"
               stage: post_ocean_segment_extraction
@@ -218,7 +221,7 @@ level1_preprocessor:
               options:
                 # Power threshold for the normalized waveform
                 # that the first maximum has to exceed
-                window_size: 3     
+                window_size: 3
 
 
 

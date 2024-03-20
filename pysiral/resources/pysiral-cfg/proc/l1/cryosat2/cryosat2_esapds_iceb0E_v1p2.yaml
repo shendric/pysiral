@@ -1,6 +1,6 @@
 # --- Basic Information for pysior---
 pysiral_package_config:
-  id: "cryosat2_iceb0E_default"
+  id: "ice_bE_v1p2"
   version: 1.2
   supported_source_datasets:
     - "cryosat2_nrt_esapds_ice_b00E"

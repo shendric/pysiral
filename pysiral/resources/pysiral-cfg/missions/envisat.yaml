@@ -14,7 +14,7 @@ platforms:
         orbit_max_latitude: 81.5
 
         source_datasets:
-            envisat_rep_esasgdr_v3p0:
+            envisat_sgdr_esa_v3p0:
                 long_name: ""
                 reference: ""
                 file_discovery_options: {}

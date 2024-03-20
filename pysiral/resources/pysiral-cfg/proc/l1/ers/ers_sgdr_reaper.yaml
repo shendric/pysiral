@@ -1,13 +1,18 @@
 # NOTE: A separate config file is necessary for ERS-2, since the Level-1 pre-processor
 #       expects one config file per platform (at least for now)
-supported_platforms: [ers1, ers2]
+pysiral_package_config:
+  id: "ers_sgdr_default_v1p2"
+  version: 1.2
+  supported_source_datasets:
+    - "ers1_sgdr_esa_v1p8"
+    - "ers2_sgdr_esa_v1p8"
 
 # Information of getting an input file list
 input_handler:
-    
+
     module_name: pysiral.ers.iotools
     class_name: ERSCycleBasedSGDR
-    
+
     options:
         local_machine_def_tag: sgdr_reaper_v1p08  # -> l1b_repository.$platform.$input_tag in (local_machine_def.yaml)
         lookup_dir: null  # Leave emtpy: This will be automatically filled with information from local_machine_def
@@ -20,12 +25,12 @@ input_handler:
 # Class that will generate the initial l1p data object from
 # the input data
 input_adapter:
-    
+
     module_name: pysiral.ers.l1_adapter
     class_name: ERSReaperSGDR
-    
+
     options:
-        
+
         name: "Radar Altimeter REAPER Sensor Geophysical Data Record - SGDR "
 
         # Radar Altimeter Settings
@@ -46,7 +51,7 @@ input_adapter:
 
         # The timeliness is fixed (always reprocessed)
         timeliness: rep
-        
+
         range_correction_targets:
             dry_troposphere: model_dry_tropo_corr
             wet_troposphere: model_wet_tropo_corr
@@ -59,7 +64,7 @@ input_adapter:
             solid_earth_tide: solid_earth_tide
             geocentric_polar_tide: pole_tide
             total_geocentric_ocean_tide: Null
-        
+
         classifier_targets:
             chirp_type: alt_state_flag_chirp_type_20hz
             peakiness_sgdr: peakiness_20hz
@@ -86,7 +91,7 @@ input_adapter:
 
 # Output handler (will always be default handler -> only options)
 output_handler:
-   
+
     options:
         local_machine_def_tag: sgdr_reaper_v1p08
         version:
@@ -96,11 +101,11 @@ output_handler:
 
 # Settings for the pre-processor
 level1_preprocessor:
-    
+
     type: full_orbit
-    
+
     options:
-        
+
         polar_ocean:
             target_hemisphere: [north, south]
             polar_latitude_threshold: 45.0
@@ -120,7 +125,7 @@ level1_preprocessor:
         # settings is set to True, overlapping data will be removed
         # from the second file.
         identify_and_remove_overlaps: True
-        
+
         # NOTE: if no options are required use an empty mapping {} instead of null!
         processing_items:
 
@@ -135,7 +140,7 @@ level1_preprocessor:
                   tfmra_options:
                       noise_level_range_bin_idx: [10, 20]
                       first_maximum_ignore_leading_bins: 10
-            
+
             # Compute waveform peakiness
             - label: "Compute Waveform Peakiness"
               stage: post_ocean_segment_extraction
@@ -146,7 +151,7 @@ level1_preprocessor:
                   norm_is_range_bin: True
 
             # Compute the leading edge quality indicator
-            # This class will add three parameters to the l1p classifier data group: 
+            # This class will add three parameters to the l1p classifier data group:
             #  1. Leading edge quality
             #  2. first maximum index
             #  3. first maximum power (in units of peak power)
@@ -156,7 +161,7 @@ level1_preprocessor:
               class_name: L1PLeadingEdgeQuality
               options:
                 # Power threshold for the normalized waveform
-                # that the first maximum has to exceed 
+                # that the first maximum has to exceed
                 first_maximum_normalized_power_threshold:
                     lrm: 0.5
                 # Number of range bins prior to the first maximum
@@ -168,7 +173,7 @@ level1_preprocessor:
                     lrm: 10
 
             # Compute the leading edge peakiness
-            # This class will add three parameters to the l1p classifier data group: 
+            # This class will add three parameters to the l1p classifier data group:
             #  1. Leading edge peakiness
             - label: "Compute Leading Edge Peakiness"
               stage: post_ocean_segment_extraction
