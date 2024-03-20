@@ -7,7 +7,7 @@ import sys
 
 from loguru import logger
 
-from pysiral import get_cls, set_psrl_cpu_count
+from pysiral import psrlcfg, set_psrl_cpu_count
 from pysiral.core.config import DefaultCommandLineArguments
 from pysiral.l1preproc import Level1PreProcessor, L1pProcessorConfig
 
@@ -26,10 +26,14 @@ def pysiral_l1preproc():
     cli = Level1PreProcArgParser()
     cli.parse_command_line_arguments()
 
-    # Create the job definitions
+    # Create the Level-1 preprocessor configuration
+    l1p_settings_filepath = psrlcfg.proc.get_l1procdef_filepath(
+        cli.args.dataset_id,
+        cli.args.l1p_settings
+    )
     cfg = L1pProcessorConfig.from_yaml(
-        cli.args.l1p_settings,
-        input_dataset_id=cli.args.platform
+        l1p_settings_filepath,
+        input_dataset_id=cli.args.dataset_id
     )
 
     l1preproc = Level1PreProcessor(cfg)
@@ -116,14 +120,13 @@ class Level1PreProcArgParser(object):
         # List of command line option required for pre-processor
         # (argname, argtype (see config module), destination, required flag)
         options = [
-            ("-l1p-settings", "l1p-settings", "l1p_settings", True),
-            ("-platform", "platform", "platform", False),
-            ("-source-repo-id", "source-repo-id", "source_repo_id", False),
-            ("-start", "date", "start_date", True),
-            ("-stop", "date", "stop_date", True),
-            ("-exclude-month", "exclude-month", "exclude_month", False),
-            ("-hemisphere", "hemisphere", "hemisphere", False),
-            ("-mp-cpu-count", "mp-cpu-count", "mp_cpu_count", False),
+            ("--source", "source_dataset", "source_dataset", True),
+            ("--l1p-settings", "l1p_settings", "l1p_settings", True),
+            ("--start", "date", "start_date", True),
+            ("--stop", "date", "stop_date", True),
+            ("--exclude-month", "exclude-month", "exclude_month", False),
+            ("--hemisphere", "hemisphere", "hemisphere", False),
+            ("--mp-cpu-count", "mp-cpu-count", "mp_cpu_count", False),
             ("--remove-old", "remove-old", "remove_old", False),
             ("--no-critical-prompt", "no-critical-prompt", "no_critical_prompt", False),
             ("--no-overwrite-protection", "no-overwrite-protection", "overwrite_protection", False),
@@ -135,7 +138,10 @@ class Level1PreProcArgParser(object):
         for option in options:
             argname, argtype, destination, required = option
             argparse_dict = clargs.get_argparse_dict(argtype, destination, required)
-            parser.add_argument(argname, **argparse_dict)
+            if isinstance(argname, tuple):
+                parser.add_argument(*argname, **argparse_dict)
+            else:
+                parser.add_argument(argname, **argparse_dict)
         parser.set_defaults(overwrite_protection=False)
 
         return parser

@@ -15,6 +15,23 @@ class ProcDefCatalog(BaseModel):
     l2: Dict[str, _YamlDefEntry]
     l3: Dict[str, _YamlDefEntry]
 
+    def get_ids(self, processing_level: Literal["l1", "l2", "l3"]) -> Literal[str]:
+        """
+        Get a list of known processor settings id's for the specified processing level
+
+        :param processing_level: One of l1, l2, l3
+
+        :raises ValueError: Invalid processing level
+
+        :return: A list of known processor id's
+        """
+        try:
+            proc_level_cfg = getattr(self, processing_level)
+        except AttributeError as ae:
+            raise ValueError(f"Invalid processing level: {processing_level} [l1, l2, l3]") from ae
+
+        return sorted(list(proc_level_cfg.keys()))
+
     def get(
             self,
             proc_level: Literal["l1", "l2", "l3"],

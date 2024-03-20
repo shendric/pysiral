@@ -88,7 +88,7 @@ class DefaultCommandLineArguments(object):
             "mission": {
                 "action": 'store',
                 "dest": 'mission_id',
-                "choices": psrlcfg.missions.platform_ids,
+                "choices": psrlcfg.missions.get_platform_ids(),
                 "required": True,
                 "help": "pysiral recognized mission id"
             },
@@ -97,10 +97,30 @@ class DefaultCommandLineArguments(object):
             "platform": {
                 "action": 'store',
                 "dest": 'platform',
-                "choices": psrlcfg.missions.platform_ids,
+                "choices": psrlcfg.missions.get_platform_ids(),
                 "required": True,
                 "default": None,
                 "help": "pysiral recognized platform id"
+            },
+
+            # platform (same as mission, but proper name)
+            "l1p_settings": {
+                "action": 'store',
+                "dest": 'l1p_settings',
+                "choices": psrlcfg.procdef.get_ids("l1"),
+                "required": True,
+                "default": None,
+                "help": "pysiral recognized Level-1 preprocessor setting"
+            },
+
+            # platform (same as mission, but proper name)
+            "source_dataset": {
+                "action": 'store',
+                "dest": 'source_dataset',
+                "choices": psrlcfg.missions.get_source_dataset_ids(),
+                "required": True,
+                "default": None,
+                "help": "pysiral recognized source data set id"
             },
 
             # Default date parameter

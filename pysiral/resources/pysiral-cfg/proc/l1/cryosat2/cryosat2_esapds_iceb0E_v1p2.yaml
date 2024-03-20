@@ -1,12 +1,10 @@
-# --- Supported input data sets ---
-supported_datasets:
-  - cryosat2_nrt_esapds_ice_b00E
-  - cryosat2_rep_esapds_ice_b00E
-
-# -- This Lev
-metadata:
-  product: esa_pds_ipf1e
-  version_file_tag: v1p2
+# --- Basic Information for pysior---
+pysiral_package_config:
+  id: "cryosat2_iceb0E_default"
+  version: 1.2
+  supported_source_datasets:
+    - "cryosat2_nrt_esapds_ice_b00E"
+    - "cryosat2_rep_esapds_ice_b00E"
 
 
 # Settings for the pre-processor

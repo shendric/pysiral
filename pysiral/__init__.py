@@ -145,5 +145,9 @@ def set_psrl_cpu_count(cpu_count: int) -> None:
 
 
 for loader, module_name, is_pkg in pkgutil.walk_packages(__path__):
+    import time
+    t0 = time.time()
     _module = loader.find_module(module_name).load_module(module_name)
+    t1 = time.time()
+    print(f"{module_name}: {t1-t0:.3f} seconds")
     globals()[module_name] = _module

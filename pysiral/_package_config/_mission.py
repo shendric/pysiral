@@ -59,13 +59,23 @@ class _MissionDefinition(BaseModel):
 class MissionConfig(ConvenientRootModel):
     root: Dict[str, _MissionDefinition]
 
-    @property
-    def mission_ids(self) -> List[str]:
+    def get_mission_ids(self) -> List[str]:
         return list(self.items)
 
-    @property
-    def platform_ids(self) -> List[str]:
+    def get_platform_ids(self) -> List[str]:
         return sorted(self.platform_mission_dict.keys())
+
+    def get_source_dataset_ids(self) -> List[str]:
+        return sorted(self.source_dataset_dict.keys())
+
+    @property
+    def source_dataset_dict(self) -> Dict:
+        source_dataset_dict = {}
+        for mission_id in self.items:
+            for platform_id in self[mission_id].platforms.items:
+                for source_dataset in self[mission_id].platforms[platform_id].source_datasets.items:
+                    source_dataset_dict[source_dataset] = (mission_id, platform_id)
+        return source_dataset_dict
 
     @property
     def platform_mission_dict(self) -> Dict:
