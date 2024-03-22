@@ -44,9 +44,18 @@ class DefaultCommandLineArguments(object):
             },
 
             # platform (same as mission, but proper name)
-            "source_dataset": {
+            "l1p_id": {
                 "action": 'store',
-                "dest": 'source_dataset',
+                "dest": 'l1p_id',
+                "required": True,
+                "default": None,
+                "help": "Level-1 preprocessor id (needed for multiple l1p configuration for source data"
+            },
+
+            # platform (same as mission, but proper name)
+            "source_dataset_id": {
+                "action": 'store',
+                "dest": 'source_dataset_id',
                 "choices": psrlcfg.missions.get_source_dataset_ids(),
                 "required": True,
                 "default": None,

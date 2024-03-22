@@ -14,7 +14,7 @@ import warnings
 from pathlib import Path
 from loguru import logger
 
-from _package_config import _PysiralPackageConfiguration
+from _package_config import PysiralPackageConfiguration
 
 __all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
            "filter", "frb", "grid",
@@ -58,7 +58,7 @@ class InterceptHandler(logging.Handler):
 # TODO: This only works when the code is in a git repository (and not as installed python package)
 try:
     __software_version__ = subprocess.check_output(["git", "log", "--pretty=format:%H", "-n", "1"])
-    __software_version__ = __software_version__.strip().decode("utf-8")
+    __software_version__ = __software_version__.strip().decode()
 except (FileNotFoundError, subprocess.CalledProcessError):
     __software_version__ = None
 
@@ -81,7 +81,7 @@ __author_email__ = "stefan.hendricks@awi.de"
 
 
 # Create a package configuration object as global variable
-psrlcfg = _PysiralPackageConfiguration(PACKAGE_ROOT_DIR, __version__)
+psrlcfg = PysiralPackageConfiguration(PACKAGE_ROOT_DIR, __version__)
 
 
 def get_cls(module_name, class_name, relaxed=True):

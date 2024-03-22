@@ -101,7 +101,11 @@ class SystemConfig(BaseModel):
     python_version: str
 
 
-class _PysiralPackageConfiguration(object):
+class RegisteredClasses(BaseModel):
+    source_data_input: Dict = {}
+
+
+class PysiralPackageConfiguration(object):
     """
     Container for the content of the pysiral definition files
     (in pysiral/configuration) and the local machine definition file
@@ -135,6 +139,9 @@ class _PysiralPackageConfiguration(object):
         self._system = self._get_system_config()
         self._package = self._get_package_config()
 
+        # This property requires to be changed at runtime
+        self.registered_classes = RegisteredClasses()
+
         # Read the configuration files (package configuration needed)
         self._missions = self._get_mission_config()
         self._auxdata = self._get_auxdata_config()
@@ -144,6 +151,7 @@ class _PysiralPackageConfiguration(object):
         # (catalog only, validation of files is done on demand)
         self._procdef = self._get_procdef_catalog()
         self._outputdef = self._get_outputdef_catalog()
+
 
     @staticmethod
     def _get_system_config() -> SystemConfig:

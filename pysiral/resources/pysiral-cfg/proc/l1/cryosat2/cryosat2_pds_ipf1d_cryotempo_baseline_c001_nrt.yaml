@@ -2,7 +2,7 @@ pysiral_package_config:
   id: "cryotempo_nrt_c001"
   version: 1.0
   supported_source_datasets:
-    - "cryosat2_nrt_esapds_ice_b00E"
+    - "cryosat2_nrt_esapds_iceb0E"
 
 # Information of getting an input file list
 input_handler:

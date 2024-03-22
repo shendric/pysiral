@@ -32,10 +32,6 @@ class ClassConfig(BaseModel):
         return module_name
 
 
-class L1POutputHandlerConfig(BaseModel):
-    options: Dict
-
-
 class L1PProcPolarOceanConfig(BaseModel):
     target_hemisphere: List[Literal["north", "south"]]
     polar_latitude_threshold: float
@@ -55,15 +51,40 @@ class L1PProcItemConfig(BaseModel):
     options: Dict
 
 
-class L1PProcOptions(BaseModel):
+class L1PProcConfig(BaseModel):
     polar_ocean: L1PProcPolarOceanConfig
     orbit_segment_connectivity: L1PProcOrbitConnectConfig
     processing_items: List[L1PProcItemConfig]
 
 
-class L1PProcConfig(BaseModel):
-    type: Literal["custom_orbit_segment", "half_orbit", "full_orbit"]
-    options: L1PProcOptions
+class L1PPysiralPackageConfig(BaseModel):
+    id: str = Field(description="Configuration id (must be unique for source data set")
+    version: float = Field(description="Version number of the Level-1 processor definition")
+    supported_source_datasets: List[str] = Field(description="List with id's of supported source data sets")
+
+    @field_validator("supported_source_datasets")
+    @classmethod
+    def platform_must_be_known(cls, dataset_id):
+        """
+        Ensures that the tag `supported_platforms` in the L1 processor definition file
+        only contains platform id's known to pysiral.
+
+        :param dataset_id: str of list of string that should contain pysiral dataset id's
+
+        :raises AssertionError: Invalid platform id
+
+        :return: Validated supported_platforms
+        """
+        valid_ids = psrlcfg.missions.get_source_dataset_ids()
+        err_msg = f"Non pysiral-recognized datasets(s): {dataset_id=} {valid_ids}"
+        if isinstance(dataset_id, str):
+            assert dataset_id in valid_ids, err_msg
+        elif isinstance(dataset_id, list):
+            assert all(p in valid_ids for p in dataset_id), err_msg
+        # This shouldn't happen (to be caught by pydantic type validation)
+        else:
+            raise TypeError(f"Invalid type {dataset_id=} {type(dataset_id)}")
+        return dataset_id
 
 
 class L1pProcessorConfig(BaseModel):
@@ -71,28 +92,19 @@ class L1pProcessorConfig(BaseModel):
     Configuration data for the Level-1 pre-processor
     """
     filepath: Optional[FilePath] = Field(description="Filepath to the Level-1 pre-processor configuration object")
-    supported_datasets: Union[str, List[str]] = Field(description="Supported datasets")
-    dataset: Optional[str] = Field(description="Target platform", default=None, validate_default=False)
-    input_handler: ClassConfig
-    input_adapter: ClassConfig
-    output_handler: L1POutputHandlerConfig
+    pysiral_package_config: L1PPysiralPackageConfig
     level1_preprocessor: L1PProcConfig
 
     @classmethod
     def from_yaml(
             cls,
             filename_or_proc_id: Union[str, Path],
-            input_dataset_id: str = None,
-    ) -> "L1pProcessorConfig":
+            ) -> "L1pProcessorConfig":
         """
         Initialize the class from the Level-1 pre-processor definition (yaml) file.
 
-
         :param filename_or_proc_id: A file id (must be known to the pysiral package configuration) or
             filepath to
-        :param input_dataset_id: (Optional) input data set id for the target dataset.
-            This parameter is needed for Level-1 pre-processor definitions that support multiple
-            datasets.
 
         :return: Initialized instance
         """
@@ -109,42 +121,14 @@ class L1pProcessorConfig(BaseModel):
         with config_filepath.open() as f:
             content_dict = reader.load(f)
 
-        # Set filepath
+        # Add filepath
         content_dict["filepath"] = config_filepath
-
-        # Set target platform
-        # (needed for Level-1 processor definitions that support multiple platforms)
-        if input_dataset_id is not None:
-            content_dict["dataset"] = input_dataset_id
 
         return cls(**content_dict)
 
     @property
     def supports_multiple_platforms(self) -> bool:
         return isinstance(self.supported_platforms, list)
-
-    @field_validator("supported_datasets", "dataset")
-    @classmethod
-    def platform_must_be_known(cls, dataset_id):
-        """
-        Ensures that the tag `supported_platforms` in the L1 processor definition file
-        only contains platform id's known to pysiral.
-
-        :param dataset_id: str of list of string that should contain pysiral dataset id's
-
-        :raises AssertionError: Invalid platform id
-
-        :return: Validated supported_platforms
-        """
-        err_msg = f"Non pysiral-recognized datasets(s): {dataset_id=} {psrlcfg.platforms.dataset_id}"
-        if isinstance(dataset_id, str):
-            assert dataset_id in psrlcfg.platforms.ids, err_msg
-        elif isinstance(dataset_id, list):
-            assert all(p in psrlcfg.platforms.ids for p in dataset_id), err_msg
-        # This shouldn't happen (to be caught by pydantic type validation)
-        else: 
-            raise TypeError(f"Invalid type {dataset_id=} {type(dataset_id)}")
-        return dataset_id
 
     @model_validator(mode="after")
     def target_platform_must_be_specified(self):

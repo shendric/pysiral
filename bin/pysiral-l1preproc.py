@@ -5,43 +5,44 @@
 import argparse
 import sys
 
+from typing import Dict, Optional
 from loguru import logger
-
+from pathlib import Path
+from dateperiods import DatePeriod
 from pysiral import psrlcfg, set_psrl_cpu_count
-from pysiral.core.clocks import debug_timer
 from pysiral.core.cli import DefaultCommandLineArguments
-from pysiral.l1preproc import Level1PreProcessor, L1pProcessorConfig
+from pysiral.l1preproc import Level1PreProcessor
 
 
-@debug_timer
-def pysiral_l1preproc():
+def pysiral_l1preproc(
+        source_dataset_id: str,
+        period: DatePeriod,
+        l1p_id: Optional[str] = None,
+        log_directory: Optional[Path] = None,
+        ctlg_directory: Optional[Path] = None,
+        source_loader_kwargs: Optional[Dict] = None,
+) -> None:
     """
-    Workflow script of the pysiral l1b preprocessor.
+    Main script of the pysiral l1b preprocessor.
 
-    :return: None
+    :param source_dataset_id:
+    :param period:
+    :param l1p_id:
+    :param log_directory:
+    :param ctlg_directory:
+    :param source_loader_kwargs:
+    :return:
     """
 
-    # Take the time
-    # job.stopwatch.start()
+    if source_loader_kwargs is None:
+        source_loader_kwargs = {}
+    kwargs = {"log_directory": log_directory, "ctlg_directory": ctlg_directory}
+    kwargs |= {"source_loader_kwargs": source_loader_kwargs}
+    l1preproc = Level1PreProcessor.from_ids(source_dataset_id, l1p_id, **kwargs)
+    l1preproc.process_period(period)
 
-    # Get the command line arguments
-    cli = Level1PreProcArgParser()
-    cli.parse_command_line_arguments()
 
-    # Create the Level-1 preprocessor configuration
-    l1p_settings_filepath = psrlcfg.procdef.get_l1_from_dataset_id(
-        cli.args.source_dataset_id,
-        cli.args.l1p_settings
-    )
-    cfg = L1pProcessorConfig.from_yaml(
-        l1p_settings_filepath,
-        input_dataset_id=cli.args.dataset_id
-    )
-
-    l1preproc = Level1PreProcessor(cfg)
-
-    breakpoint()
-    # # 1. Get the input handler
+# # 1. Get the input handler
     # input_handler_def = job.l1pprocdef.input_handler
     # input_handler_cls, err = get_cls(input_handler_def.module_name, input_handler_def.class_name, relaxed=False)
     # input_handler = input_handler_cls(input_handler_def.options)
@@ -78,6 +79,27 @@ def pysiral_l1preproc():
     # Report processing time
     # job.stopwatch.stop()
     # logger.info(f"Level-1 PreProcessor finished in {job.stopwatch.get_duration()}")
+
+def pysiral_l1preproc_cli_wrapper() -> None:
+    """
+    The console scripts version of the pysiral-l1preprocessor scripts.
+    It takes the required input from the command line with initial
+    input processing and validation and starts the
+    Level-1 pre-processor script.
+
+    :return:
+    """
+
+    # Get the command line arguments
+    cli = Level1PreProcArgParser()
+    cli.parse_command_line_arguments()
+
+    pysiral_l1preproc(
+        cli.args.source_dataset_id,
+        l1p_id = cli.args.l1p_id
+    )
+    breakpoint()
+
 
 
 class Level1PreProcArgParser(object):
@@ -123,7 +145,7 @@ class Level1PreProcArgParser(object):
         # (argname, argtype (see config module), destination, required flag)
         options = [
             ("--source", "source_dataset_id", "source_dataset_id", True),
-            ("--l1p-settings", "l1p_settings", "l1p_settings", True),
+            ("--l1p-id", "l1p_id", "l1p_id", False),
             ("--start", "date", "start_date", True),
             ("--stop", "date", "stop_date", True),
             ("--exclude-month", "exclude-month", "exclude_month", False),
@@ -161,4 +183,4 @@ class Level1PreProcArgParser(object):
 if __name__ == "__main__":
 
     # Execute Level-1 Pre-Processor Workflow
-    pysiral_l1preproc()
+    pysiral_l1preproc_cli_wrapper()
