@@ -7,6 +7,7 @@ pysiral is the PYthon Sea Ice Radar ALtimetry toolbox
 import importlib
 import logging
 import multiprocessing
+import os
 import pkgutil
 import subprocess
 import sys
@@ -33,7 +34,9 @@ fmt = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | ' + \
       '<cyan>{name: <25}</cyan> | ' + \
       '<cyan>L{line: <5}</cyan> | ' + \
       '<level>{message}</level>'
-logger.add(sys.stderr, format=fmt, enqueue=True)
+PYSIRAL_DEBUG_MODE = "PYSIRAL_DEBUG_MODE" in os.environ
+LOG_LEVEL = "DEBUG" if PYSIRAL_DEBUG_MODE else "INFO"
+logger.add(sys.stderr, format=fmt, enqueue=True, level=LOG_LEVEL)
 
 
 # TODO: Make obsolete by porting sampy into pysiral
@@ -149,5 +152,5 @@ for loader, module_name, is_pkg in pkgutil.walk_packages(__path__):
     t0 = time.time()
     _module = loader.find_module(module_name).load_module(module_name)
     t1 = time.time()
-    print(f"{module_name}: {t1-t0:.3f} seconds")
+    logger.debug(f"Imported {module_name} in {t1-t0:.3f} seconds")
     globals()[module_name] = _module

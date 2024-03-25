@@ -40,8 +40,8 @@ class CS2ICEFileDiscoveryConfig(BaseModel):
 class CS2ICEFileDiscovery(
     SourceFileDiscovery,
     supported_source_datasets=[
-        "cryosat2_rep_esa_ice_b00E",
-        "cryosat2_nrt_esa_ice_b00E"
+        "cryosat2_rep_esa_iceb0E",
+        "cryosat2_nrt_esa_iceb0E"
     ]
 ):
     """

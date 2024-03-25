@@ -66,7 +66,9 @@ class Level1PreProcessor(object):
     :param hemisphere: List of hemispheres (`["nh"]`, `["sh"]`, or `['nh', 'sh']`
     :param log_directory: (Optional) Directory for the output log will be written.
     :param ctlg_directory: (Optional Directory for the output catalog
-    :param source_loader_kwargs:(Optional) dictionary with key word arguments
+    :param source_discovery_kwargs: (Optional) dictionaary with keyword arguments
+        for the source data discovery
+    :param source_loader_kwargs:(Optional) dictionary with keyword arguments
         for the source loader
     """
 
@@ -77,6 +79,7 @@ class Level1PreProcessor(object):
             hemisphere: List[Literal["nh", "sh"]] = None,
             log_directory: Path = None,
             ctlg_directory: Path = None,
+            source_discovery_kwargs: Dict = None,
             source_loader_kwargs: Dict = None
     ):
         """
@@ -93,9 +96,10 @@ class Level1PreProcessor(object):
         # --- Class Properties ---
 
         # Source File Discovery:
-
+        source_discovery_kwargs = {} if source_discovery_kwargs is None else source_discovery_kwargs
         self.source_file_discovery = SourceFileDiscovery.get_cls(
-            self.source_dataset_id.version_str
+            self.source_dataset_id.version_str,
+            **source_discovery_kwargs
         )
 
         # Source Loader

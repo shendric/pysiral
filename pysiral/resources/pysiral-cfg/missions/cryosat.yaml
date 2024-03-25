@@ -63,7 +63,7 @@ platforms:
 
         # --- Definition of source data sets ---
         source_datasets:
-            cryosat2_nrt_esapds_iceb0E:
+            cryosat2_nrt_esa_iceb0E:
                 long_name: "ESA PDS Level-1B data products (near real-time ICE Baseline-E)"
                 reference:
                     "European Space Agency, 2023, L1b LRM Precise Orbit, Baseline E.https://doi.org/10.5270/CR2-41ad749,
@@ -77,7 +77,7 @@ platforms:
                     <<: *default_l1_input_options
                     exclude_predicted_orbits: True
 
-            cryosat2_rep_esapds_iceb0E:
+            cryosat2_rep_esa_iceb0E:
                 long_name: "ESA PDS Level-1B data products (offline reprocessed ICE Baseline-E)"
                 reference:
                     "European Space Agency, 2023, L1b LRM Precise Orbit, Baseline E.https://doi.org/10.5270/CR2-41ad749,

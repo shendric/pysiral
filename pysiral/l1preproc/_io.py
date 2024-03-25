@@ -6,7 +6,6 @@ the Level-1 pre-processor
 """
 
 
-import contextlib
 from pathlib import Path
 from typing import List
 from inspect import signature
@@ -35,13 +34,15 @@ class SourceFileDiscovery(object):
         the class is compliant with requirements for a SourceFileDiscovery class, namely
         a test if certain methods with correct return types have been implemented.
 
-        :param supports: A list of source data set id's supported by the class
+        :param supported_source_datasets: A list of source data set id's supported by the class
 
         :raises NotImplementedError: Subclass does not implement all required
             methods.
 
         :return: None
         """
+
+        logger.debug(f"SourceFileDiscovery: Register {cls} with {supported_source_datasets=}")
 
         # Any subclass must have a method that returns a
         check_class_compliance(
@@ -64,7 +65,26 @@ class SourceFileDiscovery(object):
 
     @classmethod
     def get_cls(cls, source_dataset_id: str, **kwargs):
-        return psrlcfg.registered_classes.source_data_discovery[source_dataset_id](kwargs)
+        """
+        Get the initialized source data discovery class.
+
+        :param source_dataset_id: A pysiral known source dataset identifier
+        :param kwargs: keyword arguments for the source data discovery class
+
+        :raises KeyError: Invalid source_dataset_id.
+
+        :return: Initialized source data discovery class
+        """
+
+        lookup_directory = psrlcfg.local_path.get_source_directory(source_dataset_id)
+        try:
+            return psrlcfg.registered_classes.source_data_discovery[source_dataset_id](lookup_directory, **kwargs)
+        except KeyError as ke:
+            msg = (
+                f"Could not find SourceFileDiscovery implementation for {source_dataset_id=} "
+                f"[Available: {psrlcfg.registered_classes.source_data_discovery.keys()}]"
+            )
+            raise KeyError(msg) from ke
 
 
 class SourceDataLoader(object):
@@ -83,7 +103,7 @@ class SourceDataLoader(object):
         the class is compliant with requirements for a SourceFileDiscovery class, namely
         a test if certain methods with correct return types have been implemented.
 
-        :param supports: A list of source data set id's supported by the class
+        :param supported_source_datasets: A list of source data set id's supported by the class
 
         :raises NotImplementedError: Subclass does not implement all required
             methods.
@@ -91,8 +111,7 @@ class SourceDataLoader(object):
         :return: None
         """
 
-        logger.debug(f"Register SourceDataLoader class: {cls} with")
-        logger.debug(f"")
+        logger.debug(f"SourceDataLoader: Register {cls} with {supported_source_datasets=}")
 
         # Input class validation
         check_class_compliance(
@@ -105,13 +124,13 @@ class SourceDataLoader(object):
         # Note: Allow to overwrite already registered classes, but
         #       warn of overwrite.
         for supported_dataset in supported_source_datasets:
-            existing_cls = psrlcfg.registered_classes.source_data_discovery.get(supported_dataset)
+            existing_cls = psrlcfg.registered_classes.source_data_loader.get(supported_dataset)
             if existing_cls is not None:
                 logger.warning(
                     f"Source data discovery class {existing_cls} will be overwritten by {cls} "
                     "for dataset id={supported_dataset}"
                 )
-            psrlcfg.registered_classes.source_data_discovery[supported_dataset] = cls
+            psrlcfg.registered_classes.source_data_loader[supported_dataset] = cls
 
     @classmethod
     def get_cls(cls, class_name: str, **kwargs):

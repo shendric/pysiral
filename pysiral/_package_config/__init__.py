@@ -12,6 +12,7 @@ import socket
 import platform
 import psutil
 import sys
+import os
 from pathlib import Path
 from typing import Union, Dict, List, Literal, Optional
 from pydantic import BaseModel, DirectoryPath, ConfigDict, PositiveInt, PositiveFloat, Field
@@ -127,6 +128,8 @@ class PysiralPackageConfiguration(object):
         This class is intended to be only called inside the init module of pysiral and to store the
         pysiral package configuration in the global variable `psrlcfg`
         """
+
+        self.debug_mode = "PYSIRAL_DEBUG_MODE" in os.environ
 
         # --- Establish the path information ---
         # This step gets the default path (user home, set path for the resources)

@@ -3,8 +3,8 @@ pysiral_package_config:
   id: "cryosat2_l1b_default"
   version: 1.2
   supported_source_datasets:
-    - "cryosat2_nrt_esapds_iceb0E"
-    - "cryosat2_rep_esapds_iceb0E"
+    - "cryosat2_nrt_esa_iceb0E"
+    - "cryosat2_rep_esa_iceb0E"
 
 
 # Settings for the pre-processor
