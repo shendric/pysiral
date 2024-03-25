@@ -19,7 +19,7 @@ from _package_config import PysiralPackageConfiguration
 __all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
            "filter", "frb", "grid",
            "l1data", "l1preproc", "l2data", "l2preproc", "l2proc", "l3proc",
-           "mask", "proj", "retracker",
+           "mask", "retracker",
            "sit", "surface", "waveform", "psrlcfg", "import_submodules", "get_cls",
            "set_psrl_cpu_count", "InterceptHandler", "__version__"]
 

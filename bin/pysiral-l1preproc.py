@@ -94,12 +94,14 @@ def pysiral_l1preproc_cli_wrapper() -> None:
     cli = Level1PreProcArgParser()
     cli.parse_command_line_arguments()
 
+    target_period = DatePeriod(cli.args.start_date, cli.args.stop_date)
+
     pysiral_l1preproc(
         cli.args.source_dataset_id,
-        l1p_id = cli.args.l1p_id
+        l1p_id=cli.args.l1p_id,
+        period=target_period
     )
     breakpoint()
-
 
 
 class Level1PreProcArgParser(object):

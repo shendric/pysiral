@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import os
-import re
 from collections import deque
 from datetime import datetime
+from typing import List
 from pathlib import Path
 
 from dateperiods import DatePeriod
@@ -11,129 +11,18 @@ from loguru import logger
 from parse import parse
 
 from pysiral.core.clocks import debug_timer
-from pysiral.core.errorhandler import ErrorStatus
-from pysiral.l1preproc import Level1InputHandler
+from pysiral.l1preproc import SourceFileDiscovery
 
 
-class Sentinel3FileList(Level1InputHandler):
-    """
-    Class for the construction of a list of Sentinel-3 SRAL L2 files
-    sorted by acquisition time
-    XXX: Based on the file and directory structure of the early access data
-    """
-
-    def __init__(self):
-
-        super(Sentinel3FileList, self).__init__(self.__class__.__name__)
-        self.folder = None
-        self.time_range = None
-        self.target = "enhanced_measurement.nc"
-        self._sorted_list = []
-
-    def search(self, time_range):
-        """ Find all files falling in a defined time range """
-        # Reset search result and save time range
-        self._sorted_list = []
-        self.time_range = time_range
-        self._get_file_listing()
-
-    @property
-    def sorted_list(self):
-        return list(self._sorted_list)
-
-    def _get_file_listing(self):
-        """ List all files in time range """
-
-        monthly_periods = self.time_range.get_segments("month")
-        for monthly_period in monthly_periods:
-
-            year, month = monthly_period.tcs.year, monthly_period.tcs.month
-
-            # Get the file list for each month
-            toplevel_folder = self._get_toplevel_search_folder(year, month)
-            l2_file_list = get_sentinel3_l1b_filelist(
-                    toplevel_folder, self.target)
-
-            # Get list of days for particular year/month
-            days = self.time_range.get_days_for_month(year, month)
-            for day in days:
-                daystr = "%04g%02g%02g" % (year, month, day)
-                match = [f[0] for f in l2_file_list if re.search(daystr, f[1])]
-                self._sorted_list.extend(sorted(match))
-
-    def _get_toplevel_search_folder(self, year: int, month: int) -> Path:
-        return Path(self.folder) / f"{year:04g}" / f"{month:02g}"
-
-
-class CodaL2SralFileDiscovery(Level1InputHandler):
-    """ Class to retrieve Sentinel-3 SRAL files from the Copernicus Online Data Archive """
-
-    def __init__(self, cfg):
-        """
-
-        :param cfg: dict/treedict configuration options (see l1proc config file)
-        """
-        cls_name = self.__class__.__name__
-        super(CodaL2SralFileDiscovery, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
-
-        # Save config
-        self.cfg = cfg
-
-        # Init empty file lists
-        self._reset_file_list()
-
-    def get_file_for_period(self, period):
-        """
-        Query for Sentinel Level-2 files for a specific period.
-        :param period: dateperiods.DatePeriod
-        :return: sorted list of filenames
-        """
-        # Make sure file list are empty
-        self._reset_file_list()
-        self._query(period)
-        return self.sorted_list
-
-    def _query(self, period):
-        """
-        Searches for files in the given period and stores result in property _sorted_list
-        :param period: dateperiods.DatePeriod
-        :return: None
-        """
-
-        # Loop over all months in the period
-        monthly_periods = period.get_segments("month")
-        for monthly_period in monthly_periods:
-
-            year, month = monthly_period.tcs.year, monthly_period.tcs.month
-
-            # Get the file list for each month
-            toplevel_folder = self._get_toplevel_search_folder(year, month)
-            l2_file_list = get_sentinel3_l1b_filelist(toplevel_folder, self.cfg.filename_search)
-
-            # Get list of days for particular year/month
-            days = period.get_days_for_month(year, month)
-            for day in days:
-                daystr = "%04g%02g%02g" % (year, month, day)
-                match = [f[0] for f in l2_file_list if re.search(daystr, f[1])]
-                self._sorted_list.extend(sorted(match))
-
-    def _get_toplevel_search_folder(self, year, month):
-        """ Get the folder for the file search """
-        return Path(self.cfg.lookup_dir) / f"{year:04g}" / f"{month:02g}"
-
-    def _reset_file_list(self):
-        """ Resets the result of previous file searches """
-        self._list = deque([])
-        self._sorted_list = []
-
-    @property
-    def sorted_list(self):
-        """ Return the search result """
-        return self._sorted_list
-
-
-class L2SeaIceFileDiscovery(Level1InputHandler):
+class L2SeaIceFileDiscovery(
+    SourceFileDiscovery,
+    supported_source_datasets=[
+        "sentinel3a_rep_l2lansi_v5p0",
+        "sentinel3a_nrt_l2lansi_v5p0",
+        "sentinel3b_rep_l2lansi_v5p0",
+        "sentinel3b_nrt_l2lansi_v5p0"
+    ]
+):
     """ Class to retrieve Sentinel-3 SRAL files from the Copernicus Online Data Archive """
 
     def __init__(self, cfg):
@@ -167,7 +56,7 @@ class L2SeaIceFileDiscovery(Level1InputHandler):
             for nc_filepath in Path(self.cfg.lookup_dir).glob(f"**/{self.cfg.filename_search}")
         ]
 
-    def get_file_for_period(self, period):
+    def get_file_for_period(self, period: DatePeriod) -> List[Path]:
         """
         Query for Sentinel Level-2 files for a specific period.
 

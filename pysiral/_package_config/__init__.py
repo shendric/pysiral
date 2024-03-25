@@ -13,8 +13,8 @@ import platform
 import psutil
 import sys
 from pathlib import Path
-from typing import Union, Dict, List, Literal
-from pydantic import BaseModel, DirectoryPath, ConfigDict, PositiveInt, PositiveFloat
+from typing import Union, Dict, List, Literal, Optional
+from pydantic import BaseModel, DirectoryPath, ConfigDict, PositiveInt, PositiveFloat, Field
 from ruamel.yaml import YAML
 
 from ._auxdata import AuxiliaryDataConfig
@@ -102,7 +102,8 @@ class SystemConfig(BaseModel):
 
 
 class RegisteredClasses(BaseModel):
-    source_data_input: Dict = {}
+    source_data_discovery: Dict = Field(default={})
+    source_data_loader: Dict = Field(default={})
 
 
 class PysiralPackageConfiguration(object):
@@ -151,7 +152,6 @@ class PysiralPackageConfiguration(object):
         # (catalog only, validation of files is done on demand)
         self._procdef = self._get_procdef_catalog()
         self._outputdef = self._get_outputdef_catalog()
-
 
     @staticmethod
     def _get_system_config() -> SystemConfig:

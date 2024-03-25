@@ -8,6 +8,7 @@ from astropy.time import Time
 from cftime import num2pydate
 from loguru import logger
 from scipy import interpolate
+from typing import Optional
 
 from pysiral import __version__ as pysiral_version
 from pysiral.core.clocks import StopWatch
@@ -15,18 +16,28 @@ from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.helper import parse_datetime_str
 from pysiral.cryosat2 import cs2_procstage2timeliness
 from pysiral.l1data import Level1bData
-from pysiral.l1preproc import Level1PInputHandlerBase
+from pysiral.l1preproc import SourceDataLoader
 from pysiral.waveform import CS2OCOGParameter
 
 
-class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
+class ESACryoSat2PDSBaselineD(
+    SourceDataLoader,
+    supported_source_datasets=[
+        "cryosat2_rep_esa_ice_b00E",
+        "cryosat2_nrt_esa_ice_b00E",
+    ]
+):
 
     def __init__(self, cfg, raise_on_error=False):
+        """
 
-        cls_name = self.__class__.__name__
-        super(ESACryoSat2PDSBaselineD, self).__init__(cfg, raise_on_error, cls_name)
+        :param cfg:
+        :param raise_on_error:
+        """
 
         # Init main class variables
+        self.cfg = cfg
+        self.raise_on_error = raise_on_error
         self.nc = None
         self.filepath = None
         self.l1 = None
@@ -37,7 +48,7 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
         translate_dict = {"sar": "sar", "lrm": "lrm", "sarin": "sin"}
         return translate_dict.get(op_mode)
 
-    def get_l1(self, filepath, polar_ocean_check=None):
+    def get_l1(self, filepath, polar_ocean_check=None) -> Optional[Level1bData]:
         """
         Main entry point to the CryoSat-2 Baseline-D Input Adapter
         :param filepath:
@@ -56,15 +67,12 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
 
         # Input Validation
         if not Path(filepath).is_file():
-            msg = f"Not a valid file: {filepath}"
-            logger.warning(msg)
-            self.error.add_error("invalid-filepath", msg)
-            return self.empty
+            raise ValueError(f"Not a valid file: {filepath=}")
 
         # Parse the input file
         self._read_input_netcdf(filepath, attributes_only=True)
         if self.nc is None:
-            return self.empty
+            return None
 
         # CAVEAT: An issue has been identified with baseline-D L1b data when the orbit solution
         # is based on predicted orbits and not the DORIS solution (Nov 2020).
@@ -86,7 +94,7 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
         is_predicted_orbit = self.nc.vector_source.lower().strip() == "fos predicted"
         if is_predicted_orbit and exclude_predicted_orbits:
             logger.warning("Predicted orbit solution detected -> skip file")
-            return self.empty
+            return None
 
         # Get metadata
         self._set_input_file_metadata()
@@ -94,9 +102,9 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
             has_polar_ocean_data = polar_ocean_check.has_polar_ocean_segments(self.l1.info)
             if not has_polar_ocean_data:
                 timer.stop()
-                return self.empty
+                return None
 
-        # Polar ocean check passed, now fill the rest of the l1 data groups
+        # Polar ocean check passed, now fill the rest with the l1 data groups
         self._set_l1_data_groups()
 
         timer.stop()
@@ -397,167 +405,167 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
         return None
 
 
-class ESACryoSat2PDSBaselineDPatchFES(ESACryoSat2PDSBaselineD):
-    def __init__(self, cfg, raise_on_error=False):
-        ESACryoSat2PDSBaselineD.__init__(self, cfg, raise_on_error)
-
-    def _set_l1_data_groups(self):
-        ESACryoSat2PDSBaselineD._set_l1_data_groups(self)
-        fespath = self._get_fes_path(self.filepath)
-        if not Path(fespath).is_file():
-            msg = f"Not a valid file: {fespath}"
-            logger.warning(msg)
-            self.error.add_error("invalid-filepath", msg)
-            raise FileNotFoundError
-        try:
-            nc_fes = xarray.open_dataset(fespath, decode_times=False, mask_and_scale=True)
-
-            # time_1hz = self.nc.time_cor_01.values
-            # time_20hz = self.nc.time_20_ku.values
-
-            msg = f"Patching FES2014b tide data from: {fespath}"
-            logger.info(msg)
-
-            # ocean_tide_elastic: ocean_tide_01
-            variable_20hz = getattr(nc_fes, 'ocean_tide_20')
-            # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
-            # if error_status:
-            #    msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'ocean_tide_01'
-            #    logger.warning(msg)
-            #    raise FileNotFoundError
-            self.l1.correction.set_parameter('ocean_tide_elastic', variable_20hz)
-
-            # ocean_tide_long_period: ocean_tide_eq_01
-            variable_20hz = getattr(nc_fes, 'ocean_tide_eq_20')
-            # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
-            # if error_status:
-            #    msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'ocean_tide_eq_01'
-            #    logger.warning(msg)
-            #    raise FileNotFoundError
-            self.l1.correction.set_parameter('ocean_tide_long_period', variable_20hz)
-
-            # ocean_loading_tide: load_tide_01
-            variable_20hz = getattr(nc_fes, 'load_tide_20')
-            # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
-            # if error_status:
-            #     msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'load_tide_01'
-            #     logger.warning(msg)
-            #     raise FileNotFoundError
-            self.l1.correction.set_parameter('ocean_loading_tide', variable_20hz)
-        except:
-            msg = f"Error encountered by xarray parsing: {fespath}"
-            self.error.add_error("xarray-parse-error", msg)
-            self.nc = None
-            logger.warning(msg)
-            raise FileNotFoundError
-
-    def _get_fes_path(self, filepath):
-        # TODO: get the substitutions to make from config file. Get a list of pairs of sub 'this' to 'that'.
-        # pathsubs = [ ( 'L1B', 'L1B/FES2014' ), ( 'nc', 'fes2014b.nc' ) ]
-        newpath = str(filepath)
-        p = re.compile('L1B')
-        newpath = p.sub('L1B/FES2014', newpath)
-        p = re.compile('nc')
-        newpath = p.sub('fes2014b.nc', newpath)
-        p = re.compile('TEST')
-        newpath = p.sub('LTA_', newpath)
-        return newpath
-
-
-class ESACryoSat2PDSBaselineDPatchFESArctide(ESACryoSat2PDSBaselineDPatchFES):
-    def __init__(self, cfg, raise_on_error=False):
-        ESACryoSat2PDSBaselineDPatchFES.__init__(self, cfg, raise_on_error)
-
-    def _set_l1_data_groups(self):
-        ESACryoSat2PDSBaselineDPatchFES._set_l1_data_groups(self)
-        arcpath = self._get_arctide_path(self.filepath)
-        if not Path(arcpath).is_file():
-            msg = f"Not a valid file: {arcpath}"
-            logger.warning(msg)
-            self.error.add_error("invalid-filepath", msg)
-            # The handling of missing files here is different so that we can still process
-            # south files even though we don't have Arctide for them
-            self.l1.correction.set_parameter('ocean_tide_elastic_2',
-                                             self.l1.correction.get_parameter_by_name('ocean_tide_elastic'))
-        else:
-            nc_arc = xarray.open_dataset(arcpath, decode_times=False, mask_and_scale=True)
-
-            # time_1hz = self.nc.time_cor_01.values
-            # time_20hz = self.nc.time_20_ku.values
-
-            msg = f"Patching ARCTIDE tide data from: {arcpath}"
-            logger.info(msg)
-
-            # ocean_tide_elastic: ocean_tide_01
-            variable_20hz = getattr(nc_arc, 'tide_Arctic')
-            # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
-            # if error_status:
-            #    msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'ocean_tide_01'
-            #    logger.warning(msg)
-            #    raise FileNotFoundError
-            nans_indices = np.where(np.isnan(variable_20hz))[0]
-            if len(nans_indices) > 0:
-                msg = 'Arctide file had {numnan} NaN values of {numval}. These have been replaced with FES2014b data'.format(numnan=len(nans_indices), numval=len(variable_20hz))
-                logger.warning(msg)
-                variable_20hz[nans_indices] = self.l1.correction.get_parameter_by_name('ocean_tide_elastic')[nans_indices].values
-            self.l1.correction.set_parameter('ocean_tide_elastic_2', self.l1.correction.get_parameter_by_name('ocean_tide_elastic'))
-            self.l1.correction.set_parameter('ocean_tide_elastic', variable_20hz)
+# class ESACryoSat2PDSBaselineDPatchFES(ESACryoSat2PDSBaselineD):
+#     def __init__(self, cfg, raise_on_error=False):
+#         ESACryoSat2PDSBaselineD.__init__(self, cfg, raise_on_error)
+#
+#     def _set_l1_data_groups(self):
+#         ESACryoSat2PDSBaselineD._set_l1_data_groups(self)
+#         fespath = self._get_fes_path(self.filepath)
+#         if not Path(fespath).is_file():
+#             msg = f"Not a valid file: {fespath}"
+#             logger.warning(msg)
+#             self.error.add_error("invalid-filepath", msg)
+#             raise FileNotFoundError
+#         try:
+#             nc_fes = xarray.open_dataset(fespath, decode_times=False, mask_and_scale=True)
+#
+#             # time_1hz = self.nc.time_cor_01.values
+#             # time_20hz = self.nc.time_20_ku.values
+#
+#             msg = f"Patching FES2014b tide data from: {fespath}"
+#             logger.info(msg)
+#
+#             # ocean_tide_elastic: ocean_tide_01
+#             variable_20hz = getattr(nc_fes, 'ocean_tide_20')
+#             # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
+#             # if error_status:
+#             #    msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'ocean_tide_01'
+#             #    logger.warning(msg)
+#             #    raise FileNotFoundError
+#             self.l1.correction.set_parameter('ocean_tide_elastic', variable_20hz)
+#
+#             # ocean_tide_long_period: ocean_tide_eq_01
+#             variable_20hz = getattr(nc_fes, 'ocean_tide_eq_20')
+#             # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
+#             # if error_status:
+#             #    msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'ocean_tide_eq_01'
+#             #    logger.warning(msg)
+#             #    raise FileNotFoundError
+#             self.l1.correction.set_parameter('ocean_tide_long_period', variable_20hz)
+#
+#             # ocean_loading_tide: load_tide_01
+#             variable_20hz = getattr(nc_fes, 'load_tide_20')
+#             # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
+#             # if error_status:
+#             #     msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'load_tide_01'
+#             #     logger.warning(msg)
+#             #     raise FileNotFoundError
+#             self.l1.correction.set_parameter('ocean_loading_tide', variable_20hz)
+#         except:
+#             msg = f"Error encountered by xarray parsing: {fespath}"
+#             self.error.add_error("xarray-parse-error", msg)
+#             self.nc = None
+#             logger.warning(msg)
+#             raise FileNotFoundError
+#
+#     def _get_fes_path(self, filepath):
+#         # TODO: get the substitutions to make from config file. Get a list of pairs of sub 'this' to 'that'.
+#         # pathsubs = [ ( 'L1B', 'L1B/FES2014' ), ( 'nc', 'fes2014b.nc' ) ]
+#         newpath = str(filepath)
+#         p = re.compile('L1B')
+#         newpath = p.sub('L1B/FES2014', newpath)
+#         p = re.compile('nc')
+#         newpath = p.sub('fes2014b.nc', newpath)
+#         p = re.compile('TEST')
+#         newpath = p.sub('LTA_', newpath)
+#         return newpath
 
 
-    def _get_arctide_path(self, filepath):
-        # TODO: get the substitutions to make from config file. Get a list of pairs of sub 'this' to 'that'.
-        # pathsubs = [ ( 'L1B', 'L1B/FES2014' ), ( 'nc', 'fes2014b.nc' ) ]
-        newpath = str(filepath)
-        p = re.compile('L1B')
-        newpath = p.sub('L1B/ARCTIDE', newpath)
-        p = re.compile('nc')
-        newpath = p.sub('RegAT_Arctic_tides_v1.2.nc', newpath)
-        p = re.compile('TEST')
-        newpath = p.sub('LTA_', newpath)
-        return newpath
+# class ESACryoSat2PDSBaselineDPatchFESArctide(ESACryoSat2PDSBaselineDPatchFES):
+#     def __init__(self, cfg, raise_on_error=False):
+#         ESACryoSat2PDSBaselineDPatchFES.__init__(self, cfg, raise_on_error)
+#
+#     def _set_l1_data_groups(self):
+#         ESACryoSat2PDSBaselineDPatchFES._set_l1_data_groups(self)
+#         arcpath = self._get_arctide_path(self.filepath)
+#         if not Path(arcpath).is_file():
+#             msg = f"Not a valid file: {arcpath}"
+#             logger.warning(msg)
+#             self.error.add_error("invalid-filepath", msg)
+#             # The handling of missing files here is different so that we can still process
+#             # south files even though we don't have Arctide for them
+#             self.l1.correction.set_parameter('ocean_tide_elastic_2',
+#                                              self.l1.correction.get_parameter_by_name('ocean_tide_elastic'))
+#         else:
+#             nc_arc = xarray.open_dataset(arcpath, decode_times=False, mask_and_scale=True)
+#
+#             # time_1hz = self.nc.time_cor_01.values
+#             # time_20hz = self.nc.time_20_ku.values
+#
+#             msg = f"Patching ARCTIDE tide data from: {arcpath}"
+#             logger.info(msg)
+#
+#             # ocean_tide_elastic: ocean_tide_01
+#             variable_20hz = getattr(nc_arc, 'tide_Arctic')
+#             # variable_20hz, error_status = self.interp_1hz_to_20hz(variable_1hz.values, time_1hz, time_20hz)
+#             # if error_status:
+#             #    msg = "- Error in 20Hz interpolation for variable `%s` -> set only dummy" % 'ocean_tide_01'
+#             #    logger.warning(msg)
+#             #    raise FileNotFoundError
+#             nans_indices = np.where(np.isnan(variable_20hz))[0]
+#             if len(nans_indices) > 0:
+#                 msg = 'Arctide file had {numnan} NaN values of {numval}. These have been replaced with FES2014b data'.format(numnan=len(nans_indices), numval=len(variable_20hz))
+#                 logger.warning(msg)
+#                 variable_20hz[nans_indices] = self.l1.correction.get_parameter_by_name('ocean_tide_elastic')[nans_indices].values
+#             self.l1.correction.set_parameter('ocean_tide_elastic_2', self.l1.correction.get_parameter_by_name('ocean_tide_elastic'))
+#             self.l1.correction.set_parameter('ocean_tide_elastic', variable_20hz)
+#
+#
+#     def _get_arctide_path(self, filepath):
+#         # TODO: get the substitutions to make from config file. Get a list of pairs of sub 'this' to 'that'.
+#         # pathsubs = [ ( 'L1B', 'L1B/FES2014' ), ( 'nc', 'fes2014b.nc' ) ]
+#         newpath = str(filepath)
+#         p = re.compile('L1B')
+#         newpath = p.sub('L1B/ARCTIDE', newpath)
+#         p = re.compile('nc')
+#         newpath = p.sub('RegAT_Arctic_tides_v1.2.nc', newpath)
+#         p = re.compile('TEST')
+#         newpath = p.sub('LTA_', newpath)
+#         return newpath
 
 
-class ESACryoSat2PDSBaselineDPatchFESArctideDiscrim(ESACryoSat2PDSBaselineDPatchFESArctide):
-    def __init__(self, cfg, raise_on_error=False):
-        ESACryoSat2PDSBaselineDPatchFESArctide.__init__(self, cfg, raise_on_error)
-
-    def _set_l1_data_groups(self):
-        ESACryoSat2PDSBaselineDPatchFESArctide._set_l1_data_groups(self)
-        discpath = self._get_disc_path(self.filepath)
-        if not Path(discpath).is_file():
-            msg = f"Not a valid file: {discpath}"
-            logger.warning(msg)
-            self.error.add_error("invalid-filepath", msg)
-            raise FileNotFoundError
-        else:
-            nc_arc = xarray.open_dataset(discpath, decode_times=False, mask_and_scale=True)
-
-            # time_1hz = self.nc.time_cor_01.values
-            # time_20hz = self.nc.time_20_ku.values
-
-            msg = f"Patching discrimination data from: {discpath}"
-            logger.info(msg)
-
-            variable_20hz = getattr(nc_arc, 'class')
-
-            nans_indices = np.where(np.isnan(variable_20hz))[0]
-            if len(nans_indices) > 0:
-                msg = 'Discrimination data has NaN values'
-                logger.warning(msg)
-                variable_20hz[nans_indices] = -1
-
-            # The IW ATBD says 2, 4, 6 are leads and 1, 10 are sea ice
-            self.l1.classifier.add(variable_20hz.astype(int), 'cls_nn_discrimination')
-
-
-    def _get_disc_path(self, filepath):
-        # TODO: get the substitutions to make from config file. Get a list of pairs of sub 'this' to 'that'.
-        # pathsubs = [ ( 'L1B', 'L1B/DISCRIM' ), ( 'nc', 'fes2014b.nc' ) ]
-        newpath = str(filepath)
-        p = re.compile('L1B')
-        newpath = p.sub('L1B/DISCRIM', newpath)
-        p = re.compile('.nc')
-        newpath = p.sub('_class.nc', newpath)
-        p = re.compile('TEST')
-        newpath = p.sub('LTA_', newpath)
-        return newpath
+# class ESACryoSat2PDSBaselineDPatchFESArctideDiscrim(ESACryoSat2PDSBaselineDPatchFESArctide):
+#     def __init__(self, cfg, raise_on_error=False):
+#         ESACryoSat2PDSBaselineDPatchFESArctide.__init__(self, cfg, raise_on_error)
+#
+#     def _set_l1_data_groups(self):
+#         ESACryoSat2PDSBaselineDPatchFESArctide._set_l1_data_groups(self)
+#         discpath = self._get_disc_path(self.filepath)
+#         if not Path(discpath).is_file():
+#             msg = f"Not a valid file: {discpath}"
+#             logger.warning(msg)
+#             self.error.add_error("invalid-filepath", msg)
+#             raise FileNotFoundError
+#         else:
+#             nc_arc = xarray.open_dataset(discpath, decode_times=False, mask_and_scale=True)
+#
+#             # time_1hz = self.nc.time_cor_01.values
+#             # time_20hz = self.nc.time_20_ku.values
+#
+#             msg = f"Patching discrimination data from: {discpath}"
+#             logger.info(msg)
+#
+#             variable_20hz = getattr(nc_arc, 'class')
+#
+#             nans_indices = np.where(np.isnan(variable_20hz))[0]
+#             if len(nans_indices) > 0:
+#                 msg = 'Discrimination data has NaN values'
+#                 logger.warning(msg)
+#                 variable_20hz[nans_indices] = -1
+#
+#             # The IW ATBD says 2, 4, 6 are leads and 1, 10 are sea ice
+#             self.l1.classifier.add(variable_20hz.astype(int), 'cls_nn_discrimination')
+#
+#
+#     def _get_disc_path(self, filepath):
+#         # TODO: get the substitutions to make from config file. Get a list of pairs of sub 'this' to 'that'.
+#         # pathsubs = [ ( 'L1B', 'L1B/DISCRIM' ), ( 'nc', 'fes2014b.nc' ) ]
+#         newpath = str(filepath)
+#         p = re.compile('L1B')
+#         newpath = p.sub('L1B/DISCRIM', newpath)
+#         p = re.compile('.nc')
+#         newpath = p.sub('_class.nc', newpath)
+#         p = re.compile('TEST')
+#         newpath = p.sub('LTA_', newpath)
+#         return newpath

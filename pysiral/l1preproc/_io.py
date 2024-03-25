@@ -5,8 +5,11 @@ Internal module with classes for Input/Output operations of
 the Level-1 pre-processor
 """
 
+
+import contextlib
 from pathlib import Path
-from typing import Union
+from typing import List
+from inspect import signature
 
 from attrdict import AttrDict
 from loguru import logger
@@ -22,17 +25,46 @@ class SourceFileDiscovery(object):
     (A catalog of classes is created when sub-classing this class)
 
     Usage:
-        Level1InputHandler.get_class(class_name, **kwargs)
+        SourceDataLoader.get_class(class_name, **kwargs)
     """
 
-    def __init_subclass__(cls, **kwargs):
-        # if "search" not in cls.__dict__:
-        #     raise NotImplementedError(f"class {cls.__name__} does not implement method `search`")
-        psrlcfg.registered_classes.source_file_discovery[cls.__name__] = cls
+    def __init_subclass__(cls, supported_source_datasets: List[str] = None):
+        """
+        Registers a class as source data discovery class for specific source data sets
+        in the pysiral package configuration. This processes includes a basic test that
+        the class is compliant with requirements for a SourceFileDiscovery class, namely
+        a test if certain methods with correct return types have been implemented.
+
+        :param supports: A list of source data set id's supported by the class
+
+        :raises NotImplementedError: Subclass does not implement all required
+            methods.
+
+        :return: None
+        """
+
+        # Any subclass must have a method that returns a
+        check_class_compliance(
+            cls,
+            "get_file_for_period",
+            "typing.List[pathlib.Path]"
+        )
+
+        # Input checks passed -> register class for source data sets
+        # Note: Allow to overwrite already registered classes, but
+        #       warn of overwrite.
+        for supported_dataset in supported_source_datasets:
+            existing_cls = psrlcfg.registered_classes.source_data_discovery.get(supported_dataset)
+            if existing_cls is not None:
+                logger.warning(
+                    f"Source data discovery class {existing_cls} will be overwritten by {cls} "
+                    "for dataset id={supported_dataset}"
+                )
+            psrlcfg.registered_classes.source_data_discovery[supported_dataset] = cls
 
     @classmethod
-    def get_cls(cls, class_name: str, **kwargs):
-        return psrlcfg.registered_classes.source_file_discovery[class_name](kwargs)
+    def get_cls(cls, source_dataset_id: str, **kwargs):
+        return psrlcfg.registered_classes.source_data_discovery[source_dataset_id](kwargs)
 
 
 class SourceDataLoader(object):
@@ -41,20 +73,49 @@ class SourceDataLoader(object):
     (A catalog of classes is created when sub-classing this class)
 
     Usage:
-        Level1InputHandler.get_class(class_name, **kwargs)
+        SourceDataLoader.get_class(class_name, **kwargs)
     """
 
-    def __init_subclass__(cls, **kwargs):
-        # if "search" not in cls.__dict__:
-        #     raise NotImplementedError(f"class {cls.__name__} does not implement method `search`")
-        psrlcfg.registered_classes.source_data_input[cls.__name__] = cls
+    def __init_subclass__(cls, supported_source_datasets: List[str] = None) -> None:
+        """
+        Registers a class as source data discovery class for specific source data sets
+        in the pysiral package configuration. This processes includes a basic test that
+        the class is compliant with requirements for a SourceFileDiscovery class, namely
+        a test if certain methods with correct return types have been implemented.
+
+        :param supports: A list of source data set id's supported by the class
+
+        :raises NotImplementedError: Subclass does not implement all required
+            methods.
+
+        :return: None
+        """
+
+        logger.debug(f"Register SourceDataLoader class: {cls} with")
+        logger.debug(f"")
+
+        # Input class validation
+        check_class_compliance(
+            cls,
+            "get_l1",
+            "typing.Optional[pysiral.l1data.Level1bData]"
+        )
+
+        # Input checks passed -> register class for source data sets
+        # Note: Allow to overwrite already registered classes, but
+        #       warn of overwrite.
+        for supported_dataset in supported_source_datasets:
+            existing_cls = psrlcfg.registered_classes.source_data_discovery.get(supported_dataset)
+            if existing_cls is not None:
+                logger.warning(
+                    f"Source data discovery class {existing_cls} will be overwritten by {cls} "
+                    "for dataset id={supported_dataset}"
+                )
+            psrlcfg.registered_classes.source_data_discovery[supported_dataset] = cls
 
     @classmethod
     def get_cls(cls, class_name: str, **kwargs):
         return psrlcfg.registered_classes.source_data_input[class_name](kwargs)
-
-
-# TODO: To be refactord to "Input Adapter base"
 
 
 class Level1POutputHandler(object):
@@ -141,3 +202,33 @@ class Level1POutputHandler(object):
     @property
     def last_written_file(self) -> Path:
         return self.path / self.filename
+
+
+def check_class_compliance(
+        cls,
+        required_method_name: str,
+        required_return_annotation
+) -> None:
+    """
+    Check that class cls has a required method, which has the correct return data type.
+    The return data type is only inferred from the rethr type annotation.
+
+    :param cls:
+    :param required_method_name:
+    :param required_return_annotation:
+
+    :raises NotImplementedError: Test fails
+
+    :return: None
+    """
+
+    # Input class validation
+    if required_method_name not in cls.__dict__:
+        raise NotImplementedError(f"class {cls.__name__} does not implement method`: {required_method_name}")
+    method_signature = signature(getattr(cls, required_method_name))
+    if str(method_signature.return_annotation) != required_return_annotation:
+        raise NotImplementedError(
+            f"class {cls.__name__}.{required_method_name} "
+            f"does not return {required_return_annotation} "
+            f"but {str(method_signature.return_annotation)}"
+        )

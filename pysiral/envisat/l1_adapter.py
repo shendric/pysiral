@@ -7,7 +7,7 @@ __author__ = "Stefan Hendricks"
 
 import re
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Optional
 
 import numpy as np
 from attrdict import AttrDict
@@ -21,10 +21,13 @@ from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.iotools import ReadNC
 from pysiral.envisat.functions import get_envisat_wfm_range
 from pysiral.l1data import Level1bData
-from pysiral.l1preproc import Level1PInputHandlerBase
+from pysiral.l1preproc import SourceDataLoader
 
 
-class EnvisatSGDRNC(Level1PInputHandlerBase):
+class EnvisatSGDRNC(
+    SourceDataLoader,
+    supported_source_datasets=["envisat_sgdr_esa_v3p0"]
+):
     """ Converts a Envisat SGDR object into a L1bData object """
 
     def __init__(self,
@@ -38,10 +41,10 @@ class EnvisatSGDRNC(Level1PInputHandlerBase):
         :param raise_on_error: Boolean value if the class should raise an exception upon an error (default: False)
         """
 
-        cls_name = self.__class__.__name__
-        super(EnvisatSGDRNC, self).__init__(cfg, raise_on_error, cls_name)
 
         # Debug variables
+        self.cfg = cfg
+        self.raise_on_error = raise_on_error
         self.timer = None
 
         # Properties
@@ -53,7 +56,7 @@ class EnvisatSGDRNC(Level1PInputHandlerBase):
                filepath: Union[str, Path],
                polar_ocean_check: Any = None,
                raise_on_error: bool = False
-               ) -> "Level1bData":
+               ) -> Optional[Level1bData]:
         """
         Read the Envisat SGDR file and transfers its content to a Level1Data instance
 

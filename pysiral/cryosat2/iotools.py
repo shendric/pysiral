@@ -8,8 +8,9 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 from pydantic import BaseModel, Field
+from dateperiods import DatePeriod
 
-from pysiral.l1preproc import Level1InputHandler
+from pysiral.l1preproc import SourceFileDiscovery
 
 
 class CS2ICEFileDiscoveryConfig(BaseModel):
@@ -37,10 +38,10 @@ class CS2ICEFileDiscoveryConfig(BaseModel):
 
 
 class CS2ICEFileDiscovery(
-    Level1InputHandler,
-    supports=[
+    SourceFileDiscovery,
+    supported_source_datasets=[
         "cryosat2_rep_esa_ice_b00E",
-        "cryosat2_nrt_esa_ice_b00E",
+        "cryosat2_nrt_esa_ice_b00E"
     ]
 ):
     """
@@ -63,7 +64,7 @@ class CS2ICEFileDiscovery(
         self._lookup_directory = lookup_directory
         self.cfg = CS2ICEFileDiscoveryConfig(**options_kwargs)
 
-    def get_file_for_period(self, period):
+    def get_file_for_period(self, period: DatePeriod) -> List[Path]:
         """ Return a list of sorted files """
         # Make sure file list are empty
         self._reset_file_list()

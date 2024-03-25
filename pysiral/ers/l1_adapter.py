@@ -10,15 +10,23 @@ from pathlib import Path
 import numpy as np
 from cftime import num2pydate
 from loguru import logger
+from typing import Optional
 
 from pysiral import psrlcfg
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT, ORCondition
 from pysiral.ers.sgdrfile import ERSSGDR
-from pysiral.l1preproc import Level1PInputHandlerBase
+from pysiral.l1preproc import SourceDataLoader
+from pysiral.l1data import Level1bData
 
 
-class ERSReaperSGDR(Level1PInputHandlerBase):
+class ERSReaperSGDR(
+    SourceDataLoader,
+    supported_source_datasets=[
+        "ers1_sgdr_esa_v1p8",
+        "ers2_sgdr_esa_v1p8"
+    ]
+):
     """ Converts a Envisat SGDR object into a L1bData object """
 
     def __init__(self, cfg, raise_on_error=False):
@@ -29,23 +37,19 @@ class ERSReaperSGDR(Level1PInputHandlerBase):
         :param raise_on_error: Boolean value if the class should raise an exception upon an error (default: False)
         """
 
-        cls_name = self.__class__.__name__
-        super(ERSReaperSGDR, self).__init__(cfg, raise_on_error, cls_name)
-
         # Debug variables
+        self.cfg = cfg
+        self.raise_on_error = raise_on_error
         self.timer = None
         self.l1 = None
         self.filepath = None
 
-    def get_l1(self, filepath, *args, **kwargs):
+    def get_l1(self, filepath: Path) -> Optional[Level1bData]:
         """
         Read the Envisat SGDR file and transfers its content to a Level1Data instance
         :param filepath: The full file path to the netCDF file
         :return: The parsed (or empty) Level-1 data container
         """
-
-        # Import here to avoid circular imports
-        from pysiral.l1data import Level1bData
 
         # Store arguments
         self.filepath = filepath

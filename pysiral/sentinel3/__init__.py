@@ -4,4 +4,4 @@
 plib A collection of python libraries
 """
 
-__all__ = ["iotools", "sral_l1b", "l1_adapter"]
+__all__ = ["iotools", "l1_adapter"]

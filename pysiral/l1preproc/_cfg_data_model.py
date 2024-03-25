@@ -129,35 +129,3 @@ class L1pProcessorConfig(BaseModel):
     @property
     def supports_multiple_platforms(self) -> bool:
         return isinstance(self.supported_platforms, list)
-
-    @model_validator(mode="after")
-    def target_platform_must_be_specified(self):
-        """
-        Ensure that the platform field is always set. This field is not part of the
-        Level-1 pre-processor definition file, which only contains the supported platforms.
-
-        If this field is empty this method will set it with the supported platform, but
-        raise a ValueError when multiple platforms are supported (ambiguous).
-
-        :raise ValueError: platform field is empty and Level-1 pre-processor definition
-            supports multiple platforms
-        """
-        print("target_platform_must_be_specified")
-        if self.platform is None:
-            if self.supports_multiple_platforms:
-                raise ValueError(
-                    f"{self.filepath} supports multiple platforms{self.supported_platforms}, "
-                    "but target platform not specified"
-                )
-            else:
-                self.platform = self.supported_platforms
-        return self
-
-    @model_validator(mode="after")
-    def pass_down_platform(self):
-        """
-        Ensure that the input handler and adap
-        """
-        print("pass_down_platform")
-        self.input_handler.options["platform"] = self.platform
-        return self

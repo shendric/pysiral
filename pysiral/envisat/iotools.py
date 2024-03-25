@@ -5,11 +5,13 @@ from pathlib import Path
 from typing import List
 
 from dateperiods import DatePeriod
+from pysiral.l1preproc import SourceFileDiscovery
 
-from pysiral.core.errorhandler import ErrorStatus
 
-
-class EnvisatSGDRNC(object):
+class EnvisatSGDRNC(
+    SourceFileDiscovery,
+    supported_source_datasets=["envisat_sgdr_esa_v3p0"]
+):
 
     def __init__(self, cfg) -> None:
         """
@@ -17,15 +19,12 @@ class EnvisatSGDRNC(object):
         :param cfg:
         """
 
-        self.error = ErrorStatus(caller_id=self.__class__.__name__)
-
         # Save config
         self.cfg = cfg
-
         # Init empty file lists
         self._reset_file_list()
 
-    def get_file_for_period(self, period: "DatePeriod") -> List[str]:
+    def get_file_for_period(self, period: "DatePeriod") -> List[Path]:
         """
         Query for Sentinel Level-2 files for a specific period.
         :param period: dateperiods.DatePeriod

@@ -52,14 +52,22 @@ class Level1PreProcessor(object):
 
     Class Properties:
 
-    - source_file_discovery: Class handling the listing of source files for a requested period
-    - source_loader: Class loading the source data file into a Level1Data instance
+    - source_file_discovery:
+        Class for obtaining file lists with limited metadata (time and latitude coverage)
+        for a given data range. There must be one source file discovery class
+        for each input data set, and this class must be a subclass of
+        pysiral.l1preproc.SourceFileDiscovery
 
-    :param source_dataset_id: Source data identifier
-    :param cfg: Level-1 preprocessor configuration data
-    :param hemisphere:
-    :param log_directory: (Optional)
-    :param ctlg_directory:
+    - source_loader:
+        Class for loads the content of a source data file into a Level-1 data container.
+
+    :param source_dataset_id: source data identifier. Must be known to pysiral.
+    :param cfg: Level-1 preprocessor configuration data model.
+    :param hemisphere: List of hemispheres (`["nh"]`, `["sh"]`, or `['nh', 'sh']`
+    :param log_directory: (Optional) Directory for the output log will be written.
+    :param ctlg_directory: (Optional Directory for the output catalog
+    :param source_loader_kwargs:(Optional) dictionary with key word arguments
+        for the source loader
     """
 
     def __init__(
@@ -68,7 +76,8 @@ class Level1PreProcessor(object):
             cfg: L1pProcessorConfig,
             hemisphere: List[Literal["nh", "sh"]] = None,
             log_directory: Path = None,
-            ctlg_directory: Path = None
+            ctlg_directory: Path = None,
+            source_loader_kwargs: Dict = None
     ):
         """
         Class initialization
@@ -81,11 +90,28 @@ class Level1PreProcessor(object):
         self.log_directory = log_directory
         self.ctlg_directory = ctlg_directory
 
-        # Class Properties
-        self.source_file_discovery = SourceFileDiscovery.get_cls(self.source_dataset_id.version_str)
-        self.source_loader = SourceDataLoader.get_cls(self.source_dataset_id.version_str)
+        # --- Class Properties ---
 
-    def process_period(self, requested_period) -> None:
+        # Source File Discovery:
+
+        self.source_file_discovery = SourceFileDiscovery.get_cls(
+            self.source_dataset_id.version_str
+        )
+
+        # Source Loader
+        source_loader_kwargs = {} if source_loader_kwargs is None else source_loader_kwargs
+        self.source_loader = SourceDataLoader.get_cls(
+            self.source_dataset_id.version_str,
+            **source_loader_kwargs
+        )
+
+    def process_period(self, requested_period: DatePeriod) -> None:
+        """
+
+        :param requested_period:
+
+        :return:
+        """
         pass
 
     @classmethod
