@@ -13,7 +13,7 @@ sea ice radar altimetry (pysiral) toolbox.
    This page is work in progress.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Getting started
 
    what_is_pysiral
@@ -24,20 +24,20 @@ sea ice radar altimetry (pysiral) toolbox.
    glossary
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Using pysiral
 
    processors
    scripts
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Roadmap
 
    roadmap
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contributing to pysiral
 
    codingconv
