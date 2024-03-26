@@ -147,6 +147,9 @@ def set_psrl_cpu_count(cpu_count: int) -> None:
     psrlcfg.CPU_COUNT = cpu_count
 
 
+# Recursively import all pysiral submodules.
+# The reason for this is to register all relevant classes
+# in the pysiral package configuration via subclassing
 for loader, module_name, is_pkg in pkgutil.walk_packages(__path__):
     import time
     t0 = time.time()

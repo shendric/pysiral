@@ -21,6 +21,7 @@ sea ice radar altimetry (pysiral) toolbox.
    configuration
    core_concepts
    datasets
+   glossary
 
 .. toctree::
    :maxdepth: 2

@@ -15,7 +15,7 @@ import sys
 import os
 from pathlib import Path
 from typing import Union, Dict, List, Literal, Optional
-from pydantic import BaseModel, DirectoryPath, ConfigDict, PositiveInt, PositiveFloat, Field
+from pydantic import BaseModel, DirectoryPath, ConfigDict, PositiveInt, PositiveFloat, Field, ValidationError
 from ruamel.yaml import YAML
 
 from ._auxdata import AuxiliaryDataConfig
@@ -233,7 +233,12 @@ class PysiralPackageConfiguration(object):
 
         content_dict = self._get_yaml_file_raw_dict(filepath)
         content_dict["filepath"] = filepath
-        return LocalMachineConfig(**content_dict)
+
+        try:
+            return LocalMachineConfig(**content_dict)
+        except ValidationError as e:
+            print(e.json(indent=2))
+            raise ValueError(f"Errors while parsing {filepath=}") from e
 
     def _get_auxdata_config(self) -> Union[AuxiliaryDataConfig, None]:
         """
