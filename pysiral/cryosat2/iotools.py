@@ -53,7 +53,7 @@ class CS2ICEFileDiscovery(
     def __init__(
             self,
             lookup_directory: Dict[str, Path],
-            options_kwargs: Dict
+            **options_kwargs: Dict
     ) -> None:
         """
         Initialize the

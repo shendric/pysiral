@@ -29,7 +29,7 @@ class ERSSGDR(object):
         :return:
         """
         filename = Path(self._filename).name
-        return filename[0:2]
+        return filename[:2]
 
     @staticmethod
     def get_status():

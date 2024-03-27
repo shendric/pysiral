@@ -8,7 +8,7 @@ the Level-1 pre-processor
 
 from pathlib import Path
 from typing import List
-from inspect import signature
+import inspect
 
 from attrdict import AttrDict
 from loguru import logger
@@ -78,11 +78,12 @@ class SourceFileDiscovery(object):
 
         lookup_directory = psrlcfg.local_path.get_source_directory(source_dataset_id)
         try:
-            return psrlcfg.registered_classes.source_data_discovery[source_dataset_id](lookup_directory, **kwargs)
+            target_cls = psrlcfg.registered_classes.source_data_discovery[source_dataset_id]
+            return target_cls(lookup_directory, **kwargs)
         except KeyError as ke:
             msg = (
                 f"Could not find SourceFileDiscovery implementation for {source_dataset_id=} "
-                f"[Available: {psrlcfg.registered_classes.source_data_discovery.keys()}]"
+                f"[Available: {list(psrlcfg.registered_classes.source_data_discovery.keys())}]"
             )
             raise KeyError(msg) from ke
 
@@ -133,8 +134,32 @@ class SourceDataLoader(object):
             psrlcfg.registered_classes.source_data_loader[supported_dataset] = cls
 
     @classmethod
-    def get_cls(cls, class_name: str, **kwargs):
-        return psrlcfg.registered_classes.source_data_input[class_name](kwargs)
+    def get_cls(cls, source_dataset_id: str, **kwargs):
+        """
+        Fetches and initialized the source data loader class for a given
+        source dataset identifier.
+
+        :param source_dataset_id: Source dataset identifier
+        :param kwargs: Keyword arguments specific to source data loader class
+
+        :raises KeyError: No registered source data loader class for given source dataset id
+
+        :raises TypeError: Incorrect keyword arguments to source data loader class
+
+        :return: Initialized source data loader class
+        """
+        try:
+            target_cls = psrlcfg.registered_classes.source_data_loader[source_dataset_id]
+        except KeyError as ke:
+            registered_classes = list(psrlcfg.registered_classes.source_data_loader.keys())
+            msg = f"Cannot find source data loader class for {source_dataset_id=} {registered_classes}"
+            raise KeyError(msg) from ke
+
+        try:
+            return target_cls(**kwargs)
+        except TypeError as te:
+            msg = f"Incorrect input {kwargs=} to {target_cls=}"
+            raise TypeError(msg) from te
 
 
 class Level1POutputHandler(object):
@@ -244,7 +269,7 @@ def check_class_compliance(
     # Input class validation
     if required_method_name not in cls.__dict__:
         raise NotImplementedError(f"class {cls.__name__} does not implement method`: {required_method_name}")
-    method_signature = signature(getattr(cls, required_method_name))
+    method_signature = inspect.signature(getattr(cls, required_method_name))
     if str(method_signature.return_annotation) != required_return_annotation:
         raise NotImplementedError(
             f"class {cls.__name__}.{required_method_name} "

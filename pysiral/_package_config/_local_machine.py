@@ -32,6 +32,19 @@ class _DataSourceEntry(BaseModel):
 class _RadarAltimeterCatalogPlatforms(ConvenientRootModel):
     root: Dict[str, List[_DataSourceEntry]]
 
+    def get_source_dataset_catalog(self) -> Dict[str, _DataSourceEntry]:
+        """
+        Return a dictionary with the source data entry based
+        with source data identifier as a key
+
+        :return: Dict
+        """
+        ctlg = {}
+        for platform in self.items:
+            for source in self[platform]:
+                ctlg[source.id] = source
+        return ctlg
+
 
 class _PysiralOutputDirectory(BaseModel):
     base_directory: DirectoryPath
@@ -88,18 +101,9 @@ class LocalMachineConfig(BaseModel):
 
         :return: Either Path or Dict[Path]
         """
-
         if source_data_id not in self.source_data_ctlg and raise_if_none:
             raise KeyError(f"{source_data_id=} not a valid source dataset identifier [{self.platforms.items}]")
-
-        # if (platform_def := self.platforms[platform_id]) is None:
-        #     if raise_if_none:
-        #         raise KeyError(f"{platform_id=} not a valid platform_id [{self.platforms.items}]")
-        #     return None
-        #
-        # if (platform_source := platform_def[source_name]) is None:
-        #     if raise_if_none:
-        #         raise KeyError(f"No platform data definition {platform_id=}:{source_name=}")
-        #     return None
-        #
-        # return platform_source.source
+        source_data_catalog = self.radar_altimeter_catalog.get_source_dataset_catalog()
+        if source_data_id not in source_data_catalog:
+            raise KeyError(f"{source_data_id=} not found in {self.filepath} {list(source_data_catalog.keys())}")
+        return source_data_catalog[source_data_id].path
