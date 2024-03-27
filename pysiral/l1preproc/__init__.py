@@ -109,14 +109,25 @@ class Level1PreProcessor(object):
             **source_loader_kwargs
         )
 
-    def process_period(self, requested_period: DatePeriod) -> None:
+    def process_period(
+            self,
+            requested_period: DatePeriod
+    ) -> None:
+        """
+        Run the Level-1 PreProcessor for a defined period.
+
+        :param requested_period: A dateperiods.DatePeriod instance
+
+        :return: None
         """
 
-        :param requested_period:
-
-        :return:
-        """
-        pass
+        # Get the list of files
+        source_data_file_stack = self.source_file_discovery.query_period(requested_period)
+        logger.info(
+            f"Found {len(source_data_file_stack)} files for {self.source_dataset_id.version_str} "
+            f"from {requested_period.date_label}"
+        )
+        breakpoint()
 
     @classmethod
     def from_ids(

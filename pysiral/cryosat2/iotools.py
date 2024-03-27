@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import re
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Union
 from collections import deque
 from pathlib import Path
 
@@ -20,7 +20,7 @@ class CS2ICEFileDiscoveryConfig(BaseModel):
 
     """
     lookup_modes: List[Literal["sar", "sin", "lrm"]] = Field(
-        default=["sar", "sin"],
+        default=["sar", "sin", "lrm"],
         description="List of radar modes"
     )
     filename_search: str = Field(
@@ -64,8 +64,13 @@ class CS2ICEFileDiscovery(
         self._lookup_directory = lookup_directory
         self.cfg = CS2ICEFileDiscoveryConfig(**options_kwargs)
 
-    def get_file_for_period(self, period: DatePeriod) -> List[Path]:
-        """ Return a list of sorted files """
+    def query_period(self, period: DatePeriod) -> List[Path]:
+        """
+        Return a list of sorted files
+
+        :param period:
+        :return:
+        """
         # Make sure file list are empty
         self._reset_file_list()
         for mode in self.cfg.lookup_modes:
@@ -80,6 +85,9 @@ class CS2ICEFileDiscovery(
         lookup_year, lookup_month = period.tcs.year, period.tcs.month
         lookup_dir = self._get_lookup_dir(lookup_year, lookup_month, mode)
         logger.info(f"Search directory: {lookup_dir}")
+        if not lookup_dir.is_dir():
+            logger.error(f"{lookup_dir=} does not exist")
+            return
         n_files = 0
         for daily_period in period.get_segments("day"):
             # Search for specific day
@@ -99,7 +107,7 @@ class CS2ICEFileDiscovery(
 
     def _get_lookup_dir(self, year, month, mode):
         yyyy, mm = "%04g" % year, "%02g" % month
-        return Path(self.cfg.lookup_dir[mode]) / yyyy / mm
+        return Path(self.lookup_directory[mode]) / yyyy / mm
 
     def _get_tcs_from_filenames(self, files):
         """
@@ -114,7 +122,7 @@ class CS2ICEFileDiscovery(
         return tcs
 
     @property
-    def lookup_directory(self):
+    def lookup_directory(self) -> Union[Path, Dict[str, Path]]:
         if isinstance(self._lookup_directory, Path):
             return Path(self._lookup_directory)
         elif isinstance(self._lookup_directory, dict):

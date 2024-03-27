@@ -24,7 +24,7 @@ class EnvisatSGDRNC(
         # Init empty file lists
         self._reset_file_list()
 
-    def get_file_for_period(self, period: "DatePeriod") -> List[Path]:
+    def query_period(self, period: "DatePeriod") -> List[Path]:
         """
         Query for Sentinel Level-2 files for a specific period.
         :param period: dateperiods.DatePeriod

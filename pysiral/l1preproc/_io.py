@@ -47,7 +47,7 @@ class SourceFileDiscovery(object):
         # Any subclass must have a method that returns a
         check_class_compliance(
             cls,
-            "get_file_for_period",
+            "query_period",
             "typing.List[pathlib.Path]"
         )
 
