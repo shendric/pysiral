@@ -14,13 +14,13 @@ from datetime import datetime
 
 from dateutil.relativedelta import relativedelta
 
+from pysiral import psrlcfg
+
 
 def debug_timer(message: str = None):
     """
     Decorator function that logs the time in seconds for a function/method
     if python is run in debug mode (python -O, __debug__=True)
-
-    :param func: The function methods to be used
 
     :param message: Message for the log
 
@@ -35,8 +35,11 @@ def debug_timer(message: str = None):
             func(*args, **kwargs)
             t1 = time.time()
             elapsed_seconds = t1 - t0
-            if __debug__:
-                logger.debug(f"{caller} run in {elapsed_seconds:.3f} seconds ({get_duration(elapsed_seconds)})")
+            logger.debug(f"{caller} run in {elapsed_seconds:.3f} seconds ({get_duration(elapsed_seconds)})")
+        # Preserve function metadata (especially annotations) of the wrapped function
+        wrapped_func.__doc__ = func.__doc__
+        wrapped_func.__name__ = func.__name__
+        wrapped_func.__annotations__ = func.__annotations__
         return wrapped_func
     return decorated_func
 
