@@ -21,10 +21,10 @@ from geopy import distance
 from loguru import logger
 
 from pysiral import psrlcfg
+from pysiral.core.config import DataVersion
 from pysiral.core.dataset_ids import SourceDataID
 from pysiral.core.clocks import debug_timer
-from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
-                                 get_last_array_index, rle)
+from pysiral.core.helper import ProgressIndicator, get_first_array_index, get_last_array_index, rle
 from pysiral.core.output import L1bDataNC
 from pysiral.l1data import L1bMetaData, Level1bData
 from pysiral.l1preproc.procitems import L1PProcItemDef
@@ -32,6 +32,90 @@ from pysiral.l1preproc._io import SourceDataLoader, SourceFileDiscovery
 from pysiral.l1preproc._cfg_data_model import L1pProcessorConfig
 
 from pysiral.l1preproc.debug import l1p_debug_map
+
+
+class Level1POutputHandler(object):
+    """
+    """
+
+    def __init__(
+            self,
+            platform: str,
+            timeliness: str,
+            l1p_version: str,
+            file_version: str
+    ) -> None:
+        self.platform = platform
+        self.timeliness = timeliness
+        self.l1p_version = l1p_version
+        self.file_version = file_version
+        self._last_written_file = None
+
+    @staticmethod
+    def remove_old_if_applicable(period: DatePeriod) -> None:
+        logger.warning("Not implemented: self.remove_old_if_applicable")
+        return
+
+    def export_to_netcdf(self, l1: "Level1bData") -> None:
+        """
+        Workflow to export a Level-1 object to l1p netCDF product. The workflow includes the generation of the
+        output path (if applicable).
+
+        :param l1: The Level-1 object to be exported
+
+        :return: None
+        """
+
+        # Get filename and path
+        output_directory = self.get_output_directory(l1)
+        filename = self.get_output_filename(l1)
+
+        # Check if path exists
+        output_directory.mkdir(exist_ok=True, parents=True)
+
+        # Export the data object
+        ncfile = L1bDataNC()
+        ncfile.l1b = l1
+        ncfile.output_folder = output_directory
+        ncfile.filename = filename
+        ncfile.export()
+
+    def get_output_filename(self, l1: "Level1bData") -> str:
+        """
+        Construct the filename from the Level-1 data object
+
+        :param l1:
+
+        :return: filename
+        """
+
+        filename_template = "pysiral-l1p-{platform}-{source}-{timeliness}-{hemisphere}-{tcs}-{tce}-{file_version}.nc"
+        time_fmt = "%Y%m%dT%H%M%S"
+        values = {"platform": l1.info.mission,
+                  "source": self.l1p_version,
+                  "timeliness": l1.info.timeliness,
+                  "hemisphere": l1.info.hemisphere,
+                  "tcs": l1.time_orbit.timestamp[0].strftime(time_fmt),
+                  "tce": l1.time_orbit.timestamp[-1].strftime(time_fmt),
+                  "file_version": self.file_version}
+        return filename_template.format(**values)
+
+    def get_output_directory(self, l1: "Level1bData") -> Path:
+        """
+        Sets the class properties required for the file export
+
+        :param l1: The Level-1 object
+
+        :return: None
+        """
+        export_folder = psrlcfg.local_path.pysiral_output.base_directory
+        yyyy = "%04g" % l1.time_orbit.timestamp[0].year
+        mm = "%02g" % l1.time_orbit.timestamp[0].month
+        return export_folder / "l1p" / self.platform / self.l1p_version / self.file_version / l1.info.hemisphere / yyyy / mm
+
+    @property
+    def last_written_file(self) -> Path:
+        return self.last_written_file
 
 
 class Level1PreProcessor(object):
@@ -61,6 +145,13 @@ class Level1PreProcessor(object):
 
     - source_loader:
         Class for loads the content of a source data file into a Level-1 data container.
+
+    - output_handler:
+       Class for netCDF export of merged L1 data objects
+
+    - processor_item_dict:
+        Dictionary containing initialized processor items sorted by
+        the intended stage in the processor pipeline
 
     :param source_dataset_id: source data identifier. Must be known to pysiral.
     :param cfg: Level-1 preprocessor configuration data model.
@@ -96,24 +187,18 @@ class Level1PreProcessor(object):
 
         # --- Class Properties ---
 
-        # Source File Discovery:
         source_discovery_kwargs = {} if source_discovery_kwargs is None else source_discovery_kwargs
         self.source_file_discovery = SourceFileDiscovery.get_cls(
             self.source_dataset_id.version_str,
             **source_discovery_kwargs
         )
 
-        # Source Loader
         source_loader_kwargs = {} if source_loader_kwargs is None else source_loader_kwargs
         self.source_loader = SourceDataLoader.get_cls(
             self.source_dataset_id.version_str,
             **source_loader_kwargs
         )
-
-        #
-        self.output_handler = Level1POutputHander()
-
-        # Init the Level-1 processor items
+        self.output_handler = self._get_output_handler()
         self.processor_item_dict = self._init_processor_items()
 
     def process_period(
@@ -222,6 +307,20 @@ class Level1PreProcessor(object):
             cls = def_.get_initialized_processing_item_instance()
             processor_item_dict[def_.stage].append((cls, def_.label,))
         return processor_item_dict
+
+    def _get_output_handler(self) -> Level1POutputHandler:
+        """
+        Return the initialized output handler
+
+        :return:
+        """
+        file_version = DataVersion(self.cfg.pysiral_package_config.version).filename
+        return Level1POutputHandler(
+            self.source_dataset_id.platform_or_mission,
+            self.source_dataset_id.timeliness,
+            self.cfg.pysiral_package_config.id,
+            file_version
+        )
 
     def process_input_files(self, input_file_list: List[Union[Path, str]]) -> None:
         """
@@ -352,13 +451,68 @@ class Level1PreProcessor(object):
 
         :return:
         """
-        minimum_n_records = self.cfg.get("export_minimum_n_records", 0)
+        minimum_n_records = self.cfg.level1_preprocessor.export_minimum_n_records
         if l1.n_records >= minimum_n_records:
             self.output_handler.export_to_netcdf(l1)
             logger.info(f"- Written l1p product: {self.output_handler.last_written_file}")
         else:
-            logger.warning("- Orbit segment below minimum size (%g), skipping" % l1.n_records)
+            logger.warning(f"- Orbit segment below {minimum_n_records=} ({l1.n_records}), skipping")
 
+    def l1_apply_processor_items(self,
+                                 l1: Union["Level1bData", List["Level1bData"]],
+                                 stage_name: str
+                                 ) -> None:
+        """
+        Apply the processor items defined in the l1 processor configuration file
+        to either a l1 data object or a list of l2 data objects at a defined
+        stage of the processor.
+
+        This method is a wrapper that deals with multiple input types.
+        The functionality is implemented in `_l1_apply_proc_item`
+
+        :param l1: Level-1 data object or list of Level-1 data objects
+        :param stage_name: Name of the processing stage. Valid options are
+            (`post_source_file`, `post_ocean_segment_extraction`, `post_merge`)
+
+        :return: None, the l1_segments are changed in place
+        """
+
+        # Check if there is anything to do first
+        logger.info(f"- Apply {stage_name} processing items")
+        if stage_name not in self.processor_item_dict:
+            return
+
+        (
+            [self._l1_apply_proc_item(l1_item, stage_name) for l1_item in l1] if isinstance(l1, list)
+            else self._l1_apply_proc_item(l1, stage_name)
+        )
+
+    @debug_timer("L1 processor items")
+    def _l1_apply_proc_item_list(self,
+                                 l1_list: List["Level1bData"],
+                                 stage_name: str
+                                 ) -> None:
+        """
+        Apply processor item to full stack
+
+        :param l1_list:
+        :param stage_name:
+
+        :return:
+        """
+        for procitem, label in self.processor_item_dict.get(stage_name, []):
+            procitem.apply_list(l1_list)
+
+    @debug_timer("L1 processor items")
+    def _l1_apply_proc_item(self, l1: "Level1bData", stage_name: str) -> None:
+        """
+        Apply l1 processor items
+
+        :param l1: The L1 data containier
+        :param stage_name: processor stage
+        """
+        for procitem, label in self.processor_item_dict.get(stage_name, []):
+            procitem.apply(l1)
 
 # class L1PreProcBase(object):
 #
