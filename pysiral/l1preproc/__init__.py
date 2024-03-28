@@ -15,6 +15,7 @@ from typing import Dict, List, Tuple, Literal, Union, Optional, Any
 
 import numpy as np
 from attrdict import AttrDict
+from collections import defaultdict
 from dateperiods import DatePeriod, PeriodIterator
 from geopy import distance
 from loguru import logger
@@ -109,6 +110,12 @@ class Level1PreProcessor(object):
             **source_loader_kwargs
         )
 
+        #
+        self.output_handler = Level1POutputHander()
+
+        # Init the Level-1 processor items
+        self.processor_item_dict = self._init_processor_items()
+
     def process_period(
             self,
             requested_period: DatePeriod
@@ -121,12 +128,12 @@ class Level1PreProcessor(object):
         :return: None
         """
 
-        # Get the list of files
         source_data_file_stack = self.source_file_discovery.query_period(requested_period)
         logger.info(
             f"Found {len(source_data_file_stack)} files for {self.source_dataset_id.version_str} "
             f"from {requested_period.date_label}"
         )
+
         breakpoint()
 
     @classmethod
@@ -194,6 +201,164 @@ class Level1PreProcessor(object):
             raise ValueError(error_msg)
 
         return hemisphere
+
+    def _init_processor_items(self) -> Dict[str, list]:
+        """
+        Populate the processor item dictionary with initialized processor item classes
+        for the different stages of the Level-1 pre-processor.
+
+        This method will evaluate the configuration dictionary passed to this class,
+        retrieve the corresponding classes, initialize them and store in a dictionary.
+
+        Dictionary entries are the names of the processing stages and the content
+        is a list of classes (cls, label) per processing stage.
+
+        :return: A dictionary with a list of Level-1 PreProcessor items depending
+            on processor stage
+        """
+        processor_item_dict = defaultdict(list)
+        for processing_item_definition in self.cfg.level1_preprocessor.processing_items:
+            def_ = L1PProcItemDef.from_l1procdef_dict(processing_item_definition.dict())
+            cls = def_.get_initialized_processing_item_instance()
+            processor_item_dict[def_.stage].append((cls, def_.label,))
+        return processor_item_dict
+
+    def process_input_files(self, input_file_list: List[Union[Path, str]]) -> None:
+        """
+        Main entry point for the Level-1 pre-processor and start of the main
+        loop of this class:
+
+        1. Sequentially reads source file from input list of source files
+        2. Applies processing items (stage: `post_source_file`)
+        3. Extract polar ocean segments (can be multiple per source file)
+        4. Applies processing items (stage: `post_polar_ocean_segment_extraction`)
+        5. Creates a stack of spatially connecting segments
+           a. if this includes all segments of the source file the loop
+              progresses to the next source file
+           b. if the stack contains a spatially unconnected segments
+                1. merge all connected segments to a single l1 object
+                2. Applies processing items (stage: `post_merge`)
+                3. Export to l1p netCDF
+        6. Export the last l1p segment at the end of the loop.
+
+        :param input_file_list: A list full filepath for the pre-processor
+
+        :return: None
+        """
+
+        # Validity Check
+        n_input_files = len(input_file_list)
+        if n_input_files == 0:
+            logger.warning("Passed empty input file list to process_input_files()")
+            return
+
+        # Init helpers
+        prgs = ProgressIndicator(n_input_files)
+
+        # A class that is passed to the input adapter to check if the pre-processor wants the
+        # content of the current file
+        polar_ocean_check = L1PreProcPolarOceanCheck(self.polar_ocean_props)
+
+        # The stack of connected l1 segments is a list of l1 objects that together form a
+        # continuous trajectory over polar oceans. This stack will be emptied and its content
+        # exported to a l1p netcdf if the next segment is not connected to the stack.
+        # This stack is necessary, because the polar ocean segments from the next file may
+        # be connected to polar ocean segments from the previous file.
+        l1_connected_stack = []
+
+        # orbit segments may or may not be connected, therefore the list of input file
+        # needs to be processed sequentially.
+        for i, input_file in enumerate(input_file_list):
+
+            # Step 1: Read Input
+            # Map the entire orbit segment into on Level-1 data object. This is the task
+            # of the input adaptor. The input handler gets only the filename and the target
+            # region to assess whether it is necessary to parse and transform the file content
+            # for the sake of computational efficiency.
+            logger.info(f"+ Process input file {prgs.get_status_report(i)} [{input_file.name}]")
+            l1 = self.source_loader.get_l1(input_file, polar_ocean_check=polar_ocean_check)
+            if l1 is None:
+                logger.info("- No polar ocean data for curent job -> skip file")
+                continue
+            if psrlcfg.debug_mode:
+                l1p_debug_map([l1], title="Source File")
+
+            # Step 2: Apply processor items on source data
+            # for the sake of computational efficiency.
+            self.l1_apply_processor_items(l1, "post_source_file")
+
+            # Step 3: Extract and subset
+            # The input files may contain unwanted data (low latitude/land segments).
+            # It is the job of the L1PReProc children class to return only the relevant
+            # segments over polar ocean as a list of l1 objects.
+            l1_po_segments = self.extract_polar_ocean_segments(l1)
+            if psrlcfg.debug_mode:
+                l1p_debug_map(l1_po_segments, title="Polar Ocean Segments")
+
+            # Optional Step 4 (needs to be specifically activated in l1 processor config file)
+            # NOTE: This is here because there are files in the Sentinel-3AB thematic sea ice product
+            #       that contain both lrm and sar data.
+            detect_radar_mode_change = self.cfg.get("detect_radar_mode_change", False)
+            if detect_radar_mode_change:
+                l1_po_segments = self.l1_split_radar_mode_segments(l1_po_segments)
+
+            self.l1_apply_processor_items(l1_po_segments, "post_ocean_segment_extraction")
+
+            # Step 5: Merge orbit segments
+            # Add the list of orbit segments to the l1 data stack and merge those that
+            # are connected (e.g. two half orbits connected at the pole) into a single l1
+            # object. Orbit segments that  are unconnected from other segments in the stack
+            # will be exported to netCDF files.
+            l1_export_list, l1_connected_stack = self.l1_get_output_segments(l1_connected_stack, l1_po_segments)
+
+            # l1p_debug_map(l1_connected_stack, title="Polar Ocean Segments - Stack")
+            if not l1_export_list:
+                continue
+
+            if psrlcfg.debug_mode:
+                l1p_debug_map(l1_export_list, title="Polar Ocean Segments - Export")
+
+            # Step 4: Processor items post
+            # Computational expensive post-processing (e.g. computation of waveform shape parameters) can now be
+            # executed as the Level-1 segments are cropped to the minimal length.
+            self.l1_apply_processor_items(l1_export_list, "post_merge")
+
+            # Step 5: Export
+            for l1_export in l1_export_list:
+                self.l1_export_to_netcdf(l1_export)
+
+            if psrlcfg.debug_mode:
+                l1p_debug_map(l1_connected_stack, title="Stack after Export")
+
+        # Step : Export the last item in the stack (if it exists)
+        # Stack is clean -> return
+        if len(l1_connected_stack) == 0:
+            return
+
+        # Single stack item -> export and return
+        elif len(l1_connected_stack) == 1:
+            self.l1_export_to_netcdf(l1_connected_stack[-1])
+            return
+
+        # A case with more than 1 stack item is an error
+        else:
+            raise ValueError("something went wrong here")
+
+    def l1_export_to_netcdf(self, l1: "Level1bData") -> None:
+        """
+        Exports the Level-1 object as l1p netCDF
+
+        :param l1: The Level-1 object to exported
+
+        :return:
+        """
+        minimum_n_records = self.cfg.get("export_minimum_n_records", 0)
+        if l1.n_records >= minimum_n_records:
+            self.output_handler.export_to_netcdf(l1)
+            logger.info(f"- Written l1p product: {self.output_handler.last_written_file}")
+        else:
+            logger.warning("- Orbit segment below minimum size (%g), skipping" % l1.n_records)
+
 
 # class L1PreProcBase(object):
 #
@@ -1065,50 +1230,50 @@ class Level1PreProcessor(object):
 #         return l1_list
 #
 #
-# class L1PreProcPolarOceanCheck(object):
-#     """
-#     A small helper class that can be passed to input adapter to check
-#     whether the l1 segment is wanted or not
-#     """
-#
-#     def __init__(self,
-#                  cfg: AttrDict
-#                  ) -> None:
-#
-#         # Save Parameter
-#         self.cfg = cfg
-#
-#     def has_polar_ocean_segments(self, product_metadata: L1bMetaData) -> bool:
-#         """
-#         Checks if there are polar oceans segments based on the metadata of a L1 data object
-#         :param product_metadata: Metadata container of the l1b data product.
-#         :return: Boolean Flag (true: in region of interest, false: not in region of interest)
-#         """
-#
-#         # 1 Check: Needs ocean data
-#         if product_metadata.open_ocean_percent <= 1e-6:
-#             logger.info("- No ocean data")
-#             return False
-#
-#         # 2. Must be in target hemisphere
-#         # NOTE: the definition of hemisphere in l1 data is above or below the equator
-#         hemisphere = product_metadata.hemisphere
-#         target_hemisphere = self.cfg.get("target_hemisphere", None)
-#         if hemisphere != "global" and hemisphere not in target_hemisphere:
-#             logger.info(f'- No data in target hemishere: {"".join(self.cfg.target_hemisphere)}')
-#             return False
-#
-#         # 3. Must be at higher latitude than the polar latitude threshold
-#         lat_range = np.abs([product_metadata.lat_min, product_metadata.lat_max])
-#         polar_latitude_threshold = self.cfg.get("polar_latitude_threshold", None)
-#         if np.amax(lat_range) < polar_latitude_threshold:
-#             msg = "- No data above polar latitude threshold (min:%.1f, max:%.1f) [req:+/-%.1f]"
-#             msg %= (product_metadata.lat_min, product_metadata.lat_max, polar_latitude_threshold)
-#             logger.info(msg)
-#             return False
-#
-#         # 4. All tests passed
-#         return True
+class L1PreProcPolarOceanCheck(object):
+    """
+    A small helper class that can be passed to input adapter to check
+    whether the l1 segment is wanted or not
+    """
+
+    def __init__(self,
+                 cfg: AttrDict
+                 ) -> None:
+
+        # Save Parameter
+        self.cfg = cfg
+
+    def has_polar_ocean_segments(self, product_metadata: L1bMetaData) -> bool:
+        """
+        Checks if there are polar oceans segments based on the metadata of a L1 data object
+        :param product_metadata: Metadata container of the l1b data product.
+        :return: Boolean Flag (true: in region of interest, false: not in region of interest)
+        """
+
+        # 1 Check: Needs ocean data
+        if product_metadata.open_ocean_percent <= 1e-6:
+            logger.info("- No ocean data")
+            return False
+
+        # 2. Must be in target hemisphere
+        # NOTE: the definition of hemisphere in l1 data is above or below the equator
+        hemisphere = product_metadata.hemisphere
+        target_hemisphere = self.cfg.get("target_hemisphere", None)
+        if hemisphere != "global" and hemisphere not in target_hemisphere:
+            logger.info(f'- No data in target hemishere: {"".join(self.cfg.target_hemisphere)}')
+            return False
+
+        # 3. Must be at higher latitude than the polar latitude threshold
+        lat_range = np.abs([product_metadata.lat_min, product_metadata.lat_max])
+        polar_latitude_threshold = self.cfg.get("polar_latitude_threshold", None)
+        if np.amax(lat_range) < polar_latitude_threshold:
+            msg = "- No data above polar latitude threshold (min:%.1f, max:%.1f) [req:+/-%.1f]"
+            msg %= (product_metadata.lat_min, product_metadata.lat_max, polar_latitude_threshold)
+            logger.info(msg)
+            return False
+
+        # 4. All tests passed
+        return True
 
 
 # class Level1PreProcJobDef(object):

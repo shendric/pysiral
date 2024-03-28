@@ -65,7 +65,6 @@ def logger_format_debug(record: Dict) -> str:
     else:
         record["function"] = "." + record["function"]
     code_line = "{name}{function}:L{line}".format(**record)
-    print(code_line)
     fmt_str = (
         '<green>{time:YYYY-MM-DD HH:mm:ss.SS} - {elapsed_timestr}</green> | '
         '<level>{level: <8}</level> | '

@@ -97,7 +97,7 @@ class CS2ICEFileDiscovery(
             n_files += len(file_list)
             for file, tcs in zip(file_list, tcs_list):
                 self._list.append((file, tcs))
-        logger.success(f"Found {n_files} {mode} files")
+        logger.info(f"Found {n_files} {mode} files")
 
     def _get_files_per_day(self, lookup_dir, year, month, day):
         """ Return a list of files for a given lookup directory """
