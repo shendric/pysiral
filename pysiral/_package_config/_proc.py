@@ -45,12 +45,11 @@ class ProcDefCatalog(BaseModel):
         super().__init__(**data)
         self._register_all_l1_procdefs()
 
-    def register_l1procdef(self, name: str, filepath: Path) -> None:
+    def register_l1procdef(self, filepath: Path) -> None:
         """
         Make a Level-1 pre-processor definition known to pysiral.
         The file will be parsed and linked to the supported datasets.
 
-        :param name: The name of the
         :param filepath: Full filepath to yaml Level-1 pre-processor definition file
         """
         Entry = namedtuple("Entry", ["l1p_id", "filepath", "file_id"])
@@ -65,7 +64,7 @@ class ProcDefCatalog(BaseModel):
         configuration.
         """
         for l1p_name, l1p_def in self.l1.items():
-            self.register_l1procdef(l1p_name, l1p_def.filepath)
+            self.register_l1procdef(l1p_def.filepath)
 
     def get_ids(self, processing_level: Literal["l1", "l2", "l3"]) -> List[str]:
         """
@@ -146,11 +145,10 @@ class ProcDefCatalog(BaseModel):
 
         if l1p_id not in available_l1p_ids:
             raise ValueError(
-                f"\nUnknown Level-1 preprocessor id {l1p_id=} for {dataset_id=} [{available_l1p_ids}]"
+                f"\nUnknown Level-1 preprocessor id {l1p_id=} for {dataset_id=} {available_l1p_ids}"
             )
-
+        logger.info(f"Using specfied {l1p_id=}")
         return l1p_id
-
 
     def get(
             self,

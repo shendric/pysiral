@@ -12,13 +12,16 @@ import pkgutil
 import subprocess
 import sys
 import warnings
+from typing import Dict
 from pathlib import Path
 from loguru import logger
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 from _package_config import PysiralPackageConfiguration
 
 __all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
-           "filter", "frb", "grid",
+           "filter", "frb", "grid", "_package_config", "core",
            "l1data", "l1preproc", "l2data", "l2preproc", "l2proc", "l3proc",
            "mask", "retracker",
            "sit", "surface", "waveform", "psrlcfg", "import_submodules", "get_cls",
@@ -29,14 +32,53 @@ warnings.filterwarnings("ignore")
 
 # Set standard logger format
 logger.remove()
-fmt = '<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | ' + \
-      '<level>{level: <8}</level> | ' + \
-      '<cyan>{name: <25}</cyan> | ' + \
-      '<cyan>L{line: <5}</cyan> | ' + \
-      '<level>{message}</level>'
+
+
+def get_duration(elapsed_seconds: int, fmt_str: str = "%H:%M:%S") -> str:
+    # Example time
+    datum = datetime(1900, 1, 1)
+    duration = datum + relativedelta(seconds=elapsed_seconds)
+    return duration.strftime(fmt_str)
+
+
+def logger_format(record: Dict) -> str:
+    """
+    Formatter function for loguru (Normal mode
+
+    :param record:
+
+    :return: logger string
+    """
+    elapsed_timestr = get_duration(record["elapsed"].total_seconds())
+    fmt_str = (
+        '<green>{time:YYYY-MM-DD HH:mm:ss.SS} - {elapsed_timestr}</green>  | '
+        '<level>{level:<8}</level> | '
+        '<level>{message}</level>\n'
+    )
+    return fmt_str.format(elapsed_timestr=elapsed_timestr, **record)
+
+
+def logger_format_debug(record: Dict) -> str:
+    elapsed_timestr = get_duration(record["elapsed"].total_seconds())
+    if record["function"] == "<module>":
+        record["function"] = ""
+    else:
+        record["function"] = "." + record["function"]
+    code_line = "{name}{function}:L{line}".format(**record)
+    print(code_line)
+    fmt_str = (
+        '<green>{time:YYYY-MM-DD HH:mm:ss.SS} - {elapsed_timestr}</green> | '
+        '<level>{level: <8}</level> | '
+        '<cyan>{code_line}</cyan> : '
+        '<level>{message}</level>\n'
+    )
+    return fmt_str.format(elapsed_timestr=elapsed_timestr, code_line=code_line, **record)
+
+
 PYSIRAL_DEBUG_MODE = "PYSIRAL_DEBUG_MODE" in os.environ
 LOG_LEVEL = "DEBUG" if PYSIRAL_DEBUG_MODE else "INFO"
-logger.add(sys.stderr, format=fmt, enqueue=True, level=LOG_LEVEL)
+logger_format_func = logger_format_debug if PYSIRAL_DEBUG_MODE else logger_format
+logger.add(sys.stderr, format=logger_format_func, enqueue=True, level=LOG_LEVEL)
 
 
 # TODO: Make obsolete by porting sampy into pysiral
