@@ -1,4 +1,4 @@
-# --- Basic Information for pysior---
+# --- Basic Information for pysiral---
 pysiral_package_config:
   id: &l1p_id "cryosat2_l1b_default"
   version: &l1p_version 1.2
