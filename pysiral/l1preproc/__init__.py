@@ -319,6 +319,10 @@ class PolarOceanSegments(object):
 
         :return: List of Level-1 data objects with only polar ocean data
         """
+
+        method_dict = {
+            "custom_orbit_segement"
+        }
         breakpoint()
 
     def check(self, product_metadata: L1bMetaData) -> bool:
