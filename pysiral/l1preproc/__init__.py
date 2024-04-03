@@ -29,7 +29,7 @@ from pysiral.core.output import L1bDataNC
 from pysiral.l1data import L1bMetaData, Level1bData
 from pysiral.l1preproc.procitems import L1PProcItemDef
 from pysiral.l1preproc._io import SourceDataLoader, SourceFileDiscovery
-from pysiral.l1preproc._cfg_data_model import L1pProcessorConfig
+from pysiral.l1preproc._cfg_data_model import L1pProcessorConfig, PolarOceanSegmentsConfig
 
 from pysiral.l1preproc.debug import l1p_debug_map
 
@@ -118,6 +118,39 @@ class Level1POutputHandler(object):
         return self.last_written_file
 
 
+
+
+
+class PolarOceanSegments(object):
+    """
+    Class to extract polar ocean segments
+
+    :param orbit_coverage:
+    :param target_hemisphere:
+    :param polar_latitude_threshold:
+    :param allow_nonocean_segment_nrecords:
+    """
+
+    def __init__(self, **kwargs) -> None:
+        """
+        Initialize class instance
+        """
+        self.cfg = PolarOceanSegmentsConfig(**kwargs)
+
+    def extract(self, l1: Level1bData) -> Optional[List[Level1bData]]:
+        """
+        Extract polar ocean segments from a Level-1 data object.
+
+        :param l1: Level-1 data object
+
+        :return: List of Level-1 data objects with only polar ocean data
+        """
+
+        breakpoint()
+
+
+
+
 class Level1PreProcessor(object):
     """
     The main Level-1 pre-processor class. The purpose of this processor is to
@@ -198,6 +231,7 @@ class Level1PreProcessor(object):
             self.source_dataset_id.version_str,
             **source_loader_kwargs
         )
+        self.polar_ocean_segments = PolarOceanSegments(**cfg.level1_preprocessor.polar_ocean.dict())
         self.output_handler = self._get_output_handler()
         self.processor_item_dict = self._init_processor_items()
 
@@ -214,7 +248,7 @@ class Level1PreProcessor(object):
         """
 
         # Get the list of files
-        source_data_file_stack = self.source_file_discovery.query_period(requested_period)
+        source_data_files = self.source_file_discovery.query_period(requested_period)
         logger.info(
             f"Found {len(source_data_files)} files for {self.source_dataset_id.version_str} "
             f"from {requested_period.date_label}"
@@ -223,14 +257,123 @@ class Level1PreProcessor(object):
 
     def preprocess_files(self, source_data_files: List[Path]) -> None:
         """
-        Main workflow loop of the
+        Main workflow loop of the Level-1 preprocessor
 
         :param source_data_files: A list of files to pre-processe
 
         :return: None
         """
-        breakpoint()
 
+        # Validity Check
+        n_input_files = len(source_data_files)
+        if n_input_files == 0:
+            logger.error("Passed empty input file list to preprocess_files()")
+            return
+
+        # Init helpers
+        prgs = ProgressIndicator(n_input_files)
+
+        # # A class that is passed to the input adapter to check if the pre-processor wants the
+        # # content of the current file
+        # polar_ocean_check = L1PreProcPolarOceanCheck(self.polar_ocean_props)
+
+        # The stack of connected l1 segments is a list of l1 objects that together form a
+        # continuous trajectory over polar oceans. This stack will be emptied and its content
+        # exported to a l1p netcdf if the next segment is not connected to the stack.
+        # This stack is necessary, because the polar ocean segments from the next file may
+        # be connected to polar ocean segments from the previous file.
+        l1_connected_stack = []
+
+        # orbit segments may or may not be connected, therefore the list of input file
+        # needs to be processed sequentially.
+        for i, source_data_file in enumerate(source_data_files):
+
+            logger.info(f"+ Process input file {prgs.get_status_report(i)} [{source_data_file.name}]")
+            l1_source = self._load_source_data(source_data_file)
+            l1_po_segments = self._get_source_data_polar_ocean_segments(l1_source)
+            l1_export_list, l1_connected_stack = self._get_output_segments(l1_connected_stack, l1_po_segments)
+
+            if not l1_export_list:
+                continue
+            if psrlcfg.debug_mode:
+                l1p_debug_map(l1_export_list, title="Polar Ocean Segments - Export")
+
+            # Step 4: Processor items post
+            # Computational expensive post-processing (e.g. computation of waveform shape parameters) can now be
+            # executed as the Level-1 segments are cropped to the minimal length.
+            self.l1_apply_processor_items(l1_export_list, "post_merge")
+
+            # Step 5: Export
+            for l1_export in l1_export_list:
+                self.l1_export_to_netcdf(l1_export)
+
+            if psrlcfg.debug_mode:
+                l1p_debug_map(l1_connected_stack, title="Stack after Export")
+
+        # Step : Export the last item in the stack (if it exists)
+        # Stack is clean -> return
+        if len(l1_connected_stack) == 0:
+            pass
+
+        # Single stack item -> export and return
+        elif len(l1_connected_stack) == 1:
+            self.l1_export_to_netcdf(l1_connected_stack[-1])
+
+        # A case with more than 1 stack item is an error
+        else:
+            raise ValueError("something went wrong here")
+
+    def _load_source_data(self, source_data_file: Path) -> Level1bData:
+        """
+        Extract polar ocean segments from a source data file.
+
+        :param source_data_file:
+        :return:
+        """
+
+        # Step 1: Read Input
+        # Map the entire orbit segment into on Level-1 data object. This is the task
+        # of the input adaptor. The input handler gets only the filename and the target
+        # region to assess whether it is necessary to parse and transform the file content
+        # for the sake of computational efficiency.
+        l1 = self.source_loader.get_l1(
+            source_data_file,
+            polar_ocean_check=self.polar_ocean_check
+        )
+        if l1 is None:
+            logger.info("- No polar ocean data for curent job -> skip file")
+            return []
+
+        if psrlcfg.debug_mode:
+            l1p_debug_map([l1], title="Source File")
+
+        # Step 2: Apply processor items on source data
+        # for the sake of computational efficiency.
+        self.l1_apply_processor_items(l1, "post_source_file")
+
+        return l1
+
+    def _get_source_data_polar_ocean_segments(self, l1_source: Level1bData) -> List[Level1bData]:
+        """
+        Extract polar ocean segments from a source data file. The input files may
+        contain unwanted data (low latitude/land segments). It is the job of the
+        L1PReProc children class to return only the relevant segments over polar ocean
+        as a list of l1 objects.
+
+        :param l1_source: A single L1 data object (usually directly
+            loaded from a source data file)
+
+        :return: list of L1 polar ocean segments
+        """
+
+        # Step 3: Extract and subset
+
+        l1_po_segments = self.polar_ocean_segments.extract(l1_source)
+        if psrlcfg.debug_mode:
+            l1p_debug_map(l1_po_segments, title="Polar Ocean Segments")
+        self.l1_apply_processor_items(l1_po_segments, "post_ocean_segment_extraction")
+
+        return l1_po_segments
 
     @classmethod
     def from_ids(
@@ -1393,8 +1536,8 @@ class Level1PreProcessor(object):
 #
 #         # All done, return the list of polar ocean segments
 #         return l1_list
-#
-#
+
+
 class L1PreProcPolarOceanCheck(object):
     """
     A small helper class that can be passed to input adapter to check

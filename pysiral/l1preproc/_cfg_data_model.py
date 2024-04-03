@@ -10,7 +10,7 @@ import contextlib
 import importlib
 from pathlib import Path
 from typing import Dict, List, Literal, Union, Optional
-from pydantic import BaseModel, FilePath, PositiveInt, field_validator, model_validator, Field
+from pydantic import BaseModel, FilePath, PositiveInt, field_validator, PositiveFloat, Field
 from ruamel.yaml import YAML
 
 from pysiral import psrlcfg
@@ -129,3 +129,10 @@ class L1pProcessorConfig(BaseModel):
     @property
     def supports_multiple_platforms(self) -> bool:
         return isinstance(self.supported_platforms, list)
+
+
+class PolarOceanSegmentsConfig(BaseModel):
+    orbit_coverage: str = Literal["custom_orbit_segment", "half_orbit", "full_orbit"]
+    target_hemisphere: List[Literal["nh", "sh"]] = Field(default=["nh", "sh"])
+    polar_latitude_threshold: PositiveFloat = 45.0,
+    allow_nonocean_segment_nrecords: PositiveInt = 1000

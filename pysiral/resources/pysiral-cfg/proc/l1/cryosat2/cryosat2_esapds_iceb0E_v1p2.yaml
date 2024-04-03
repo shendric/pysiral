@@ -14,7 +14,8 @@ output:
 level1_preprocessor:
 
     polar_ocean:
-        target_hemisphere: [north, south]
+        orbit_coverage: custom_orbit_segments
+        target_hemisphere: [nh, sh]
         polar_latitude_threshold: 45.0
         input_file_is_single_hemisphere: False
         allow_nonocean_segment_nrecords: 1000
