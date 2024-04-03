@@ -5,7 +5,6 @@ Internal module with classes for Input/Output operations of
 the Level-1 pre-processor
 """
 
-
 from pathlib import Path
 from typing import List
 import inspect
@@ -56,10 +55,12 @@ class SourceFileDiscovery(object):
         #       warn of overwrite.
         for supported_dataset in supported_source_datasets:
             existing_cls = psrlcfg.registered_classes.source_data_discovery.get(supported_dataset)
+            if existing_cls is cls:
+                return  # Class just being imported again
             if existing_cls is not None:
                 logger.warning(
                     f"Source data discovery class {existing_cls} will be overwritten by {cls} "
-                    "for dataset id={supported_dataset}"
+                    f"for dataset id={supported_dataset}"
                 )
             psrlcfg.registered_classes.source_data_discovery[supported_dataset] = cls
 

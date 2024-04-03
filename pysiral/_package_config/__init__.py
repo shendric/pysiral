@@ -43,6 +43,8 @@ VALID_CONFIG_TARGETS = ["PACKAGE", "USER_HOME"]
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
+__all__ = ["_auxdata", "_local_machine", "_proc", "_output", "_mission", "_models"]
+
 
 class PackageConfig(BaseModel):
     """

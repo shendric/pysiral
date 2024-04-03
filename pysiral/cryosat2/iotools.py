@@ -84,10 +84,10 @@ class CS2ICEFileDiscovery(
     def _append_files(self, mode, period):
         lookup_year, lookup_month = period.tcs.year, period.tcs.month
         lookup_dir = self._get_lookup_dir(lookup_year, lookup_month, mode)
-        logger.info(f"Search directory: {lookup_dir}")
         if not lookup_dir.is_dir():
             logger.error(f"{lookup_dir=} does not exist")
             return
+        logger.info(f"Search directory: {lookup_dir}")
         n_files = 0
         for daily_period in period.get_segments("day"):
             # Search for specific day
@@ -97,7 +97,7 @@ class CS2ICEFileDiscovery(
             n_files += len(file_list)
             for file, tcs in zip(file_list, tcs_list):
                 self._list.append((file, tcs))
-        logger.info(" Found %g %s files" % (n_files, mode))
+        logger.info(f"Found {n_files} {mode} files")
 
     def _get_files_per_day(self, lookup_dir, year, month, day):
         """ Return a list of files for a given lookup directory """
