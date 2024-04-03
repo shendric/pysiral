@@ -122,12 +122,23 @@ class Level1PreProcessor(object):
         """
 
         # Get the list of files
-        source_data_file_stack = self.source_file_discovery.query_period(requested_period)
+        source_data_files = self.source_file_discovery.query_period(requested_period)
         logger.info(
-            f"Found {len(source_data_file_stack)} files for {self.source_dataset_id.version_str} "
+            f"Found {len(source_data_files)} files for {self.source_dataset_id.version_str} "
             f"from {requested_period.date_label}"
         )
+        self.preprocess_files(source_data_files)
+
+    def preprocess_files(self, source_data_files: List[Path]) -> None:
+        """
+        Main workflow loop of the
+
+        :param source_data_files: A list of files to pre-processe
+
+        :return: None
+        """
         breakpoint()
+
 
     @classmethod
     def from_ids(
