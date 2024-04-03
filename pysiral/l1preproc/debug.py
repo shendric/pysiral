@@ -19,9 +19,10 @@ from pysiral.l1data import Level1bData
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 
-def l1p_debug_map(l1p_list: List["Level1bData"],
-                  title: str = None
-                  ) -> None:
+def l1p_debug_map(
+        l1p_list: List["Level1bData"],
+        title: str = None
+) -> None:
     """
     Create an interactive map of l1p segment
 

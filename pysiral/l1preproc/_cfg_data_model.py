@@ -136,3 +136,4 @@ class PolarOceanSegmentsConfig(BaseModel):
     target_hemisphere: List[Literal["nh", "sh"]] = Field(default=["nh", "sh"])
     polar_latitude_threshold: PositiveFloat = 45.0,
     allow_nonocean_segment_nrecords: PositiveInt = 1000
+    ocean_mininum_size_nrecords: PositiveInt = None

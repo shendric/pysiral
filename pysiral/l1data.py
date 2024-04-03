@@ -91,7 +91,7 @@ Surface Type
 
 import copy
 from collections import OrderedDict
-from typing import Any, List, Optional, Union
+from typing import Any, List, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -99,6 +99,7 @@ from cftime import num2pydate as cn2pyd
 from loguru import logger
 from netCDF4 import Dataset, date2num
 from scipy.spatial.transform import Rotation
+from datetime import datetime
 
 from pysiral.core.class_template import DefaultLoggingClass
 from pysiral.core.config import RadarModes
@@ -125,17 +126,21 @@ class Level1bData(DefaultLoggingClass):
         self.classifier = L1bClassifiers(self.info)
         self.surface_type = SurfaceType()
 
-    def append(self,
-               l1b_annex: "Level1bData",
-               remove_overlap: bool = False,
-               warn_if_temporal_offset_seconds: int = 10,
-               raise_on_error: bool = False
-               ) -> None:
+    def append(
+        self,
+        l1b_annex: "Level1bData",
+        remove_overlap: bool = False,
+        warn_if_temporal_offset_seconds: int = 10,
+        raise_on_error: bool = False
+    ) -> None:
         """
         Appends another l1b object to this one. The `l1b_annex` object is expected
         to have data after the self instance.
 
         :param l1b_annex:
+        :param remove_overlap:
+        :param warn_if_temporal_offset_seconds:
+        :param raise_on_error:
 
         :return:
         """
@@ -491,15 +496,19 @@ class Level1bData(DefaultLoggingClass):
             raise ValueError(f"Could not set value for {data_group_name}.{parameter_name}") from e
 
     @property
-    def n_records(self):
+    def is_single_hemisphere(self) -> bool:
+        return False if self.info.hemisphere == "global" else True
+
+    @property
+    def n_records(self) -> int:
         return self.info.n_records
 
     @property
-    def tcs(self):
+    def tcs(self) -> datetime:
         return self.info.start_time
 
     @property
-    def tce(self):
+    def tce(self) -> datetime:
         return self.info.stop_time
 
     @property
@@ -980,9 +989,16 @@ class L1bRangeCorrections(object):
             setattr(self, parameter, data)
 
     def fill_gaps(self, corrected_n_records, gap_indices, indices_map):
-        """ API gap filler method. Note: Gaps will be filled with
-        the nodata=0.0 value"""
+        """
+        API gap filler method. Note: Gaps will be filled with
+        the nodata=0.0 value
 
+        :param corrected_n_records:
+        :param gap_indices:
+        :param indices_map:
+
+        :return:
+        """
         for parameter_name in self.parameter_list:
             data_corr = np.full(corrected_n_records, 0.0)
             data_old = self.get_parameter_by_name(parameter_name)
@@ -1137,10 +1153,7 @@ class L1bWaveforms(object):
 
     @property
     def num_radar_modes(self) -> int:
-        radar_modes = self.radar_modes
-        if isinstance(radar_modes, list):
-            return len(radar_modes)
-        return 0
+        return len(self.radar_modes) if isinstance(self.radar_modes, list) else 0
 
     @property
     def dimdict(self):
@@ -1148,18 +1161,18 @@ class L1bWaveforms(object):
         shape = np.shape(self._power)
         return OrderedDict([("n_records", shape[0]), ("n_bins", shape[1])])
 
-    def set_waveform_data(self, power, range, radar_mode, classification_flag=None):
+    def set_waveform_data(self, power, rng, radar_mode, classification_flag=None):
         """
         Set the waveform data
         :param power:
-        :param range:
+        :param rng:
         :param radar_mode:
         :param classification_flag:
         :return:
         """
         # Validate input
-        if power.shape != range.shape:
-            raise ValueError("power and range must be of same shape", power.shape, range.shape)
+        if power.shape != rng.shape:
+            raise ValueError("power and range must be of same shape", power.shape, rng.shape)
         if len(power.shape) != 2:
             raise ValueError("power and range arrays must be of dimension (n_records, n_bins)")
 
@@ -1168,7 +1181,7 @@ class L1bWaveforms(object):
 
         # Assign values
         self._power = power
-        self._range = range
+        self._range = rng
 
         # Create radar mode arrays
         if type(radar_mode) is str and radar_mode in self._valid_radar_modes:
