@@ -10,7 +10,6 @@ import time
 from typing import Dict
 
 import numpy as np
-from attrdict import AttrDict
 from loguru import logger
 
 from pysiral.core.flags import FlagContainer
@@ -34,7 +33,7 @@ class BaseRetracker(object):
         self._l2 = None
         self._range = None
         self._power = None
-        self._options = AttrDict()
+        self._options = None
 
         # Dictionary containing potential auxiliary output variables of
         # the retracker algorithm that will be transferred to the l2
@@ -47,7 +46,7 @@ class BaseRetracker(object):
 
     def set_options(self, **opt_dict):
         # TODO: Create options object, respectively use __init__
-        self._options = AttrDict(opt_dict)
+        self._options = opt_dict
 
     def set_indices(self, indices):
         # TODO: Validation

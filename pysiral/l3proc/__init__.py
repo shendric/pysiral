@@ -19,7 +19,7 @@ from scipy.ndimage import maximum_filter
 from xarray import open_dataset
 
 from pysiral import __version__, get_cls, psrlcfg
-from pysiral.core.config import get_yaml_config
+from pysiral.core.config import get_yaml_as_dict
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT, ORCondition
 from pysiral.core.output import Level3Output, OutputHandlerBase
@@ -996,9 +996,9 @@ class Level3ProductDefinition(object):
             logger.info(msg)
 
     def _parse_l3_settings(self):
-        logger.info("Parsing settings: %s" % str(self._l3_settings_file))
+        logger.info(f"Parsing settings: {str(self._l3_settings_file)}")
         try:
-            self._l3 = get_yaml_config(self._l3_settings_file)
+            self._l3 = get_yaml_as_dict(Path(self._l3_settings_file))
         except Exception as ex:
             self.error.add_error("l3settings-parser-error", str(ex))
             self.error.raise_on_error()
@@ -1020,7 +1020,7 @@ class Level3ProductDefinition(object):
 
     @property
     def l3def(self):
-        return self._l3
+        return dict(**self._l3)
 
     @property
     def period(self):
@@ -1030,15 +1030,15 @@ class Level3ProductDefinition(object):
     def l3_masks(self):
         """ Return a sorted list of the masks applied to level 3 data """
         try:
-            mask_names = sorted(self.l3def.l3_masks.keys(branch_mode="only"))
-            return [self.l3def.l3_masks[name] for name in mask_names]
+            mask_names = sorted(self.l3def["l3_masks"].keys())
+            return [self.l3def["l3_masks"][name] for name in mask_names]
         except AttributeError:
             return []
 
     @property
     def l3_external_masks(self):
         try:
-            extmask_names = self.l3def.external_masks
+            extmask_names = self.l3def["external_masks"]
         except AttributeError:
             extmask_names = []
         return extmask_names
@@ -1046,25 +1046,25 @@ class Level3ProductDefinition(object):
     @property
     def l3_post_processors(self):
         try:
-            names = sorted(self.l3def.l3_post_processing.keys(
+            names = sorted(self.l3def["l3_post_processing"].keys(
                 recursive=False, branch_mode="only"))
         except AttributeError:
             return []
-        options = [self.l3def.l3_post_processing[n].options for n in names]
+        options = [self.l3def["l3_post_processing"][n]["options"] for n in names]
         return zip(names, options)
 
     @property
     def l2_parameter(self):
         """ Extract a list of paramter names to be extracted from
         l2i product files """
-        return self.l3def.l2_parameter
+        return self.l3def["l2_parameter"]
 
     @property
     def l3_parameter(self):
         """ Extract a list of paramter names to be computed by the
         Level-3 processor """
-        l3_parameter = sorted(self.l3def.l3_parameter.keys(branch_mode="only"))
-        return [self.l3def.l3_parameter[n] for n in l3_parameter]
+        l3_parameter = sorted(self.l3def["l3_parameter"].keys())
+        return [self.l3def["l3_parameter"][n] for n in l3_parameter]
 
 
 class Level3ProcessorItem(object):

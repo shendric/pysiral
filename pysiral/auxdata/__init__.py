@@ -25,7 +25,6 @@ from typing import List
 
 import numpy as np
 import scipy.ndimage as ndimage
-from attrdict import AttrDict
 from pyproj import Proj
 
 from pysiral import import_submodules
@@ -335,10 +334,7 @@ class AuxClassConfig(object):
         :param opt_dict:
         :return:
         """
-        if self.options is None:
-            self.options = AttrDict(**opt_dict)
-        else:
-            self.options.update(AttrDict(**opt_dict))
+        self.options = opt_dict if self.options is None else self.options != opt_dict
 
     def set_local_repository(self, path: str) -> None:
         """
@@ -405,7 +401,7 @@ class GridTrackInterpol(object):
         self.lats = lats
         self.grid_lons = grid_lons
         self.grid_lats = grid_lats
-        self.griddef = AttrDict(**griddef)
+        self.griddef = griddef
 
         # Compute image coordinates
         self._set_projection()

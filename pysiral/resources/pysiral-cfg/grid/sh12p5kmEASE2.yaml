@@ -1,10 +1,11 @@
 # This is the default grid definition for northern hemisphere radar altimeter data
 
-hemisphere: south
-grid_tag: ease2nh
-resolution_tag: 12.5km
-grid_id: sh_12p5km_ease2
-name: Equal-Area Scalable Earth Grid (v2), southern hemisphere, resolution 12.5km
+metadata:
+    hemisphere: south
+    grid_tag: ease2nh
+    resolution_tag: 12.5km
+    grid_id: sh_12p5km_ease2
+    name: Equal-Area Scalable Earth Grid (v2), southern hemisphere, resolution 12.5km
 
 netcdf_grid_description: 
     Lambert_Azimuthal_Grid:

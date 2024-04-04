@@ -16,7 +16,7 @@ from loguru import logger
 from netCDF4 import Dataset, date2num
 
 from pysiral import psrlcfg
-from pysiral.core.config import get_yaml_config
+from pysiral.core.config import get_yaml_as_dict
 from pysiral.core.errorhandler import ErrorStatus
 
 
@@ -28,11 +28,13 @@ class OutputHandlerBase(object):
 
     subfolder_format = {"month": "%02g", "year": "%04g", "day": "%02g"}
 
-    def __init__(self,
-                 output_def,
-                 applicable_data_level=None,
-                 subfolder_tags=None,
-                 default_file_location=None):
+    def __init__(
+            self,
+            output_def,
+            applicable_data_level=None,
+            subfolder_tags=None,
+            default_file_location=None
+    ) -> None:
         """
         Init the output handler with the content of the output definition file and
         keywords specific for the data processing levels. These keywords have to be
@@ -65,8 +67,10 @@ class OutputHandlerBase(object):
         self.output_def_filename = output_def
 
     def fill_template_string(self, template, dataset):
-        """ Fill an template string with information of a dataset
-        object (in this case Level2Data) """
+        """
+        Fill a template string with information of a dataset
+        object (in this case Level2Data)
+        """
         attributes = self.get_template_attrs(template)
         result = str(template)
         for attribute in attributes:
@@ -95,7 +99,7 @@ class OutputHandlerBase(object):
             template = template.encode('utf-8').strip()
         except AttributeError:
             template = str(template)
-        attr_defs = re.findall("{.*?}", str(template))
+        attr_defs = re.findall("{.*?}", template)
         attrs, options = [], []
         for attr_def in attr_defs:
             attr_name, _, optstr = attr_def[1:-1].partition(":")
@@ -108,7 +112,7 @@ class OutputHandlerBase(object):
         full filename or treedict structure) """
         if Path(output_def).is_file():
             try:
-                self._output_def = get_yaml_config(output_def)
+                self._output_def = get_yaml_as_dict(output_def)
             except Exception as ex:
                 self.error.add_error("outputdef-parser-error", ex)
                 self.error.raise_on_error()
@@ -171,13 +175,13 @@ class OutputHandlerBase(object):
     @property
     def id(self):
         try:
-            return self._output_def.metadata.output_id
+            return self._output_def["metadata"]["output_id"]
         except (AttributeError, KeyError):
             return None
 
     @property
     def product_level_subfolder(self):
-        subfolder = self._output_def.product_level_subfolder
+        subfolder = self._output_def["product_level_subfolder"]
         if type(subfolder) is not str:
             msg = "root.product_level_subfolder (str) missing or wrong dtype"
             self.error.add_error("outputdef-invalid", msg)
@@ -186,7 +190,7 @@ class OutputHandlerBase(object):
 
     @property
     def data_level(self):
-        data_level = self._output_def.metadata.data_level
+        data_level = self._output_def["metadata"]["data_level"]
         if type(data_level) is not int:
             msg = "root.metadata.data_level (int) missing or wrong dtype"
             self.error.add_error("outputdef-invalid", msg)
@@ -208,8 +212,8 @@ class OutputHandlerBase(object):
 
     @property
     def variable_def(self):
-        variables = sorted(list(self.output_def.variables.keys()))
-        attribute_dicts = [self.output_def.variables[a] for a in variables]
+        variables = sorted(list(self.output_def["variables"].keys()))
+        attribute_dicts = [self.output_def["variables"][a] for a in variables]
         return zip(variables, attribute_dicts)
 
 
@@ -226,7 +230,7 @@ class DefaultLevel2OutputHandler(OutputHandlerBase):
         :param output_def: (str) The full ilepath of the output definition file
         :param subdirectory: (str) The subdirectory relativ to the standard pysiral output path defined
             in the local_machine_def.yaml file
-        :param overwrite_protection: (bool) If true an additional sub-directory will be added to the
+        :param overwrite_protection: (bool) If true an additional subdirectory will be added to the
             output path with the exact date and time of this run. The intention is to avoid over-writing
             existing files
         :param period: (str) An identifier string for the period. This string will be used to choose
@@ -264,15 +268,15 @@ class DefaultLevel2OutputHandler(OutputHandlerBase):
         # Get the filename definition (depending on period definition)
         filename_template = ""
         try:
-            template_ids = self.output_def.filenaming.keys()
+            template_ids = self.output_def["filenaming"].keys()
             period_id = self._period
             # Fall back to default if no filename convention for given
             # data period
             if period_id not in template_ids:
                 period_id = "default"
-            filename_template = self.output_def.filenaming[period_id]
+            filename_template = self.output_def["filenaming"][period_id]
         except AttributeError:
-            filename_template = self.output_def.filenaming
+            filename_template = self.output_def["filenaming"]
         except KeyError:
             msg = "Missing filenaming convention for period [%s] in [%s]"
             msg %= (str(self._period), self.output_def_filename)
@@ -304,7 +308,7 @@ class DefaultLevel2OutputHandler(OutputHandlerBase):
 
     def get_global_attribute_dict(self, l2):
         attr_dict = OrderedDict()
-        for attr_entry in self.output_def.global_attributes:
+        for attr_entry in self.output_def["global_attributes"]:
             attr_name, attr_template = zip(*attr_entry.items())
             attribute = self.fill_template_string(attr_template[0], l2)
             attr_dict[attr_name[0]] = attribute
@@ -947,8 +951,7 @@ class PysiralOutputFilenaming(object):
         match_found = False
         for data_level in self._registered_parsers.keys():
             parser = parse.compile(self._registered_parsers[data_level])
-            match = parser.parse(filename)
-            if match:
+            if match := parser.parse(filename):
                 match_found = True
                 self.data_level = data_level
                 for parameter in match.named.keys():

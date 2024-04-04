@@ -1,10 +1,11 @@
 # This is the default grid definition for southern hemisphere radar altimeter data
 
-hemisphere: south
-grid_id: sh25kmEASE2
-grid_tag: sh_25km_ease2
-resolution_tag: 25km
-name: Equal-Area Scalable Earth Grid (v2), southern hemisphere, resolution 50km
+metadata:
+    hemisphere: south
+    grid_id: sh25kmEASE2
+    grid_tag: sh_25km_ease2
+    resolution_tag: 25km
+    name: Equal-Area Scalable Earth Grid (v2), southern hemisphere, resolution 50km
 
 netcdf_grid_description: 
     Lambert_Azimuthal_Grid:

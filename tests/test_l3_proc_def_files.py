@@ -8,13 +8,10 @@ Level2Processor conventions
 
 import unittest
 
-import yaml
-from attrdict import AttrDict
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core.config import get_yaml_config
-from pysiral.l2proc.procsteps import Level2ProcessorStepOrder
+from pysiral.core.config import get_yaml_as_dict
 
 logger.disable("pysiral")
 
@@ -28,8 +25,8 @@ class TestL3ProcDef(unittest.TestCase):
 
     def testYamlSyntaxOfDefinitionFiles(self):
         for filename in self.l2procdef_files:
-            content = get_yaml_config(filename)
-            self.assertIsInstance(content, AttrDict, msg=filename)
+            content = get_yaml_as_dict(filename)
+            self.assertIsInstance(content, dict, msg=filename)
 
 
 if __name__ == '__main__':

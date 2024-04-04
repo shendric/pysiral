@@ -10,7 +10,6 @@ from pathlib import Path
 from typing import Any, Dict, Union, Optional
 
 import numpy as np
-from attrdict import AttrDict
 from cftime import num2pydate
 from loguru import logger
 from scipy import interpolate
@@ -31,7 +30,7 @@ class EnvisatSGDRNC(
     """ Converts a Envisat SGDR object into a L1bData object """
 
     def __init__(self,
-                 cfg: Union[Dict, AttrDict],
+                 cfg: Dict,
                  raise_on_error: bool = False
                  ) -> None:
         """
@@ -40,7 +39,6 @@ class EnvisatSGDRNC(
         :param cfg: Options from the corresponding Level-1 pre-processor config file
         :param raise_on_error: Boolean value if the class should raise an exception upon an error (default: False)
         """
-
 
         # Debug variables
         self.cfg = cfg
@@ -102,7 +100,7 @@ class EnvisatSGDRNC(
         info.set_attribute("orbit", sgdr.absolute_orbit_number)
         info.set_attribute("cycle", sgdr.cycle_number)
         info.set_attribute("mission_data_source", sgdr.product_name)
-        info.set_attribute("timeliness", self.cfg.timeliness)
+        info.set_attribute("timeliness", self.cfg["timeliness"])
 
     def _set_l1_data_groups(self) -> None:
         """
@@ -128,8 +126,8 @@ class EnvisatSGDRNC(
 
         # Transfer the timestamp
         sgdr_timestamp = self.sgdr.time_20
-        units = self.cfg.sgdr_timestamp_units
-        calendar = self.cfg.sgdr_timestamp_calendar
+        units = self.cfg["sgdr_timestamp_units"]
+        calendar = self.cfg["sgdr_timestamp_calendar"]
         timestamp = num2pydate(sgdr_timestamp, units, calendar)
         self.l1.time_orbit.timestamp = timestamp
 
@@ -155,17 +153,17 @@ class EnvisatSGDRNC(
         # In Envisat data v3.0 the tracker range is already corrected for all internal effects,
         # but the nominal tracking bin is variable.
         nominal_tracking_bin = (63 + self.sgdr.offset_tracking_20/256).astype(int)
-        window_delay_m = self.sgdr.tracker_range_20_ku - nominal_tracking_bin * self.cfg.bin_width_meter
+        window_delay_m = self.sgdr.tracker_range_20_ku - nominal_tracking_bin * self.cfg["bin_width_meter"]
 
         # Compute the range value for each range bin of the 18hz waveform
         wfm_range = get_envisat_wfm_range(
             window_delay_m,
             n_range_bins,
-            bin_width_meter=self.cfg.bin_width_meter
+            bin_width_meter=self.cfg["bin_width_meter"]
         )
 
         # Transfer data to the waveform group
-        self.l1.waveform.set_waveform_data(wfm_power, wfm_range, self.cfg.radar_mode)
+        self.l1.waveform.set_waveform_data(wfm_power, wfm_range, self.cfg["radar_mode"])
 
         # Set valid flag to exclude calibration data
         # (see section 3.5 of Reaper handbook)
@@ -184,11 +182,11 @@ class EnvisatSGDRNC(
         """
 
         # Get the reference times for interpolating the range corrections from 1Hz -> 20Hz
-        time_1Hz = np.array(self.sgdr.time_01)
-        time_20Hz = np.array(self.sgdr.time_20)
+        time_1hz = np.array(self.sgdr.time_01)
+        time_20hz = np.array(self.sgdr.time_20)
 
         # Loop over all range correction in config file
-        grc_dict = self.cfg.range_correction_targets
+        grc_dict = self.cfg["range_correction_targets"]
         for name in grc_dict.keys():
 
             # Get the variable
@@ -214,9 +212,11 @@ class EnvisatSGDRNC(
             # -> Those with "_01" in the variable name need to be
             # extrapolated to 20 Hz
             error = False
-            if re.search(self.cfg.variable_identifier_1Hz, target_parameter):
-                correction, error = self.interp_1Hz_to_20Hz(correction, time_1Hz, time_20Hz,
-                                                            fill_on_error_value=0.0)
+            if re.search(self.cfg["variable_identifier_1Hz"], target_parameter):
+                correction, error = self.interp_1hz_to_20hz(
+                    correction, time_1hz, time_20hz,
+                    fill_on_error_value=0.0
+                )
             if error:
                 msg = f"Failing to create 20Hz range correction variable for {target_parameter}"
                 logger.warning(msg)
@@ -251,7 +251,7 @@ class EnvisatSGDRNC(
         config/mission_def.yaml for ers1/ers2
         -> ersX.settings.sgdr_range_correction_targets
         """
-        target_dict = self.cfg.classifier_targets
+        target_dict = self.cfg["classifier_targets"]
         for parameter_name in target_dict.keys():
             nc_parameter_name = target_dict[parameter_name]
             nc_parameter = getattr(self.sgdr, nc_parameter_name)
@@ -267,7 +267,10 @@ class EnvisatSGDRNC(
     def find_and_interpolate_nans(variable, fill_on_error_value=np.nan):
         """
         Replace NaN's in variable with linear interpolated values
+
         :param variable:
+        :param fill_on_error_value:
+
         :return: interpolated variable
         """
         is_nan = np.isnan(variable)
@@ -286,25 +289,40 @@ class EnvisatSGDRNC(
         return variable_filtered
 
     @staticmethod
-    def interp_1Hz_to_20Hz(variable_1Hz, time_1Hz, time_20Hz, fill_on_error_value=np.nan, **kwargs):
+    def interp_1hz_to_20hz(
+            variable_1hz,
+            time_1hz,
+            time_20hz,
+            fill_on_error_value=np.nan,
+            **interp1d_kwargs
+    ):
         """
         Computes a simple linear interpolation to transform a 1Hz into a 20Hz variable
-        :param variable_1Hz: an 1Hz variable array
-        :param time_1Hz: 1Hz reference time
-        :param time_20Hz: 20 Hz reference time
+
+        :param variable_1hz: an 1Hz variable array
+        :param time_1hz: 1Hz reference time
+        :param time_20hz: 20 Hz reference time
+        :param fill_on_error_value:
+        :param interp1d_kwargs:
+
         :return: the interpolated 20Hz variable
         """
         error_status = False
         try:
-            is_valid = np.logical_and(np.isfinite(time_1Hz), np.isfinite(variable_1Hz))
+            is_valid = np.logical_and(np.isfinite(time_1hz), np.isfinite(variable_1hz))
             valid_indices = np.where(is_valid)[0]
-            f = interpolate.interp1d(time_1Hz[valid_indices], variable_1Hz[valid_indices],
-                                     fill_value="extrapolate", bounds_error=False, **kwargs)
-            variable_20Hz = f(time_20Hz)
+            f = interpolate.interp1d(
+                time_1hz[valid_indices],
+                variable_1hz[valid_indices],
+                fill_value="extrapolate",
+                bounds_error=False,
+                **interp1d_kwargs
+            )
+            variable_20hz = f(time_20hz)
         except ValueError:
-            variable_20Hz = np.full(time_20Hz.shape, fill_on_error_value)
+            variable_20hz = np.full(time_20hz.shape, fill_on_error_value)
             error_status = True
-        return variable_20Hz, error_status
+        return variable_20hz, error_status
 
     @property
     def empty(self):

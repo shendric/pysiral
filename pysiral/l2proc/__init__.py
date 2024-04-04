@@ -15,7 +15,7 @@ from loguru import logger
 
 from pysiral import psrlcfg
 from pysiral.core.class_template import DefaultLoggingClass
-from pysiral.core.config import get_yaml_config
+from pysiral.core.config import get_yaml_as_dict
 from pysiral.core.datahandler import DefaultAuxdataClassHandler
 from pysiral.core.errorhandler import PYSIRAL_ERROR_CODES, ErrorStatus
 from pysiral.core.output import DefaultLevel2OutputHandler, Level2Output
@@ -381,7 +381,7 @@ class Level2ProductDefinition(DefaultLoggingClass):
 
     def _parse_l2_settings(self):
         try:
-            self._l2def = get_yaml_config(self._l2_settings_file)
+            self._l2def = get_yaml_as_dict(Path(self._l2_settings_file))
         except Exception as ex:
             self.error.add_error("invalid-l2-settings", str(ex))
             self.error.raise_on_error()
@@ -410,39 +410,39 @@ class Level2ProductDefinition(DefaultLoggingClass):
 
     @property
     def auxdata(self):
-        return self.l2def.auxdata
+        return self.l2def["auxdata"]
 
     @property
     def procsteps(self):
-        return self.l2def.procsteps
+        return self.l2def["procsteps"]
 
     @property
     def product_line(self):
-        return self.l2def.metadata.product_line
+        return self.l2def["metadata"]["product_line"]
 
     @property
     def record_type(self):
-        return self.l2def.metadata.record_type
+        return self.l2def["metadata"]["record_type"]
 
     @property
     def platform(self):
-        return self.l2def.metadata.platform
+        return self.l2def["metadata"]["platform"]
 
     @property
     def version(self):
-        return self.l2def.metadata.version
+        return self.l2def["metadata"]["version"]
 
     @property
     def file_version_tag(self):
-        return self.l2def.metadata.file_version_tag
+        return self.l2def["metadata"]["file_version_tag"]
 
     @property
     def label(self):
-        return self.l2def.metadata.label
+        return self.l2def["metadata"]["label"]
 
     @property
     def hemisphere(self):
-        return self.l2def.metadata.hemisphere
+        return self.l2def["metadata"]["hemisphere"]
 
     @property
     def hemisphere_code(self):

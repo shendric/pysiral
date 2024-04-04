@@ -10,9 +10,9 @@ from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
+from typing import Union, Dict
 import parse
 import xmltodict
-from attrdict import AttrDict
 from dateutil import parser as dtparser
 from loguru import logger
 
@@ -419,31 +419,27 @@ def get_tai_datetime_from_timestamp(mdsr_timestamp):
         return output[0]
 
 
-def parse_cryosat_l1b_filename(filename):
+def parse_cryosat_l1b_filename(filename: Union[Path, str]) -> Dict[str, str]:
     """
     Returns the information in the CryoSat-2 l1b filename
+
+    :param filename:
+
+    :return:
     """
-    # Strip path and file extension
     filename = Path(filename).stem
-    # Construct the parser
-    parser_str = "CS_{proc_stage}_"
-    parser_str += "{instrument}_"
-    parser_str += "{radar_mode}_"
-    parser_str += "{data_level}_"
-    parser_str += "{start_dt}_"
-    parser_str += "{stop_dt}_"
-    parser_str += "{baseline}"
+    parser_str = "CS_{proc_stage}_{instrument}_{radar_mode}_{data_level}_{start_dt}_{stop_dt}_{baseline}"
     parser = parse.compile(parser_str)
-    # Parse the filename
     result = parser.parse(filename)
-    # Do some post-editing
-    # - parse is not that smart when it comes to work with date strings
-    # - naming conventions as the rest of pysiral
-    info = {"mission": "cryosat2", "instrument": result["instrument"].lower(),
-            "radar_mode": result["radar_mode"].lower(), "data_level": "L" + result["data_level"],
-            "start_dt": dtparser.parse(result["start_dt"]), "stop_dt": dtparser.parse(result["stop_dt"]),
-            "baseline": result["baseline"]}
-    return AttrDict(info)
+    return {
+        "mission": "cryosat2",
+        "instrument": result["instrument"].lower(),
+        "radar_mode": result["radar_mode"].lower(),
+        "data_level": "L" + result["data_level"],
+        "start_dt": dtparser.parse(result["start_dt"]),
+        "stop_dt": dtparser.parse(result["stop_dt"]),
+        "baseline": result["baseline"]
+    }
 
 
 def parse_cryosat_l1b_xml_header(filename):
