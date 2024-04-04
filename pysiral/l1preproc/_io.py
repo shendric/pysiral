@@ -6,10 +6,9 @@ the Level-1 pre-processor
 """
 
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 import inspect
 
-from attrdict import AttrDict
 from loguru import logger
 
 from pysiral import psrlcfg
@@ -169,7 +168,7 @@ class Level1POutputHandler(object):
     NOTE: This is not a subclass of OutputHandlerbase due to the special nature of pysiral l1p products
     """
 
-    def __init__(self, cfg: AttrDict) -> None:
+    def __init__(self, cfg: Dict) -> None:
         self.cfg = cfg
         self._path = None
         self._filename = None

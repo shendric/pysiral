@@ -1074,7 +1074,7 @@ class Level1PreProcessor(object):
 #             cls_name: str,
 #             input_adapter: L1PInputCLS,
 #             output_handler: Level1POutputHandler,
-#             cfg: AttrDict
+#             cfg: Dictionary
 #     ) -> None:
 #
 #         # Make sure the logger/error handler has the name of the parent class

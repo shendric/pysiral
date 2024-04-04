@@ -50,9 +50,7 @@ are currently implemented:
 
 """
 
-from typing import Any, Dict, List, TypeVar, Union
-
-from attrdict import AttrDict
+from typing import Any, Dict, TypeVar, Union
 from schema import And, Schema
 
 from pysiral import get_cls
@@ -128,7 +126,7 @@ class L1PProcItemDef(object):
         self.option_dict = Schema(dict).validate(option_dict)
 
     @classmethod
-    def from_l1procdef_dict(cls, procdef_dict: Union[dict, AttrDict]) -> "L1PProcItemDef":
+    def from_l1procdef_dict(cls, procdef_dict: Dict) -> "L1PProcItemDef":
         """
         Initialize the class from the corresponding excerpt of the Level-1 processor
         configuration file.

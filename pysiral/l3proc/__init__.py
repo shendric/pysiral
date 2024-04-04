@@ -23,7 +23,6 @@ from pysiral.core.config import get_yaml_as_dict
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT, ORCondition
 from pysiral.core.output import Level3Output, OutputHandlerBase
-from pysiral.grid import GridDefinition
 from pysiral.l2data import L2iNCFileImport
 from pysiral.mask import L3Mask
 from pysiral.sit import frb2sit_errprop
@@ -962,15 +961,6 @@ class Level3OutputHandler(OutputHandlerBase):
         return time_dim_is_unlimited
 
 
-class Level3GridDefinition(GridDefinition):
-    """ This is a variation of GridDefinition with a mandatory link to
-    a griddef yaml file"""
-
-    def __init__(self, l3_settings_file):
-        super(Level3GridDefinition, self).__init__(self)
-        self.set_from_griddef_file(l3_settings_file)
-
-
 class Level3ProductDefinition(object):
 
     def __init__(self, l3_settings_file, grid, output, period):
@@ -989,12 +979,11 @@ class Level3ProductDefinition(object):
         self._parse_l3_settings()
 
         # Report settings to log handler
-        logger.info("Output grid id: %s" % str(self._grid.grid_id))
+        logger.info(f"Output grid id: {str(self._grid.grid_id)}")
         for output in self._output:
             msg = "L3 product directory (%s): %s"
             msg %= (str(output.id), str(output.basedir))
             logger.info(msg)
-
     def _parse_l3_settings(self):
         logger.info(f"Parsing settings: {str(self._l3_settings_file)}")
         try:

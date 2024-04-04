@@ -11,7 +11,6 @@ from itertools import product
 from pathlib import Path
 from typing import List, Union, Optional, Dict
 
-from attrdict import AttrDict
 from dateperiods import DatePeriod
 from dateutil.relativedelta import relativedelta
 from loguru import logger
@@ -136,7 +135,7 @@ class DefaultAuxdataClassHandler(object):
             ) from e
         return local_repo_auxclass.get(auxdata_id, None)
 
-    def get_auxdata_def(self, auxdata_class: str, auxdata_id: str) -> "AttrDict":
+    def get_auxdata_def(self, auxdata_class: str, auxdata_id: str) -> Dict:
         """
         Returns the definition in `config/auxdata_def.yaml` for specified auxdata class and id.
         Raises an error if the entry is not found.
@@ -150,7 +149,7 @@ class DefaultAuxdataClassHandler(object):
             msg = f"Cannot find entry for auxiliary data set {auxdata_class}:{auxdata_id} in auxdata_def.yaml"
             self.error.add_error("invalid-auxdata-class", msg)
             self.error.raise_on_error()
-        return auxdata_def.attrdict
+        return auxdata_def
 
 
 class L1PDataHandler(object):

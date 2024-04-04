@@ -13,12 +13,10 @@ from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core import DefaultLoggingClass
-from pysiral.core.config import DefaultCommandLineArguments
+from pysiral.core.cli import DefaultCommandLineArguments
 from pysiral.core.datahandler import L2iDataHandler
-from pysiral.core.errorhandler import ErrorStatus
-from pysiral.l3proc import (Level3GridDefinition, Level3OutputHandler,
-                            Level3Processor, Level3ProductDefinition)
+from pysiral.grid import GridDefinition
+from pysiral.l3proc import Level3OutputHandler, Level3Processor, Level3ProductDefinition
 
 
 def pysiral_l3proc():
@@ -40,7 +38,7 @@ def pysiral_l3proc():
         n_periods = period_segments.n_periods
 
     # Get the output grid
-    grid = Level3GridDefinition(args.l3_griddef)
+    grid = GridDefinition.from_griddef_file(args.l3_griddef)
 
     # Initialize the interface to the l2i products
     l2i_handler = L2iDataHandler(args.l2i_product_directories, search_str="l2")
@@ -49,12 +47,14 @@ def pysiral_l3proc():
     # Currently,  overwrite protection is disabled per default
     output = []
     for l3_output_file in args.l3_output_file:
-        output_handler = Level3OutputHandler(output_def=l3_output_file,
-                                             base_directory=args.l3_product_basedir,
-                                             period=args.period,
-                                             doi=args.doi,
-                                             data_record_type=args.data_record_type,
-                                             overwrite_protection=False)
+        output_handler = Level3OutputHandler(
+            output_def=l3_output_file,
+            base_directory=args.l3_product_basedir,
+            period=args.period,
+            doi=args.doi,
+            data_record_type=args.data_record_type,
+            overwrite_protection=False
+        )
         output.append(output_handler)
 
     # Compile the product def
@@ -87,11 +87,9 @@ def pysiral_l3proc():
     logger.info("Run completed in %s" % str(timedelta(seconds=seconds)))
 
 
-class Level3ProcArgParser(DefaultLoggingClass):
+class Level3ProcArgParser(object):
 
     def __init__(self):
-        super(Level3ProcArgParser, self).__init__(self.__class__.__name__)
-        self.error = ErrorStatus()
         self._args = None
 
     def parse_command_line_arguments(self):
@@ -203,8 +201,7 @@ class Level3ProcArgParser(DefaultLoggingClass):
         msg = msg + " \nRecognized Level-3 processor setting ids:\n"
         for l3_settings_id in psrlcfg.get_setting_ids("proc", "l3"):
             msg = f"{msg}  {l3_settings_id}" + "\n"
-        self.error.add_error("invalid-l3-settings", msg)
-        self.error.raise_on_error()
+        raise ValueError(msg)
 
     @property
     def l3_griddef(self):
@@ -216,8 +213,7 @@ class Level3ProcArgParser(DefaultLoggingClass):
         msg = msg + "    Recognized grid definition ids:\n"
         for griddef_id in psrlcfg.get_setting_ids("grid"):
             msg = f"{msg}    - {griddef_id}" + "\n"
-        self.error.add_error("invalid-griddef", msg)
-        self.error.raise_on_error()
+        raise ValueError(msg)
 
     @property
     def l3_output_file(self):
@@ -235,15 +231,14 @@ class Level3ProcArgParser(DefaultLoggingClass):
                 msg = msg + "    Recognized output definition ids:\n"
                 for output_id in psrlcfg.get_setting_ids("output", "l3"):
                     msg = f"{msg}    - {output_id}" + "\n"
-                self.error.add_error("invalid-outputdef", msg)
+                raise ValueError(msg)
             else:
                 filenames.append(filename)
 
         if not filenames:
             msg = "No valid output definition file found for argument: %s"
             msg %= (str(self._args.l3_output))
-            self.error.add_error("invalid-outputdef", msg)
-            self.error.raise_on_error()
+            raise ValueError(msg)
 
         return filenames
 

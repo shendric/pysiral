@@ -10,7 +10,6 @@ from pathlib import Path
 import cftime
 import numpy as np
 import parse
-from attrdict import AttrDict
 from dateutil import parser as dtparser
 from loguru import logger
 from netCDF4 import Dataset, date2num
@@ -393,7 +392,7 @@ class NCDataFile(object):
         self.verbose = False
 
     def set_options(self, **opt_dict):
-        self._options = AttrDict(**opt_dict)
+        self._options = opt_dict
 
     def set_processor_settings(self, proc_settings):
         self._proc_settings = proc_settings
@@ -655,8 +654,10 @@ class L1bDataNC(object):
     def _create_root_group(self, attdict, **global_attr_keyw):
         """
         Create the root group and add l1b metadata as global attributes
+
         :param attdict: A dictionary containing the global attributes
         :param global_attr_keyw:
+
         :return:
         """
         self._convert_datetime_attributes(attdict)
