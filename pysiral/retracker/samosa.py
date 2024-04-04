@@ -17,7 +17,7 @@ import numpy.typing as npt
 import xarray as xr
 from loguru import logger
 
-from pysiral.l1data import L1bdataNCFile
+from pysiral.l1 import L1bdataNCFile
 
 try:
     from samosa.help_functions import calc_sigma0, func_wind_speed

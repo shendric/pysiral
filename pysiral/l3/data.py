@@ -18,7 +18,7 @@ from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT, ORCondition
 from pysiral.core.output import Level3Output, OutputHandlerBase
 from pysiral.l2 import L2iNCFileImport
-from pysiral.mask import L3Mask
+from pysiral.l2.alg.mask import L3Mask
 from pysiral.l2.alg.sit import frb2sit_errprop
 
 

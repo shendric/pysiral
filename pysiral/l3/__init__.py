@@ -4,28 +4,13 @@ Created on Fri Jul 24 14:04:27 2015
 
 @author: Stefan
 """
-import itertools
-import re
-import sys
-import uuid
-from collections import OrderedDict
-from datetime import date, datetime
-from pathlib import Path
-
 import numpy as np
 from loguru import logger
-from scipy import stats
-from scipy.ndimage import maximum_filter
-from xarray import open_dataset
-
-from pysiral import __version__, get_cls, psrlcfg
-from pysiral.core.config import get_yaml_as_dict
+from pysiral import get_cls
 from pysiral.core.errorhandler import ErrorStatus
-from pysiral.core.flags import SURFACE_TYPE_DICT, ORCondition
-from pysiral.core.output import Level3Output, OutputHandlerBase
-from pysiral.l2data import L2iNCFileImport
-from pysiral.mask import L3Mask
-from pysiral.sit import frb2sit_errprop
+from pysiral.core.output import Level3Output
+from pysiral.l2 import L2iNCFileImport
+from pysiral.l3.data import L3DataGrid, L2iDataStack
 
 # %% Level 3 Processor
 

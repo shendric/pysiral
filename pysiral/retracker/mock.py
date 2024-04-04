@@ -6,7 +6,7 @@ This submodule contains classes that mock retracker functionality.
 
 from loguru import logger
 
-from pysiral.l2.procsteps import Level2ProcessorStep
+from pysiral.l2 import Level2ProcessorStep
 
 
 class SGDRMultipleElevations(Level2ProcessorStep):

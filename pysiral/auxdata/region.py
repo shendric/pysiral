@@ -41,8 +41,8 @@ from pyproj import CRS
 from xarray import open_dataset
 
 from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
-from pysiral.grid import GridTrajectoryExtract
-from pysiral.l2data import Level2Data
+from pysiral.core.grid import GridTrajectoryExtract
+from pysiral.l2 import Level2Data
 
 
 class NSIDCRegionMask(AuxdataBaseClass):

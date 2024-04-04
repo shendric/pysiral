@@ -15,9 +15,8 @@ from pysiral import psrlcfg
 from pysiral.core.config import get_yaml_as_dict
 from pysiral.core.datahandler import DefaultAuxdataClassHandler
 from pysiral.core.output import DefaultLevel2OutputHandler, Level2Output
-from pysiral.l1data import L1bdataNCFile
-from pysiral.l2data import Level2Data
-from pysiral.l2.procsteps import Level2ProcessorStepOrder
+from pysiral.l1 import L1bdataNCFile
+from pysiral.l2 import Level2Data, Level2ProcessorStepOrder
 
 __all__ = ["Level2Processor", "Level2ProductDefinition", "procsteps"]
 

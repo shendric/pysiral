@@ -13,7 +13,7 @@ with contextlib.suppress(ImportError):
     import cartopy.feature as cfeature
     import matplotlib.pyplot as plt
 
-from pysiral.l1data import Level1bData
+from pysiral.l1 import Level1bData
 
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"

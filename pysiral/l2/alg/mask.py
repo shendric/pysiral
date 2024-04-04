@@ -24,9 +24,8 @@ from pysiral import psrlcfg
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT
 from pysiral.core.iotools import ReadNC
-from pysiral.grid import GridDefinition, GridTrajectoryExtract
-from pysiral.l1data import Level1bData
-from pysiral.l1.procitems import L1PProcItem
+from pysiral.core.grid import GridDefinition, GridTrajectoryExtract
+from pysiral.l1 import Level1bData, L1PProcItem
 
 
 def MaskSourceFile(mask_name, mask_cfg):
@@ -316,7 +315,7 @@ class MaskW99Valid(MaskSourceBase):
     def mask_filepath(self):
         return Path(self.mask_dir) / self.cfg.filename
 
-
+# TODO: Move this out of the Level-2 algorithm module
 class L3Mask(object):
     """ Container for Level-3 mask compliant netCDF files
     (see output of pysiral.mask.MaskSourceBase.export_l3_mask) """

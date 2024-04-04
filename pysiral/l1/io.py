@@ -118,7 +118,7 @@ class SourceDataLoader(object):
         check_class_compliance(
             cls,
             "get_l1",
-            "typing.Optional[pysiral.l1data.Level1bData]"
+            "typing.Optional[pysiral.l1.data.Level1bData]"
         )
 
         # Input checks passed -> register class for source data sets

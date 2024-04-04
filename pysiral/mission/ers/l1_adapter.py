@@ -16,8 +16,7 @@ from pysiral import psrlcfg
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT, ORCondition
 from pysiral.mission.ers.sgdrfile import ERSSGDR
-from pysiral.l1 import SourceDataLoader
-from pysiral.l1data import Level1bData
+from pysiral.l1 import SourceDataLoader, Level1bData
 
 
 class ERSReaperSGDR(
