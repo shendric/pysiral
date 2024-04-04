@@ -23,15 +23,17 @@ from pysiral.core.clocks import debug_timer
 from pysiral.core.helper import ProgressIndicator, get_first_array_index, get_last_array_index, rle
 from pysiral.core.output import L1bDataNC
 from pysiral.l1.data import L1bMetaData, Level1bData
-from pysiral.l1.alg import L1PProcItemDef
-from pysiral.l1._io import SourceDataLoader, SourceFileDiscovery
-from pysiral.l1._cfg_data_model import L1pProcessorConfig, PolarOceanSegmentsConfig
+from pysiral.l1.alg import L1PProcItem, L1PProcItemDef
+from pysiral.l1.io import SourceDataLoader, SourceFileDiscovery
+from pysiral.l1.cfg import L1pProcessorConfig, PolarOceanSegmentsConfig
+
 
 from pysiral.l1.debug import l1p_debug_map
 
 __all__ = [
     "Level1POutputHandler", "Level1PreProcessor", "L1pProcessorConfig",
-    "Level1bData", "L1bMetaData"
+    "Level1bData", "L1bMetaData", "L1PProcItem", "SourceDataLoader",
+    "SourceFileDiscovery"
 ]
 
 
