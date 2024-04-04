@@ -11,7 +11,7 @@ from loguru import logger
 from parse import parse
 
 from pysiral.core.clocks import debug_timer
-from pysiral.l1preproc import SourceFileDiscovery
+from pysiral.l1 import SourceFileDiscovery
 
 
 class L2SeaIceFileDiscovery(

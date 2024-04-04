@@ -10,7 +10,7 @@ from loguru import logger
 from pydantic import BaseModel, Field
 from dateperiods import DatePeriod
 
-from pysiral.l1preproc import SourceFileDiscovery
+from pysiral.l1 import SourceFileDiscovery
 
 
 class CS2ICEFileDiscoveryConfig(BaseModel):

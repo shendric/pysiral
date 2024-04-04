@@ -13,7 +13,7 @@ from loguru import logger
 
 from pysiral import psrlcfg
 from pysiral.core.output import L1bDataNC
-from pysiral.l1data import Level1bData
+from pysiral.l1.l1data import Level1bData
 
 
 class SourceFileDiscovery(object):

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List
 
 from dateperiods import DatePeriod
-from pysiral.l1preproc import SourceFileDiscovery
+from pysiral.l1 import SourceFileDiscovery
 
 
 class EnvisatSGDRNC(

@@ -11,11 +11,10 @@ from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core.config import DefaultCommandLineArguments
+from pysiral.core.cli import DefaultCommandLineArguments
 from pysiral.core.datahandler import L2iDataHandler
 from pysiral.core.errorhandler import ErrorStatus
-from pysiral.l2preproc import (Level2PreProcessor,
-                               Level2PreProcProductDefinition)
+from pysiral.l2preproc import Level2PreProcessor, Level2PreProcProductDefinition
 
 
 def pysiral_l2preproc():

@@ -33,7 +33,7 @@ class ClassConfig(BaseModel):
 
 
 class L1PProcPolarOceanConfig(BaseModel):
-    target_hemisphere: List[Literal["north", "south"]]
+    target_hemisphere: List[Literal["nh", "sh"]]
     polar_latitude_threshold: float
     input_file_is_single_hemisphere: bool
     allow_nonocean_segment_nrecords: PositiveInt

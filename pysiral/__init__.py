@@ -20,12 +20,12 @@ from dateutil.relativedelta import relativedelta
 
 from _package_config import PysiralPackageConfiguration
 
-__all__ = ["auxdata", "cryosat2", "envisat", "ers", "sentinel3",
-           "filter", "frb", "grid", "_package_config", "core",
-           "l1data", "l1preproc", "l2data", "l2preproc", "l2proc", "l3proc",
-           "mask", "retracker",
-           "sit", "surface", "waveform", "psrlcfg", "import_submodules", "get_cls",
-           "set_psrl_cpu_count", "InterceptHandler", "__version__"]
+
+__all__ = ["auxdata", "core", "l1", "l2", "l3",
+           "mission", "retracker", "waveform",
+           "psrlcfg", "import_submodules", "get_cls",
+           "set_psrl_cpu_count", "InterceptHandler", "__version__"
+           ]
 
 
 warnings.filterwarnings("ignore")

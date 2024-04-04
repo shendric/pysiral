@@ -16,7 +16,7 @@ from pysiral import psrlcfg
 from pysiral.core.cli import DefaultCommandLineArguments
 from pysiral.core.datahandler import L2iDataHandler
 from pysiral.grid import GridDefinition
-from pysiral.l3proc import Level3OutputHandler, Level3Processor, Level3ProductDefinition
+from pysiral.l3 import Level3OutputHandler, Level3Processor, Level3ProductDefinition
 
 
 def pysiral_l3proc():

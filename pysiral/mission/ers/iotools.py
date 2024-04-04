@@ -12,7 +12,7 @@ from dateperiods import DatePeriod
 from dateutil import parser
 from parse import compile
 
-from pysiral.l1preproc import SourceFileDiscovery
+from pysiral.l1 import SourceFileDiscovery
 
 
 class ERSCycleBasedSGDR(

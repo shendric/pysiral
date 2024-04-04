@@ -36,8 +36,7 @@ Important Note:
 
 import numpy as np
 import scipy.ndimage as ndimage
-from xarray import open_dataset
-
+from xarray import load_dataset
 from pysiral.auxdata import AuxdataBaseClass
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
@@ -59,7 +58,7 @@ class DTUMDTGrid(AuxdataBaseClass):
         super(DTUMDTGrid, self).__init__(*args, **kwargs)
 
         # Read as standard netcdf
-        dtu_grid = open_dataset(self.cfg.filename)
+        dtu_grid = load_dataset(self.cfg.filename)
 
         # Cut to ROI regions (latitude only)
         # -> no need for world mdt

@@ -15,8 +15,8 @@ from typing import Optional
 from pysiral import psrlcfg
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT, ORCondition
-from pysiral.ers.sgdrfile import ERSSGDR
-from pysiral.l1preproc import SourceDataLoader
+from pysiral.mission.ers.sgdrfile import ERSSGDR
+from pysiral.l1 import SourceDataLoader
 from pysiral.l1data import Level1bData
 
 

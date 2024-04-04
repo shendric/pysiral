@@ -50,11 +50,11 @@ are currently implemented:
 
 """
 
-from typing import Any, Dict, TypeVar, Union
+from typing import Any, Dict, TypeVar
 from schema import And, Schema
 
 from pysiral import get_cls
-from pysiral.l1data import Level1bData
+from pysiral.l1.l1data import Level1bData
 
 
 class L1PProcItem(object):

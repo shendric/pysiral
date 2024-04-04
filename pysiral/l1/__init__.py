@@ -22,12 +22,12 @@ from pysiral.core.dataset_ids import SourceDataID
 from pysiral.core.clocks import debug_timer
 from pysiral.core.helper import ProgressIndicator, get_first_array_index, get_last_array_index, rle
 from pysiral.core.output import L1bDataNC
-from pysiral.l1data import L1bMetaData, Level1bData
-from pysiral.l1preproc.procitems import L1PProcItemDef
-from pysiral.l1preproc._io import SourceDataLoader, SourceFileDiscovery
-from pysiral.l1preproc._cfg_data_model import L1pProcessorConfig, PolarOceanSegmentsConfig
+from pysiral.l1.l1data import L1bMetaData, Level1bData
+from pysiral.l1.procitems import L1PProcItemDef
+from pysiral.l1._io import SourceDataLoader, SourceFileDiscovery
+from pysiral.l1._cfg_data_model import L1pProcessorConfig, PolarOceanSegmentsConfig
 
-from pysiral.l1preproc.debug import l1p_debug_map
+from pysiral.l1.debug import l1p_debug_map
 
 
 class Level1POutputHandler(object):

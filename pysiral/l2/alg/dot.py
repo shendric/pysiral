@@ -22,7 +22,7 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 import numpy as np
 
-from pysiral.l2proc.procsteps import Level2ProcessorStep
+from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 class DynamicOceanTopography(Level2ProcessorStep):

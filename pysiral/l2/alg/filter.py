@@ -19,7 +19,7 @@ from scipy.interpolate import UnivariateSpline, interp1d
 from pysiral.core.flags import ANDCondition, FlagContainer, ORCondition
 from pysiral.l1data import Level1bData
 from pysiral.l2data import Level2Data
-from pysiral.l2proc.procsteps import Level2ProcessorStep
+from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 class L1bEnvisatBackscatterDriftCorrection(Level2ProcessorStep):

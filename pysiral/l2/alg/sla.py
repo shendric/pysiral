@@ -29,7 +29,7 @@ from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 from pysiral.core.flags import SurfaceType
 from pysiral.filter import fill_nan, idl_smooth
 from pysiral.l2data import L2DataArray
-from pysiral.l2proc.procsteps import Level2ProcessorStep
+from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 def marine_segment_filter(l2, minimum_lead_number, footprint_size, use_ocean_wfm):

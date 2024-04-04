@@ -28,8 +28,8 @@ class DataVersion(Version):
     (1.0 -> v1p0 -> 1.0)
     """
 
-    def __init__(self, version_str) -> None:
-        version_str = version_str.replace("v", "")
+    def __init__(self, version_str: str) -> None:
+        version_str = str(version_str).replace("v", "")
         version_str = version_str.replace("p", ".")
         super(DataVersion, self).__init__(version_str)
 

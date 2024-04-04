@@ -26,7 +26,7 @@ from pysiral.core.flags import SURFACE_TYPE_DICT
 from pysiral.core.iotools import ReadNC
 from pysiral.grid import GridDefinition, GridTrajectoryExtract
 from pysiral.l1data import Level1bData
-from pysiral.l1preproc.procitems import L1PProcItem
+from pysiral.l1.procitems import L1PProcItem
 
 
 def MaskSourceFile(mask_name, mask_cfg):

@@ -11,7 +11,7 @@ from pathlib import Path
 from dateperiods import DatePeriod
 from pysiral import psrlcfg, set_psrl_cpu_count
 from pysiral.core.cli import DefaultCommandLineArguments
-from pysiral.l1preproc import Level1PreProcessor
+from pysiral.l1 import Level1PreProcessor
 
 
 def pysiral_l1preproc(
