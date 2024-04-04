@@ -1,5 +1,28 @@
 # History of changes
 
+## [0.12] Unrelased
+
+### Added
+- Added strict data set id for source data
+- Added data version class
+- pysiral debug mode (environment variable `PYSIRAL_DEBUG_MODE=1`)
+
+
+### Changed
+- major refactoring of entire code structure
+- major refactoring of pysiral package configuration with pydantic
+- file format of `local_machine_def.yaml`
+- file format of Level-1 pre-processor definition files
+
+### Fixed
+- pysiral breaking for python versions >= 3.9 due to attrdict` deprectation
+
+### Deprecated
+
+### Removed
+- Removed `attrdict` as a pysiral dependancy
+- Removed all instances of `DefaultLoggingClass`
+
 ## [0.11] 2024-02-29
 
 ### Added
