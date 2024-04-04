@@ -10,8 +10,6 @@ from typing import List, Union
 
 import numpy as np
 
-from pysiral.core.class_template import DefaultLoggingClass
-
 # The standard ESA surface type flag in L1B data
 ESA_SURFACE_TYPE_DICT = {
     "ocean": 0,
@@ -45,7 +43,7 @@ WAVEFORM_CLASSIFICATION_BIT_DICT = {
     "unclassified": 15}       # initial flag, respectively unidentified range bin(s)
 
 
-class SurfaceType(DefaultLoggingClass):
+class SurfaceType(object):
     """
     Container for surface type information.
 
@@ -61,11 +59,6 @@ class SurfaceType(DefaultLoggingClass):
     """
 
     def __init__(self):
-        """
-
-        """
-        super(SurfaceType, self).__init__(self.__class__.__name__)
-
         self.surface_type_dict = dict(**SURFACE_TYPE_DICT)
         self._surface_type_flags = []
         self._surface_type = None

@@ -5,28 +5,24 @@ Created on Fri Jul 24 14:04:27 2015
 @author: Stefan
 """
 
-import sys
-from collections import OrderedDict, deque
-from datetime import datetime
+from collections import deque
 from pathlib import Path
 
 from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core.class_template import DefaultLoggingClass
 from pysiral.core.config import get_yaml_as_dict
 from pysiral.core.datahandler import DefaultAuxdataClassHandler
-from pysiral.core.errorhandler import PYSIRAL_ERROR_CODES, ErrorStatus
 from pysiral.core.output import DefaultLevel2OutputHandler, Level2Output
 from pysiral.l1data import L1bdataNCFile
 from pysiral.l2data import Level2Data
 from pysiral.l2proc.procsteps import Level2ProcessorStepOrder
 
-__all__ = ["Level2Processor", "Level2ProductDefinition", "L2ProcessorReport", "procsteps"]
+__all__ = ["Level2Processor", "Level2ProductDefinition", "procsteps"]
 
 
-class Level2Processor(DefaultLoggingClass):
+class Level2Processor(object):
 
     def __init__(self, product_def, auxclass_handler=None):
         """
@@ -34,7 +30,6 @@ class Level2Processor(DefaultLoggingClass):
         :param product_def:
         :param auxclass_handler:
         """
-        super(Level2Processor, self).__init__(self.__class__.__name__)
 
         # Level-2 Algorithm Definition
         # NOTE: This object should ony be called through the property self.l2def
@@ -71,7 +66,7 @@ class Level2Processor(DefaultLoggingClass):
         self._initialized = False
 
         # Processor summary report
-        self.report = L2ProcessorReport()
+        # self.report = L2ProcessorReport()
 
         # Initialize the class
         self.initialize_processor()
@@ -86,11 +81,6 @@ class Level2Processor(DefaultLoggingClass):
     def run(self):
         """ Run the processor """
         self._l2_processing_of_orbit_files()
-        self._clean_up()
-
-    def _clean_up(self):
-        """ All procedures that need to be reset after a run """
-        self.report.clean_up()
 
     def initialize_processor(self):
         """ Read required auxiliary data sets """
@@ -155,10 +145,10 @@ class Level2Processor(DefaultLoggingClass):
         logger.info("Init Processor Steps")
         cfg = self.l2def.procsteps
         self.procsteps = Level2ProcessorStepOrder(cfg)
-        is_valid = self.procsteps.validate()
-        if not is_valid:
-            raise IOError()
-        logger.info("Processor steps initialized and validated")
+        if self.procsteps.validate():
+            logger.info("Processor steps initialized and validated")
+        else:
+            raise ValueError("Invalid Level-2 Processor item order")
 
     def execute_l2_processor_steps(self, l1b, l2):
         """
@@ -182,13 +172,6 @@ class Level2Processor(DefaultLoggingClass):
         for output_handler in self._output_handler:
             msg = f"Level-2 Output [{str(output_handler.id)}]: {output_handler.basedir}"
             logger.info(msg)
-
-    def _initialize_summary_report(self):
-        """
-        Only add report parameter that are not time range specific
-        (e.g. the processor l2 settings)
-        """
-        self.report.l2_settings_file = self.l2def.l2_settings_file
 
     def _l2_processing_of_orbit_files(self):
         """ Orbit-wise level2 processing """
@@ -265,8 +248,6 @@ class Level2Processor(DefaultLoggingClass):
     def _discard_l1b_procedure(self, error_codes, l1b_file):
         """ Log and report discarded l1b orbit segment """
         logger.info("- skip file")
-        for error_code in error_codes:
-            self.report.add_orbit_discarded_event(error_code, l1b_file)
 
     def get_auxiliary_data(self, l1p: 'L1bdataNCFile', l2: 'Level2Data'):
         """ Transfer along-track data from all registered auxdata handler to the l2 data object """
@@ -345,22 +326,21 @@ class Level2Processor(DefaultLoggingClass):
                 if auxdata_type not in auxdata_dict:
                     auxdata_dict[auxdata_type] = handler.longname
                 else:
-                    auxdata_dict[auxdata_type] = auxdata_dict[auxdata_type]+", "+handler.longname
+                    auxdata_dict[auxdata_type] = (
+                        f"{auxdata_dict[auxdata_type]}, {handler.longname}"
+                    )
             except AttributeError:
                 auxdata_dict[auxdata_type] = "unspecified"
         return auxdata_dict
 
 
-class Level2ProductDefinition(DefaultLoggingClass):
+class Level2ProductDefinition(object):
     """ Main configuration class for the Level-2 Processor """
 
     def __init__(self,
                  run_tag: str,
                  l2_settings_file: str,
                  force_l2def_record_type: bool = False) -> None:
-
-        super(Level2ProductDefinition, self).__init__(self.__class__.__name__)
-        self.error = ErrorStatus(self.__class__.__name__)
 
         # Mandatory parameter
         self._l2_settings_file = l2_settings_file
@@ -383,8 +363,9 @@ class Level2ProductDefinition(DefaultLoggingClass):
         try:
             self._l2def = get_yaml_as_dict(Path(self._l2_settings_file))
         except Exception as ex:
-            self.error.add_error("invalid-l2-settings", str(ex))
-            self.error.raise_on_error()
+            raise IOError(
+                f"Issue reading l2_settings_file: {self._l2_settings_file}"
+            ) from ex
 
     def _set_run_tag(self, run_tag):
         """
@@ -457,105 +438,102 @@ class Level2ProductDefinition(DefaultLoggingClass):
         return self._output_handler
 
 
-class L2ProcessorReport(DefaultLoggingClass):
-
-    def __init__(self):
-
-        super(L2ProcessorReport, self).__init__(self.__class__.__name__)
-
-        self.n_files = 0
-        self.data_period = None
-        self.l2_settings_file = "none"
-        self.l1b_repository = "none"
-
-        # Counter for error codes
-        # XXX: This is a first quick implementation of error codes
-        #      (see pysiral.error_handler modules for more info) and
-        #      the dev should make sure to use the correct names. A
-        #      more formalized way of reporting errors will be added
-        #      in future updates
-        self._init_error_counters()
-
-    def add_orbit_discarded_event(self, error_code, l1b_file):
-        """ Add the l1b file to the list of files with a certain error code """
-
-        # Only except defined error codes
-        try:
-            self.error_counter[error_code].append(l1b_file)
-        except KeyError:
-            logger.warning(f"Unknown error code ({error_code}), ignoring")
-
-    def write_to_file(self, output_id, directory):
-        """ Write a summary file to the defined export directory """
-
-        # Create a simple filename
-        filename = Path(directory) / "pysiral-l2proc-summary.txt"
-        logger.info(f"Exporting summary report: {filename}")
-
-        lfmt = "  %-16s : %s\n"
-        current_time = str(datetime.now()).split(".")[0]
-        with open(str(filename), "w") as fhandle:
-
-            # Write infos on settings, host, os, ....
-            fhandle.write("# pysiral Level2Processor Summary\n\n")
-            fhandle.write(lfmt % ("created", current_time))
-
-            # Brief statistics of files, errors, warnings
-            fhandle.write("\n# Processor Statistics\n\n")
-            fhandle.write(lfmt % ("l1b files", str(self.n_files)))
-            fhandle.write(lfmt % ("errors", str(self.n_discarded_files)))
-            fhandle.write(lfmt % ("warnings", str(self.n_warnings)))
-
-            fhandle.write("\n# Processor & Local Machine Settings\n\n")
-            fhandle.write(lfmt % ("pysiral version", psrlcfg.version))
-            fhandle.write(lfmt % ("python version", sys.version))
-            fhandle.write(lfmt % ("hostname", psrlcfg.hostname))
-
-            # More info on this specific run
-            fhandle.write(lfmt % ("data period", self.data_period_str))
-            fhandle.write(lfmt % ("Level-2 settings", self.l2_settings_file))
-            fhandle.write(lfmt % ("l1b repository", self.l1b_repository))
-
-            # List discarded files and reason (error code & description)
-            fhandle.write("\n# Detailed Error Breakdown\n\n")
-            msg = "  No %s output generated for %g l1b files due " + \
-                  "to following errors:\n"
-            fhandle.write(msg % (output_id, self.n_discarded_files))
-
-            for error_code in PYSIRAL_ERROR_CODES.keys():
-                n_discarded_files = len(self.error_counter[error_code])
-                if n_discarded_files == 0:
-                    continue
-                error_description = PYSIRAL_ERROR_CODES[error_code]
-                msg = "\n  %g file(s): [error_code:%s] %s\n" % (
-                    n_discarded_files, error_code, error_description)
-                fhandle.write(msg)
-                for discarded_file in self.error_counter[error_code]:
-                    fn = Path(discarded_file).name
-                    fhandle.write("  * %s\n" % fn)
-
-    def clean_up(self):
-        """ Remove all non-persistent parameter """
-        self.data_period = None
-        self.l1b_repository = "none"
-        self._init_error_counters()
-
-    def _init_error_counters(self):
-        self.error_counter = OrderedDict([])
-        for error_code in PYSIRAL_ERROR_CODES.keys():
-            self.error_counter[error_code] = []
-
-    @property
-    def data_period_str(self):
-        try:
-            return self.time_range.label
-        except AttributeError:
-            return "invalid/mission data period"
-
-    @property
-    def n_discarded_files(self):
-        return sum(len(self.error_counter[error_code]) for error_code in self.error_counter.keys())
-
-    @property
-    def n_warnings(self):
-        return 0
+# class L2ProcessorReport(object):
+#
+#     def __init__(self):
+#         self.n_files = 0
+#         self.data_period = None
+#         self.l2_settings_file = "none"
+#         self.l1b_repository = "none"
+#
+#         # Counter for error codes
+#         # XXX: This is a first quick implementation of error codes
+#         #      (see pysiral.error_handler modules for more info) and
+#         #      the dev should make sure to use the correct names. A
+#         #      more formalized way of reporting errors will be added
+#         #      in future updates
+#         self._init_error_counters()
+#
+#     def add_orbit_discarded_event(self, error_code, l1b_file):
+#         """ Add the l1b file to the list of files with a certain error code """
+#
+#         # Only except defined error codes
+#         try:
+#             self.error_counter[error_code].append(l1b_file)
+#         except KeyError:
+#             logger.warning(f"Unknown error code ({error_code}), ignoring")
+#
+#     def write_to_file(self, output_id, directory):
+#         """ Write a summary file to the defined export directory """
+#
+#         # Create a simple filename
+#         filename = Path(directory) / "pysiral-l2proc-summary.txt"
+#         logger.info(f"Exporting summary report: {filename}")
+#
+#         lfmt = "  %-16s : %s\n"
+#         current_time = str(datetime.now()).split(".")[0]
+#         with open(str(filename), "w") as fhandle:
+#
+#             # Write infos on settings, host, os, ....
+#             fhandle.write("# pysiral Level2Processor Summary\n\n")
+#             fhandle.write(lfmt % ("created", current_time))
+#
+#             # Brief statistics of files, errors, warnings
+#             fhandle.write("\n# Processor Statistics\n\n")
+#             fhandle.write(lfmt % ("l1b files", str(self.n_files)))
+#             fhandle.write(lfmt % ("errors", str(self.n_discarded_files)))
+#             fhandle.write(lfmt % ("warnings", str(self.n_warnings)))
+#
+#             fhandle.write("\n# Processor & Local Machine Settings\n\n")
+#             fhandle.write(lfmt % ("pysiral version", psrlcfg.version))
+#             fhandle.write(lfmt % ("python version", sys.version))
+#             fhandle.write(lfmt % ("hostname", psrlcfg.hostname))
+#
+#             # More info on this specific run
+#             fhandle.write(lfmt % ("data period", self.data_period_str))
+#             fhandle.write(lfmt % ("Level-2 settings", self.l2_settings_file))
+#             fhandle.write(lfmt % ("l1b repository", self.l1b_repository))
+#
+#             # List discarded files and reason (error code & description)
+#             fhandle.write("\n# Detailed Error Breakdown\n\n")
+#             msg = "  No %s output generated for %g l1b files due " + \
+#                   "to following errors:\n"
+#             fhandle.write(msg % (output_id, self.n_discarded_files))
+#
+#             for error_code in PYSIRAL_ERROR_CODES.keys():
+#                 n_discarded_files = len(self.error_counter[error_code])
+#                 if n_discarded_files == 0:
+#                     continue
+#                 error_description = PYSIRAL_ERROR_CODES[error_code]
+#                 msg = "\n  %g file(s): [error_code:%s] %s\n" % (
+#                     n_discarded_files, error_code, error_description)
+#                 fhandle.write(msg)
+#                 for discarded_file in self.error_counter[error_code]:
+#                     fn = Path(discarded_file).name
+#                     fhandle.write("  * %s\n" % fn)
+#
+#     def clean_up(self):
+#         """ Remove all non-persistent parameter """
+#         self.data_period = None
+#         self.l1b_repository = "none"
+#         self._init_error_counters()
+#
+#     def _init_error_counters(self):
+#         self.error_counter = OrderedDict([])
+#         for error_code in PYSIRAL_ERROR_CODES.keys():
+#             self.error_counter[error_code] = []
+#
+#     @property
+#     def data_period_str(self):
+#         try:
+#             return self.time_range.label
+#         except AttributeError:
+#             return "invalid/mission data period"
+#
+#     @property
+#     def n_discarded_files(self):
+#         return sum(len(self.error_counter[error_code]) for error_code in self.error_counter.keys())
+#
+#     @property
+#     def n_warnings(self):
+#         return 0

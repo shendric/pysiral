@@ -21,7 +21,6 @@ from netCDF4 import Dataset
 from pyresample import geometry, image, kd_tree
 
 from pysiral import psrlcfg
-from pysiral.core.class_template import DefaultLoggingClass
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT
 from pysiral.core.iotools import ReadNC
@@ -52,12 +51,11 @@ def MaskSourceFile(mask_name, mask_cfg):
         error.raise_on_error()
 
 
-class MaskSourceBase(DefaultLoggingClass):
+class MaskSourceBase(object):
     """ Parent class for various source masks. Main functionality is to
     create gridded mask netCDF for level-3 grid definitions """
 
     def __init__(self, mask_dir, mask_name, cfg):
-        super(MaskSourceBase, self).__init__(self.__class__.__name__)
         self._cfg = cfg
         self._mask_dir = mask_dir
         self._mask_name = mask_name
@@ -92,7 +90,7 @@ class MaskSourceBase(DefaultLoggingClass):
         # Get the area definition for the grid
         if not isinstance(griddef, GridDefinition):
             msg = "griddef needs to be of type pysiral.grid.GridDefinition"
-            self.error.add_error("value-error", msg)
+            raise ValueError(msg)
 
         # Resample the mask
         if self.cfg.pyresample_method == "ImageContainerNearest":
@@ -113,9 +111,7 @@ class MaskSourceBase(DefaultLoggingClass):
         else:
             msg = f"Unrecognized opt pyresample_method: {str(self.cfg.pyresample_method)} need to be (" \
                   f"ImageContainerNearest, resample_gauss) "
-
-            self.error.add_error("invalid-pr-method", msg)
-            self.error.add_error()
+            raise ValueError(msg)
 
         # pyresample may use masked arrays -> set nan's to missing data
         with contextlib.suppress(AttributeError):
@@ -151,8 +147,7 @@ class MaskSourceBase(DefaultLoggingClass):
         except RuntimeError:
             rootgrp = None
             msg = f"Unable to create netCDF file: {nc_filepath}"
-            self.error.add_error("nc-runtime", msg)
-            self.error.raise_on_error()
+            raise IOError(msg)
 
         # Write Global Attributes
         rootgrp.setncattr("title", "Mask file for pysiral Level3 Processor")
@@ -322,17 +317,20 @@ class MaskW99Valid(MaskSourceBase):
         return Path(self.mask_dir) / self.cfg.filename
 
 
-class L3Mask(DefaultLoggingClass):
+class L3Mask(object):
     """ Container for Level-3 mask compliant netCDF files
     (see output of pysiral.mask.MaskSourceBase.export_l3_mask) """
 
     def __init__(self, mask_name, grid_id, flipud=False):
-        """ Mask container for Level3Processor. Arguments are the
+        """
+        Mask container for Level3Processor. Arguments are the
         name (id) of the mask (e.g. warren99_is_valid) and the id of the
-        grid (e.g. nh25kmEASE2) """
+        grid (e.g. nh25kmEASE2)
 
-        super(L3Mask, self).__init__(self.__class__.__name__)
-        self.error = ErrorStatus()
+        :param mask_name:
+        :param grid_id:
+        :param flipud:
+        """
 
         # Save input
         self._mask_name = mask_name
@@ -384,18 +382,16 @@ class L3Mask(DefaultLoggingClass):
         mask_dir = psrlcfg.local_machine.auxdata_repository.mask
         try:
             mask_dir = mask_dir[self.mask_name]
-        except KeyError:
+        except KeyError as e:
             msg = "cannot find mask entry [%s] in local_machine_def.yaml"
-            self.error.add_error("lmd-error", msg % self.mask_name)
-            return None
+            raise ValueError(msg) from e
 
         mask_filename = f"{self.mask_name}_{self.grid_id}.nc"
         filepath = Path(mask_dir) / mask_filename
 
         if not filepath.is_file():
             msg = f"cannot find mask file: {filepath}"
-            self.error.add_error("io-error", msg)
-            return None
+            raise ValueError(msg)
 
         return filepath
 

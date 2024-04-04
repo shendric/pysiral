@@ -101,7 +101,6 @@ from netCDF4 import Dataset, date2num
 from scipy.spatial.transform import Rotation
 from datetime import datetime
 
-from pysiral.core.class_template import DefaultLoggingClass
 from pysiral.core.config import RadarModes
 from pysiral.core.flags import SurfaceType
 from pysiral.core.output import NCDateNumDef
@@ -109,16 +108,13 @@ from pysiral.core.output import NCDateNumDef
 DATE2NUM_UNIT = "seconds since 1970-01-01 00:00:00.0"
 
 
-class Level1bData(DefaultLoggingClass):
+class Level1bData(object):
     """
     Unified L1b Data Class
     """
     data_groups = ["time_orbit", "correction", "classifier", "waveform", "surface_type"]
 
     def __init__(self):
-
-        super(Level1bData, self).__init__(self.__class__.__name__)
-
         self.info = L1bMetaData()
         self.waveform = L1bWaveforms(self.info)
         self.time_orbit = L1bTimeOrbit(self.info)

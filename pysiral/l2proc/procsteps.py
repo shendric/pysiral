@@ -12,12 +12,11 @@ from loguru import logger
 from scipy.interpolate import interp1d
 
 from pysiral import get_cls
-from pysiral.core.class_template import DefaultLoggingClass
 from pysiral.l1data import Level1bData
 from pysiral.l2data import Level2Data
 
 
-class Level2ProcessorStep(DefaultLoggingClass):
+class Level2ProcessorStep(object):
     """
     Parent class for any Level-2 processor step class, which may be distributed over the
     different pysiral modules.
@@ -31,8 +30,6 @@ class Level2ProcessorStep(DefaultLoggingClass):
         Init the
         :param cfg:
         """
-        super(Level2ProcessorStep, self).__init__(self.__class__.__name__)
-
         # -- Properties --
 
         # Class configuration
@@ -76,7 +73,7 @@ class Level2ProcessorStep(DefaultLoggingClass):
 
     def update_error_flag(self, l2, error_status):
         """
-        Add the error_flag of the the processing step to the
+        Add the error_flag of the processing step to the
         :param: l2: The Level-2 data container
         :param: error_status: An array with the shape of l2.records containing the error flag
             (False: nominal, True: error)
@@ -126,7 +123,7 @@ class Level2ProcessorStep(DefaultLoggingClass):
         )
 
 
-class Level2ProcessorStepOrder(DefaultLoggingClass):
+class Level2ProcessorStepOrder(object):
     """
     A container providing the ordered list of processing steps
     as initialized classes for each trajectory
@@ -137,7 +134,6 @@ class Level2ProcessorStepOrder(DefaultLoggingClass):
         Initialize this class
         :param cfg: the procsteps tag from the Level-2 processor definitions file
         """
-        super(Level2ProcessorStepOrder, self).__init__(self.__class__.__name__)
 
         # Properties
         self.cfg = cfg
@@ -165,13 +161,10 @@ class Level2ProcessorStepOrder(DefaultLoggingClass):
             # This object should not be None
             if obj is None:
                 msg = f'Invalid L2 processing step class: {full_module_name}.{procstep_def["pyclass"]}'
-                self.error.add_error("missing-class", msg)
-                self.error.raise_on_error()
+                raise NotImplementedError(msg)
 
             # Append the class
-            logger.info(
-                f'Added L2 processor step: {full_module_name}.{procstep_def["pyclass"]}'
-            )
+            logger.info(f'Added L2 processor step: {full_module_name}.{procstep_def["pyclass"]}')
             self._classes.append(obj)
 
     def get_algorithm_error_flag_bit(self, procstep_module):
