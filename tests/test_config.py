@@ -8,7 +8,6 @@ Testing the pysiral configuration management
 import unittest
 from pathlib import Path
 
-from attrdict import AttrDict
 from loguru import logger
 
 from pysiral import psrlcfg
@@ -21,9 +20,9 @@ class TestConfig(unittest.TestCase):
     def setUp(self):
         pass
 
-    def testMissionConfig(self):
-        self.assertIsInstance(psrlcfg.platforms.content, AttrDict)
-        self.assertIsInstance(psrlcfg.platforms.ids, list)
+    # def testMissionConfig(self):
+    #     self.assertIsInstance(psrlcfg.platforms.content, AttrDict)
+    #     self.assertIsInstance(psrlcfg.platforms.ids, list)
 
     def testConfigPath(self):
         self.assertTrue(Path(psrlcfg.package_config_path).is_dir())
@@ -52,11 +51,15 @@ class TestConfig(unittest.TestCase):
 
             # Get a list of all ids
             proc_defs = psrlcfg.get_processor_definition_ids(processor_level)
-            label = "procdef:{}".format(processor_level)
+            label = f"procdef:{processor_level}"
 
             # lists of ids must be a list and longer than 0
-            self.assertIsInstance(proc_defs, list, msg="Type is not list: {} [{}]".format(type(proc_defs), label))
-            self.assertGreater(len(proc_defs), 0, msg="No definitions found for {}".format(label))
+            self.assertIsInstance(
+                proc_defs,
+                list,
+                msg=f"Type is not list: {type(proc_defs)} [{label}]",
+            )
+            self.assertGreater(len(proc_defs), 0, msg=f"No definitions found for {label}")
 
             # Load all processor definitions (must return a valid AttrDict)
             for proc_def_id in proc_defs:

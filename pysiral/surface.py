@@ -10,7 +10,6 @@ from copy import deepcopy
 from typing import List, Tuple, Union
 
 import numpy as np
-from attrdict import AttrDict
 from loguru import logger
 
 from pysiral.core.config import RadarModes
@@ -26,9 +25,8 @@ class ClassifierContainer(object):
         self._parameters = {}
 
     def add_parameter(self, parameter: np.ndarray, parameter_name: str) -> None:
-        if self.n_parameters != 0:
-            if parameter.shape != self.shape:
-                raise ValueError(f"Invalid dimension: {parameter.shape} for {parameter_name} [{self.shape}]")
+        if self.n_parameters != 0 and parameter.shape != self.shape:
+            raise ValueError(f"Invalid dimension: {parameter.shape} for {parameter_name} [{self.shape}]")
         self._parameters[parameter_name] = parameter
 
     def get(self, parameter_name: str, raise_on_error: bool = False) -> Union[np.ndarray, None]:
@@ -60,7 +58,7 @@ class ClassifierContainer(object):
     def shape(self) -> Union[int, Tuple]:
         if self.n_parameters == 0:
             return ()
-        shape = list(set([p.shape for p in self._parameters.values()]))
+        shape = list({p.shape for p in self._parameters.values()})
         return shape[0]
 
 
@@ -150,79 +148,6 @@ class SurfaceTypeClassifier(object):
         return name in self._classes
 
 
-# class RickerTC2014(SurfaceTypeClassifier):
-#     """
-#     Surface Type classification algorithm from
-#
-#     Ricker, R., Hendricks, S., Helm, V., Skourup, H., and Davidson, M.:
-#     Sensitivity of CryoSat-2 Arctic sea-ice freeboard and thickness on
-#     radar-waveform interpretation,
-#     The Cryosphere, 8, 1607-1622, doi:10.5194/tc-8-1607-2014, 2014.
-#     """
-#
-#     def __init__(self):
-#         super(RickerTC2014, self).__init__()
-#         self._classes = ["unkown", "ocean", "lead", "sea_ice", "land"]
-#
-#     def _classify(self, options):
-#         self._classify_ocean(options)
-#         self._classify_leads(options)
-#         self._classify_sea_ice(options)
-#
-#     def _classify_ocean(self, options):
-#         opt = options.ocean
-#         parameter = self._classifier
-#         ocean = ANDCondition()
-#         # Mandatory radar mode flag
-#         ocean.add(self._is_radar_mode)
-#         # Peakiness Thresholds
-#         ocean.add(parameter.peakiness >= opt.peakiness_min)
-#         ocean.add(parameter.peakiness <= opt.peakiness_max)
-#         # Stack Standard Deviation
-#         ssd_threshold = opt.stack_standard_deviation_min
-#         ocean.add(parameter.stack_standard_deviation >= ssd_threshold)
-#         # Ice Concentration
-#         ocean.add(parameter.sic < opt.ice_concentration_min)
-#         # OCOG Width
-#         ocean.add(parameter.ocog_width >= opt.ocog_width_min)
-#         # Done, add flag
-#         self._surface_type.add_flag(ocean.flag, "ocean")
-#
-#     def _classify_leads(self, options):
-#         opt = options.lead
-#         parameter = self._classifier
-#         lead = ANDCondition()
-#         # Mandatory radar mode flag
-#         lead.add(self._is_radar_mode)
-#         # Stack (Beam) parameters
-#         lead.add(parameter.peakiness_l >= opt.peakiness_l_min)
-#         lead.add(parameter.peakiness_r >= opt.peakiness_r_min)
-#         lead.add(parameter.peakiness >= opt.peakiness_min)
-#         lead.add(parameter.stack_kurtosis >= opt.stack_kurtosis_min)
-#         ssd_threshold = opt.stack_standard_deviation_max
-#         lead.add(parameter.stack_standard_deviation < ssd_threshold)
-#         # Ice Concentration
-#         lead.add(parameter.sic > opt.ice_concentration_min)
-#         # Done, add flag
-#         self._surface_type.add_flag(lead.flag, "lead")
-#
-#     def _classify_sea_ice(self, options):
-#         opt = options.sea_ice
-#         parameter = self._classifier
-#         ice = ANDCondition()
-#         # Mandatory radar mode flag
-#         ice.add(self._is_radar_mode)
-#         # Stack (Beam) parameters
-#         ice.add(parameter.peakiness_r <= opt.peakiness_r_max)
-#         ice.add(parameter.peakiness_l <= opt.peakiness_l_max)
-#         ice.add(parameter.peakiness <= opt.peakiness_max)
-#         ice.add(parameter.stack_kurtosis < opt.stack_kurtosis_max)
-#         # Ice Concentration
-#         ice.add(parameter.sic > opt.ice_concentration_min)
-#         # Done, add flag
-#         self._surface_type.add_flag(ice.flag, "sea_ice")
-
-
 class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
     """
     new and unified surface type classifier for cryosat2 and envisat
@@ -250,8 +175,10 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
     def execute_procstep(self, l1b, l2):
         """
         The mandatory class for a Level2ProcessorStep.
+
         :param l1b:
         :param l2:
+
         :return:
         """
 
@@ -271,16 +198,13 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
                 continue
 
             # Classify ocean
-            opt = AttrDict(self.cfg.options[radar_mode]["ocean"])
-            self.classify_ocean(opt, is_radar_mode)
+            self.classify_ocean(self.cfg.options[radar_mode]["ocean"], is_radar_mode)
 
             # Classify leads
-            opt = AttrDict(self.cfg.options[radar_mode]["lead"])
-            self.classify_leads(opt, month_num, is_radar_mode)
+            self.classify_leads(self.cfg.options[radar_mode]["lead"], month_num, is_radar_mode)
 
             # Classify sea ice
-            opt = AttrDict(self.cfg.options[radar_mode]["sea_ice"])
-            self.classify_sea_ice(opt, month_num, is_radar_mode)
+            self.classify_sea_ice(self.cfg.options[radar_mode]["sea_ice"], month_num, is_radar_mode)
 
         # Step 3: Add the l1b land flag
         # This step is done at the end to exclude the land flag being overwritten
@@ -310,10 +234,10 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
         ocean.add(is_radar_mode)
 
         # Peakiness Thresholds
-        ocean.add(parameter.peakiness <= opt.peakiness_max)
+        ocean.add(parameter.peakiness <= opt["peakiness_max"])
 
         # Ice Concentration
-        ocean.add(parameter.sic < opt.ice_concentration_min)
+        ocean.add(parameter.sic < opt["ice_concentration_min"])
 
         # Done, add flag
         self.surface_type.add_flag(ocean.flag, "ocean")
@@ -408,9 +332,11 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
     def get_threshold_value(options, name, month_num):
         """
         A unified method to retrieve threshold values from lists (one per month) or a scalar
+
         :param options: configuration object
         :param name: (str) parameter name (must be attribute of) options
         :param month_num: (int) number of the month (1 - 12)
+
         :return: threshold value to use for specific month
         """
 
@@ -504,7 +430,9 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
             for radar_mode_opt in radar_mode_opts:
                 surface_type_flag = self._classify_surface_type(radar_mode_opt)
                 self.surface_type.add_flag(surface_type_flag.flag, surface_type)
-                logger.debug("- -> {}: {} waveforms".format(radar_mode_opt["radar_mode"], surface_type_flag.num))
+                logger.debug(
+                    f'- -> {radar_mode_opt["radar_mode"]}: {surface_type_flag.num} waveforms'
+                )
 
     def _classify_surface_type(self, opt_dict: dict) -> 'ANDCondition':
         """
@@ -555,11 +483,10 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
             # Update the expression if the threshold value is a monthly list. Example:
             # `{sigma0} <= [16.77, 15.56, 14.44, 14.00, nan, nan, nan, nan, nan, 20.05, 18.10, 16.76]`
             # -> `{sigma0} <= 16.76` for December (12th item of value list)
-            value_list = re.search(r"\[(.*?)]", expression)
-            if value_list:
-                values = value_list.group(0)[1:-1].split(",")
+            if value_list := re.search(r"\[(.*?)]", expression):
+                values = value_list[0][1:-1].split(",")
                 value = values[month_num-1]
-                expression = expression.replace(value_list.group(0), value)
+                expression = expression.replace(value_list[0], value)
 
             # Get the parameter from the classifier container
             parameter_name = self._get_expr_param(expression)
@@ -579,7 +506,7 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
         # The exclude option can be used as a conditions "is not this surface type"
         # For this to work the to target surface type needs to be classified before
         # this one (see order in option.surface_types)
-        if "exclude" in opt_dict.keys():
+        if "exclude" in opt_dict:
             exclude_surface_type_flag = self.surface_type.get_by_name(opt_dict["exclude"])
             surface_type_flag.add(np.logical_not(exclude_surface_type_flag.flag))
 
@@ -600,8 +527,7 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
                 parameter_names = [self._get_expr_param(expr) for expr in opt["conditions"]]
                 parameter_list.extend(parameter_names)
         parameter_list = [p for p in parameter_list if p is not None]
-        parameter_list = list(set(parameter_list))
-        return parameter_list
+        return list(set(parameter_list))
 
     @staticmethod
     def _get_expr_param(expression: str) -> Union[str, None]:
@@ -615,8 +541,7 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
         :param expression: The expression from the config file
         :return:
         """
-        parameter_name = re.search(r"{(.*?)}", expression).group(1)
-        return parameter_name
+        return re.search(r"{(.*?)}", expression)[1]
 
     @property
     def l2_input_vars(self) -> List[str]:

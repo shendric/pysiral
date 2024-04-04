@@ -7,13 +7,11 @@ Created on Mon Jul 06 17:57:33 2015
 
 import datetime
 import unittest
-from pathlib import Path
 
-from attrdict import AttrDict
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core.config import get_yaml_config
+from pysiral.core.config import get_yaml_as_dict
 
 logger.disable("pysiral")
 
@@ -27,8 +25,8 @@ class TestDefinitionfiles(unittest.TestCase):
         def_files = ["mission_def.yaml", "auxdata_def.yaml"]
         for def_file in def_files:
             filename = psrlcfg.config_path / def_file
-            content = get_yaml_config(filename)
-            self.assertIsInstance(content, AttrDict, msg=def_file)
+            content = get_yaml_as_dict(filename)
+            self.assertIsInstance(content, dict, msg=def_file)
 
     def testPlatformDefinitions(self):
         self.assertIsInstance(psrlcfg.platforms.ids, list)
@@ -52,10 +50,13 @@ class TestDefinitionfiles(unittest.TestCase):
         :return:
         """
         for category, id, item in psrlcfg.auxdef.items:
-            aux_id = "{}:{}".format(category, id)
+            aux_id = f"{category}:{id}"
             config_dict_keys = item.keys
             for required_key in ["options", "long_name", "pyclass", "local_repository"]:
-                self.assertTrue(required_key in config_dict_keys, msg="{} has {}".format(aux_id, required_key))
+                self.assertTrue(
+                    required_key in config_dict_keys,
+                    msg=f"{aux_id} has {required_key}",
+                )
 
 
 if __name__ == '__main__':
