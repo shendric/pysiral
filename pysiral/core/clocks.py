@@ -31,10 +31,11 @@ def debug_timer(message: str = None):
             caller_obj = stack[1][0].f_locals["self"]
             caller = caller_obj if message is None else message
             t0 = time.time()
-            func(*args, **kwargs)
+            return_value = func(*args, **kwargs)
             t1 = time.time()
             elapsed_seconds = t1 - t0
             logger.debug(f"{caller} run in {elapsed_seconds:.3f} seconds ({get_duration(elapsed_seconds)})")
+            return return_value
         # Preserve function metadata (especially annotations) of the wrapped function
         wrapped_func.__doc__ = func.__doc__
         wrapped_func.__name__ = func.__name__
