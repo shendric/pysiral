@@ -50,10 +50,11 @@ are currently implemented:
 
 """
 
-from typing import Any, Dict, TypeVar
+from loguru import logger
+from typing import Dict, TypeVar, List
 from schema import And, Schema
 
-from pysiral import get_cls
+from pysiral import psrlcfg, get_cls
 from pysiral.l1.data import Level1bData
 
 
@@ -68,124 +69,39 @@ class L1PProcItem(object):
         """
         self.cfg = cfg
 
-    def apply(self, l1: Level1bData):
+    def __init_subclass__(cls) -> None:
         """
-        Mandatory class for Level-1 processing item. Needs to be overwritten
-        by the inheriting class.
-        :param l1:
-        :return:
+        Registers a class as Level-1 processor item
+
+        :raises NotImplementedError: Subclass does not implement all required
+            methods.
+
+        :return: None
         """
-        raise NotImplementedError(f"Do not call {self.__class__.__name__} directly")
-
-    def __getattr__(self, item: str) -> Any:
-        """
-        Direct attribute access to the cfg dictionary. Required for historical reasons
-        and readable code.
-
-        :param item:
-        :return:
-        """
-        if item in self.cfg:
-            return self.cfg[item]
-        else:
-            raise ValueError(f"attribute {item} not found in class or config dictionary")
-
-
-L1PPROCITEM_CLS_TYPE = TypeVar("L1PPROCITEM_CLS_TYPE", bound=L1PProcItem)
-
-
-class L1PProcItemDef(object):
-    """
-    Class for validating and processing Level-1 Pre-Processor item definition
-    """
-
-    def __init__(self,
-                 label: str,
-                 stage: str,
-                 module_name: str,
-                 class_name: str,
-                 options_dict: dict = None
-                 ) -> None:
-        """
-        Small helper class to digest the definition dictionary for
-        Level-1 pre-processor items. The input are validated upon
-        passing to this class.
-
-        :param label: A label describing the processor item
-        :param stage: The stage of the Level-1 processor where the item shall be executed
-        :param module_name: The module name of the class (must be in local namespace)
-        :param class_name: The specific class name
-        :param options_dict:
-        """
-
-        self.label = Schema(str).validate(label)
-        self.stage = Schema(And(str, lambda x: x in self.valid_stages)).validate(stage)
-        self.module_name = Schema(str).validate(module_name)
-        self.class_name = Schema(str).validate(class_name)
-        option_dict = options_dict if options_dict is not None else {}
-        self.option_dict = Schema(dict).validate(option_dict)
+        logger.debug(f"L1PProcItem: Register {cls.__name__}:{cls}")
+        if "apply" not in cls.__dict__:
+            raise NotImplementedError(f"{cls} does not implement required class apply")
+        psrlcfg.class_registry.l1_proc_items[cls.__name__] = cls
 
     @classmethod
-    def from_l1procdef_dict(cls, procdef_dict: Dict) -> "L1PProcItemDef":
+    def get_cls(cls, class_name: str, **options):
         """
-        Initialize the class from the corresponding excerpt of the Level-1 processor
-        configuration file.
-        :param procdef_dict:
-        :return:
+        Get the initialized source data discovery class.
+
+        :param class_name: A pysiral known Level-1 pre-processor class
+        :param options: keyword arguments for the level-1 pre-processor items
+
+        :raises KeyError: Invalid source_dataset_id.
+
+        :return: Initialized source data discovery class
         """
-        options = procdef_dict.get("options", {})
-        return cls(procdef_dict.get("label"),
-                   procdef_dict.get("stage"),
-                   procdef_dict.get("module_name"),
-                   procdef_dict.get("class_name"),
-                   options)
 
-    def get_initialized_processing_item_instance(self) -> L1PPROCITEM_CLS_TYPE:
-        """
-        Return an inialized instance of the processor item described by this
-        configuration class
-
-        :return: descendent of L1PProcItem
-        """
-        return get_l1_proc_item(self.module_name, self.class_name, **self.option_dict)
-
-    @property
-    def valid_stages(self):
-        return [
-            "post_source_file",
-            "post_ocean_segment_extraction",
-            "post_ocean_segment_extraction_stack",
-            "post_merge"
-        ]
-
-
-def get_l1_proc_item(module_name: str,
-                     class_name: str,
-                     **cfg: Dict
-                     ) -> L1PPROCITEM_CLS_TYPE:
-    """
-    A function returning an initialized processor item class
-
-    :param module_name:
-    :param class_name:
-    :param cfg:
-
-    :return: The initialized processor item class
-
-    :raises: ValueError
-    """
-
-    # Get the class
-    cls, err = get_cls(module_name, class_name)
-
-    # Check 1: class must exist
-    if cls is None:
-        raise ValueError(f"Unknown class {module_name}.{class_name} - Terminating") from err
-
-    # Check 2: Class must be of inheriting L1PProcItem
-    instance_ = cls(**cfg)
-    parent_class = instance_.__class__.__bases__[0].__name__
-    if parent_class != "L1PProcItem":
-        raise ValueError(f"Class {module_name}.{class_name} does not bases on L1PProcItem ({parent_class})")
-
-    return instance_
+        try:
+            target_cls = psrlcfg.class_registry.l1_proc_items[class_name]
+            return target_cls(**options)
+        except KeyError as ke:
+            msg = (
+                f"Could not find Level-1 pre-processor item {class_name=} "
+                f"[Available: {list(psrlcfg.class_registry.class_registry.keys())}]"
+            )
+            raise KeyError(msg) from ke

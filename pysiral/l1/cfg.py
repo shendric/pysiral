@@ -46,7 +46,6 @@ class L1PProcOrbitConnectConfig(BaseModel):
 class L1PProcItemConfig(BaseModel):
     label: str
     stage: Literal["post_source_file", "post_ocean_segment_extraction", "post_merge"]
-    module_name: str
     class_name: str
     options: Dict
 

@@ -28,7 +28,6 @@ pyresample
 pyshp
 python-dateutil
 pyyaml
-schema
 scipy
 scikit-learn
 shapely

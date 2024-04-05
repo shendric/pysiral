@@ -132,7 +132,7 @@ class ESACryoSat2ICEL1bFile(
         # Set metadata
         self._set_input_file_metadata(filepath, nc, l1)
         if polar_ocean_check is not None:
-            has_polar_ocean_data = polar_ocean_check.has_polar_ocean_segments(l1.info)
+            has_polar_ocean_data = polar_ocean_check(l1.info)
             if not has_polar_ocean_data:
                 return None
 

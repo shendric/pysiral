@@ -104,9 +104,12 @@ class SystemConfig(BaseModel):
     python_version: str
 
 
-class RegisteredClasses(BaseModel):
+class ClassRegistry(BaseModel):
     source_data_discovery: Dict = Field(default={})
     source_data_loader: Dict = Field(default={})
+    l1_proc_items: Dict = Field(default={})
+    l2_proc_items: Dict = Field(default={})
+    l3_proc_items: Dict = Field(default={})
 
 
 class PysiralPackageConfiguration(object):
@@ -146,7 +149,7 @@ class PysiralPackageConfiguration(object):
         self._package = self._get_package_config()
 
         # This property requires to be changed at runtime
-        self.registered_classes = RegisteredClasses()
+        self.class_registry = ClassRegistry()
 
         # Read the configuration files (package configuration needed)
         self._missions = self._get_mission_config()

@@ -53,7 +53,7 @@ class SourceFileDiscovery(object):
         # Note: Allow to overwrite already registered classes, but
         #       warn of overwrite.
         for supported_dataset in supported_source_datasets:
-            existing_cls = psrlcfg.registered_classes.source_data_discovery.get(supported_dataset)
+            existing_cls = psrlcfg.class_registry.source_data_discovery.get(supported_dataset)
             if existing_cls is cls:
                 return  # Class just being imported again
             if existing_cls is not None:
@@ -61,7 +61,7 @@ class SourceFileDiscovery(object):
                     f"Source data discovery class {existing_cls} will be overwritten by {cls} "
                     f"for dataset id={supported_dataset}"
                 )
-            psrlcfg.registered_classes.source_data_discovery[supported_dataset] = cls
+            psrlcfg.class_registry.source_data_discovery[supported_dataset] = cls
 
     @classmethod
     def get_cls(cls, source_dataset_id: str, **kwargs):
@@ -78,12 +78,12 @@ class SourceFileDiscovery(object):
 
         lookup_directory = psrlcfg.local_path.get_source_directory(source_dataset_id)
         try:
-            target_cls = psrlcfg.registered_classes.source_data_discovery[source_dataset_id]
+            target_cls = psrlcfg.class_registry.source_data_discovery[source_dataset_id]
             return target_cls(lookup_directory, **kwargs)
         except KeyError as ke:
             msg = (
                 f"Could not find SourceFileDiscovery implementation for {source_dataset_id=} "
-                f"[Available: {list(psrlcfg.registered_classes.source_data_discovery.keys())}]"
+                f"[Available: {list(psrlcfg.class_registry.source_data_discovery.keys())}]"
             )
             raise KeyError(msg) from ke
 
@@ -125,13 +125,13 @@ class SourceDataLoader(object):
         # Note: Allow to overwrite already registered classes, but
         #       warn of overwrite.
         for supported_dataset in supported_source_datasets:
-            existing_cls = psrlcfg.registered_classes.source_data_loader.get(supported_dataset)
+            existing_cls = psrlcfg.class_registry.source_data_loader.get(supported_dataset)
             if existing_cls is not None:
                 logger.warning(
                     f"Source data discovery class {existing_cls} will be overwritten by {cls} "
                     "for dataset id={supported_dataset}"
                 )
-            psrlcfg.registered_classes.source_data_loader[supported_dataset] = cls
+            psrlcfg.class_registry.source_data_loader[supported_dataset] = cls
 
     @classmethod
     def get_cls(cls, source_dataset_id: str, **kwargs):
@@ -149,10 +149,10 @@ class SourceDataLoader(object):
         :return: Initialized source data loader class
         """
         try:
-            target_cls = psrlcfg.registered_classes.source_data_loader[source_dataset_id]
+            target_cls = psrlcfg.class_registry.source_data_loader[source_dataset_id]
         except KeyError as ke:
-            registered_classes = list(psrlcfg.registered_classes.source_data_loader.keys())
-            msg = f"Cannot find source data loader class for {source_dataset_id=} {registered_classes}"
+            class_registry = list(psrlcfg.class_registry.source_data_loader.keys())
+            msg = f"Cannot find source data loader class for {source_dataset_id=} {class_registry}"
             raise KeyError(msg) from ke
 
         try:

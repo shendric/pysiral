@@ -23,7 +23,7 @@ from pysiral.core.clocks import debug_timer
 from pysiral.core.helper import ProgressIndicator, get_first_array_index, get_last_array_index, rle
 from pysiral.core.output import L1bDataNC
 from pysiral.l1.data import L1bMetaData, Level1bData, L1bdataNCFile, L1bTimeOrbit
-from pysiral.l1.alg import L1PProcItem, L1PProcItemDef
+from pysiral.l1.alg import L1PProcItem
 from pysiral.l1.io import SourceDataLoader, SourceFileDiscovery
 from pysiral.l1.cfg import L1pProcessorConfig, PolarOceanSegmentsConfig
 
@@ -982,10 +982,9 @@ class Level1PreProcessor(object):
             on processor stage
         """
         processor_item_dict = defaultdict(list)
-        for processing_item_definition in self.cfg.level1_preprocessor.processing_items:
-            def_ = L1PProcItemDef.from_l1procdef_dict(processing_item_definition.dict())
-            cls = def_.get_initialized_processing_item_instance()
-            processor_item_dict[def_.stage].append((cls, def_.label,))
+        for proc_item_def in self.cfg.level1_preprocessor.processing_items:
+            proc_item = L1PProcItem.get_cls(proc_item_def.class_name, **proc_item_def.options)
+            processor_item_dict[proc_item_def.stage].append((proc_item, proc_item_def.label,))
         return processor_item_dict
 
     def _get_output_handler(self) -> Level1POutputHandler:

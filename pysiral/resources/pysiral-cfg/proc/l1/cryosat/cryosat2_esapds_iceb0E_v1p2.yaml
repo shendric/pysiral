@@ -27,7 +27,6 @@ level1_preprocessor:
         # Compute pulse peakiness
         - label: "Compute Pulse Peakiness"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.waveform
           class_name: L1PWaveformPeakiness
           options:
               skip_first_range_bins: 0
@@ -36,7 +35,6 @@ level1_preprocessor:
         # Compute normed pulse peakiness
         - label: "Compute Pulse Peakiness (normed)"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.waveform
           class_name: L1PWaveformPeakiness
           options:
               skip_first_range_bins: 0
@@ -46,7 +44,6 @@ level1_preprocessor:
         # NOTE: This will only have an effect of SIN segments
         - label: "Resample SIN waveforms"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.cryosat2.functions
           class_name: L1PWaveformResampleSIN
           options:
               sin_target_bins: 256
@@ -55,7 +52,6 @@ level1_preprocessor:
         # NOTE: This will only have an effect of LRM segments
         - label: "Pad LRM waveforms"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.cryosat2.functions
           class_name: L1PWaveformPadLRM
           options:
               lrm_target_bins: 256
@@ -63,7 +59,6 @@ level1_preprocessor:
         # Compute the leading edge width parameters (full, first half & second half)
         - label: "Compute Leading Edge Width"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.waveform
           class_name: L1PLeadingEdgeWidth
           options:
               tfmra_leading_edge_start: 0.05
@@ -81,7 +76,6 @@ level1_preprocessor:
         #  3. first maximum power (in units of peak power)
         - label: "Compute Leading Edge Quality"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.waveform
           class_name: L1PLeadingEdgeQuality
           options:
               # Power threshold for the normalized waveform
@@ -105,7 +99,6 @@ level1_preprocessor:
         # Compute waveform backscatter coeficient (sigma0)
         - label: "Compute Sigma0"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.cryosat2.functions
           class_name: L1PCryoSat2Sigma0
           options:
               # CryoSat-2 altimeter constants to compute the LRM footprint
@@ -132,7 +125,6 @@ level1_preprocessor:
         #  1. Leading edge peakiness
         - label: "Compute Leading Edge Peakiness"
           stage: post_ocean_segment_extraction
-          module_name: pysiral.waveform
           class_name: L1PLeadingEdgePeakiness
           options:
               # Power threshold for the normalized waveform
