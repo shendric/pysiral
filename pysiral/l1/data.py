@@ -493,7 +493,7 @@ class Level1bData(object):
 
     @property
     def is_single_hemisphere(self) -> bool:
-        return False if self.info.hemisphere == "global" else True
+        return self.info.hemisphere != "global"
 
     @property
     def n_records(self) -> int:
@@ -699,9 +699,9 @@ class L1bMetaData(object):
     def hemisphere(self):
         hemisphere = "global"
         if self.lat_min > 0. and self.lat_max > 0.:
-            hemisphere = "north"
+            hemisphere = "nh"
         if self.lat_min < 0. and self.lat_max < 0.0:
-            hemisphere = "south"
+            hemisphere = "sh"
         return hemisphere
 
     @property

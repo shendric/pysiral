@@ -12,8 +12,9 @@ output:
 
 # Settings for the pre-processor
 level1_preprocessor:
+
     polar_ocean:
-        orbit_coverage: custom_orbit_segments
+        orbit_coverage: custom_orbit_segment
         target_hemisphere: [nh, sh]
         polar_latitude_threshold: 45.0
         input_file_is_single_hemisphere: False

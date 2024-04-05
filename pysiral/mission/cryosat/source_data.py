@@ -127,6 +127,7 @@ class ESACryoSat2ICEL1bFile(
 
         # Legacy check
         if self._reject_predicted_orbit(nc):
+            logger.debug("- reject data with predicted orbit")
             return None
 
         # Set metadata
@@ -134,6 +135,7 @@ class ESACryoSat2ICEL1bFile(
         if polar_ocean_check is not None:
             has_polar_ocean_data = polar_ocean_check(l1.info)
             if not has_polar_ocean_data:
+                logger.debug(f"- {has_polar_ocean_data=}")
                 return None
 
         # Polar ocean check passed, now fill the rest with the l1 data groups

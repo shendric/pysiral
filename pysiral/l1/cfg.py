@@ -32,11 +32,12 @@ class ClassConfig(BaseModel):
         return module_name
 
 
-class L1PProcPolarOceanConfig(BaseModel):
-    target_hemisphere: List[Literal["nh", "sh"]]
-    polar_latitude_threshold: float
-    input_file_is_single_hemisphere: bool
-    allow_nonocean_segment_nrecords: PositiveInt
+class PolarOceanSegmentsConfig(BaseModel):
+    orbit_coverage: Literal["custom_orbit_segment", "half_orbit", "full_orbit"]
+    target_hemisphere: List[Literal["nh", "sh"]] = Field(default=["nh", "sh"])
+    polar_latitude_threshold: PositiveFloat = 45.0,
+    allow_nonocean_segment_nrecords: PositiveInt = 1000
+    ocean_mininum_size_nrecords: PositiveInt = None
 
 
 class L1PProcOrbitConnectConfig(BaseModel):
@@ -51,7 +52,7 @@ class L1PProcItemConfig(BaseModel):
 
 
 class L1PProcConfig(BaseModel):
-    polar_ocean: L1PProcPolarOceanConfig
+    polar_ocean: PolarOceanSegmentsConfig
     orbit_segment_connectivity: L1PProcOrbitConnectConfig
     processing_items: List[L1PProcItemConfig]
 
@@ -127,12 +128,7 @@ class L1pProcessorConfig(BaseModel):
 
     @property
     def supports_multiple_platforms(self) -> bool:
-        return isinstance(self.supported_platforms, list)
+        return isinstance(self.pysiral_package_config.supported_source_datasets, list)
 
 
-class PolarOceanSegmentsConfig(BaseModel):
-    orbit_coverage: str = Literal["custom_orbit_segment", "half_orbit", "full_orbit"]
-    target_hemisphere: List[Literal["nh", "sh"]] = Field(default=["nh", "sh"])
-    polar_latitude_threshold: PositiveFloat = 45.0,
-    allow_nonocean_segment_nrecords: PositiveInt = 1000
-    ocean_mininum_size_nrecords: PositiveInt = None
+

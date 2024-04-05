@@ -125,17 +125,13 @@ class PolarOceanSegments(object):
     """
     Class to extract polar ocean segments
 
-    :param orbit_coverage:
-    :param target_hemisphere:
-    :param polar_latitude_threshold:
-    :param allow_nonocean_segment_nrecords:
     """
 
-    def __init__(self, **kwargs) -> None:
+    def __init__(self, config: Union[Dict, PolarOceanSegmentsConfig]) -> None:
         """
         Initialize class instance
         """
-        self.cfg = PolarOceanSegmentsConfig(**kwargs)
+        self.cfg = config if isinstance(config, PolarOceanSegmentsConfig) else PolarOceanSegmentsConfig(**config)
 
     def extract_polar_ocean_segments_custom_orbit_segment(self, l1: "Level1bData") -> List["Level1bData"]:
         """
@@ -350,17 +346,15 @@ class PolarOceanSegments(object):
         # 2. Must be in target hemisphere
         # NOTE: the definition of hemisphere in l1 data is above or below the equator
         hemisphere = product_metadata.hemisphere
-        target_hemisphere = self.cfg.get("target_hemisphere", None)
-        if hemisphere != "global" and hemisphere not in target_hemisphere:
-            logger.info(f'- No data in target hemishere: {"".join(self.cfg.target_hemisphere)}')
+        if hemisphere != "global" and hemisphere not in self.cfg.target_hemisphere:
+            logger.info(f'- No data in target hemishere: {self.cfg.target_hemisphere}')
             return False
 
         # 3. Must be at higher latitude than the polar latitude threshold
         lat_range = np.abs([product_metadata.lat_min, product_metadata.lat_max])
-        polar_latitude_threshold = self.cfg.get("polar_latitude_threshold", None)
-        if np.amax(lat_range) < polar_latitude_threshold:
+        if np.amax(lat_range) < self.cfg.polar_latitude_threshold:
             msg = "- No data above polar latitude threshold (min:%.1f, max:%.1f) [req:+/-%.1f]"
-            msg %= (product_metadata.lat_min, product_metadata.lat_max, polar_latitude_threshold)
+            msg %= (product_metadata.lat_min, product_metadata.lat_max, self.cfg.polar_latitude_threshold)
             logger.info(msg)
             return False
 
@@ -699,7 +693,7 @@ class Level1PreProcessor(object):
         the intended stage in the processor pipeline
 
     :param source_dataset_id: source data identifier. Must be known to pysiral.
-    :param cfg: Level-1 preprocessor configuration data model.
+    :param l1p_cfg: Level-1 preprocessor configuration data model.
     :param hemisphere: List of hemispheres (`["nh"]`, `["sh"]`, or `['nh', 'sh']`
     :param log_directory: (Optional) Directory for the output log will be written.
     :param ctlg_directory: (Optional Directory for the output catalog
@@ -712,7 +706,7 @@ class Level1PreProcessor(object):
     def __init__(
             self,
             source_dataset_id: Union[str, SourceDataID],
-            cfg: L1pProcessorConfig,
+            l1p_cfg: L1pProcessorConfig,
             hemisphere: List[Literal["nh", "sh"]] = None,
             log_directory: Path = None,
             ctlg_directory: Path = None,
@@ -725,7 +719,7 @@ class Level1PreProcessor(object):
 
         # Input to this class
         self.source_dataset_id = self._validate_source_dataset_id(source_dataset_id)
-        self.cfg = cfg
+        self.cfg = l1p_cfg
         self.hemisphere = self._validate_hemisphere(hemisphere)
         self.log_directory = log_directory
         self.ctlg_directory = ctlg_directory
@@ -743,7 +737,7 @@ class Level1PreProcessor(object):
             self.source_dataset_id.version_str,
             **source_loader_kwargs
         )
-        self.polar_ocean_segments = PolarOceanSegments(**cfg.level1_preprocessor.polar_ocean.dict())
+        self.polar_ocean_segments = PolarOceanSegments(l1p_cfg.level1_preprocessor.polar_ocean)
         self.output_handler = self._get_output_handler()
         self.processor_item_dict = self._init_processor_items()
 
@@ -766,8 +760,8 @@ class Level1PreProcessor(object):
         """
         logger.info("Set Level-1 preprocessor configuration:")
         l1p_settings_filepath = psrlcfg.procdef.get_l1_from_dataset_id(source_dataset_id, l1p_id)
-        cfg = L1pProcessorConfig.from_yaml(l1p_settings_filepath)
-        return cls(source_dataset_id, cfg, **kwargs)
+        l1p_cfg = L1pProcessorConfig.from_yaml(l1p_settings_filepath)
+        return cls(source_dataset_id, l1p_cfg, **kwargs)
 
     def process_period(
             self,
@@ -824,6 +818,8 @@ class Level1PreProcessor(object):
 
             logger.info(f"+ Process input file {prgs.get_status_report(i)} [{source_data_file.name}]")
             l1_source = self._load_source_data(source_data_file)
+            if l1_source is None:
+                continue
             l1_po_segments = self._get_source_data_polar_ocean_segments(l1_source)
             l1_export_list, l1_connected_stack = self._get_merged_segments(l1_connected_stack, l1_po_segments)
 
