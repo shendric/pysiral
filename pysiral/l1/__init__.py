@@ -171,7 +171,7 @@ class PolarOceanSegments(object):
         # Step: Split the l1 segments at time discontinuities.
         # NOTE: This step is optional. It requires the presence of the options `timestamp_discontinuities`
         #       in the L1 pre-processor config file
-        if self.cfg.timestamp_discontinuities is not None:
+        if self.cfg.timestamp_discontinuities:
             logger.info("- split at time discontinuities")
             l1_list = self.split_at_time_discontinuities(l1_list)
 

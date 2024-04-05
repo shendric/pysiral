@@ -14,7 +14,7 @@ import bottleneck as bn
 import numpy as np
 import numpy.typing as npt
 from loguru import logger
-from schema import And, Schema
+from pydantic import BaseModel, PositiveInt, PositiveFloat
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelmin
@@ -198,7 +198,7 @@ class TFMRALeadingEdgeWidth(object):
     def __init__(self, rng, wfm, radar_mode, retrack_flag, tfmra_options=None):
         """
         Compute filtered waveform and index of first maximum once. Calling this class
-        will cause the a preliminary retracking of the waveforms indicated by the
+        will cause a preliminary retracking of the waveforms indicated by the
         retracker flag. The information is stored in the class and the leading edge
         width can be extraced with the `get_width_from_thresholds` method.
 
@@ -234,32 +234,23 @@ class TFMRALeadingEdgeWidth(object):
         return self.tfmra.get_thresholds_distance(self.rng, self.wfm, self.fmi, thres0, thres1, **kwargs)
 
 
+class L1PLeadingEdgeWidthConfig(BaseModel):
+    tfmra_leading_edge_start: PositiveFloat
+    tfmra_leading_edge_end: PositiveFloat
+    tfmra_options: Dict
+
+
 class L1PLeadingEdgeWidth(L1PProcItem):
     """
     A L1P pre-processor item class for computing leading edge width of a waveform
     using the TFMRA retracker as the difference between two thresholds. The
     unit for leading edge width are range bins """
 
-    def __init__(self, **cfg):
+    def __init__(self, **kwargs):
         """
         Init the class with the mandatory options
-
-        :param cfg: (dict) Required options (see self.required.options)
         """
-        super(L1PLeadingEdgeWidth, self).__init__(**cfg)
-
-        # Init Required Options
-        self.tfmra_leading_edge_start = None
-        self.tfmra_leading_edge_end = None
-        self.tfmra_options = None
-
-        # Get the option settings from the input
-        for option_name in self.required_options:
-            option_value = cfg.get(option_name)
-            if option_value is None:
-                msg = f"Missing option `{option_name}` -> No computation of leading edge width!"
-                logger.warning(msg)
-            setattr(self, option_name, option_value)
+        self.cfg = L1PLeadingEdgeWidthConfig(**kwargs)
 
     def apply(self, l1: "Level1bData") -> None:
         """
@@ -275,22 +266,27 @@ class L1PLeadingEdgeWidth(L1PProcItem):
 
         # Compute the leading edge width (requires TFMRA retracking) using
         # -> Use a wrapper for cTFMRA
-        width = TFMRALeadingEdgeWidth(l1.waveform.range,
-                                      l1.waveform.power,
-                                      radar_mode,
-                                      is_valid,
-                                      tfmra_options=self.tfmra_options)
-        lew = width.get_width_from_thresholds(self.tfmra_leading_edge_start,
-                                              self.tfmra_leading_edge_end)
+        width = TFMRALeadingEdgeWidth(
+            l1.waveform.range,
+            l1.waveform.power,
+            radar_mode,
+            is_valid,
+            tfmra_options=self.cfg.tfmra_options
+        )
+        lew = width.get_width_from_thresholds(
+            self.cfg.tfmra_leading_edge_start,
+            self.cfg.tfmra_leading_edge_end
+        )
 
         # Add result to classifier group
         l1.classifier.add(lew, "leading_edge_width")
 
-    @property
-    def required_options(self):
-        return ["tfmra_leading_edge_start",
-                "tfmra_leading_edge_end",
-                "tfmra_options"]
+
+class L1PSigma0Config(BaseModel):
+    footprint_pl_kwargs: Dict
+    footprint_sar_kwargs: Dict
+    sigma0_kwargs: Dict
+    sigma0_bias: float
 
 
 class L1PSigma0(L1PProcItem):
@@ -300,8 +296,8 @@ class L1PSigma0(L1PProcItem):
 
     """
 
-    def __init__(self, **cfg):
-        super(L1PSigma0, self).__init__(**cfg)
+    def __init__(self, **kwargs):
+        self.cfg = L1PSigma0Config(**kwargs)
 
     def apply(self, l1):
         """
@@ -371,13 +367,17 @@ class L1PSigma0(L1PProcItem):
 
         # The function to compute the footprint and the required keywords
         # depend on the radar mode id.
-        footprint_func_dict = {0: get_footprint_pulse_limited,
-                               1: get_footprint_sar,
-                               2: get_footprint_sar}
+        footprint_func_dict = {
+            0: get_footprint_pulse_limited,
+            1: get_footprint_sar,
+            2: get_footprint_sar
+        }
 
-        footprint_func_kwargs = {0: self.cfg["footprint_pl_kwargs"],
-                                 1: self.cfg["footprint_sar_kwargs"],
-                                 2: self.cfg["footprint_sar_kwargs"]}
+        footprint_func_kwargs = {
+            0: self.cfg.footprint_pl_kwargs,
+            1: self.cfg.footprint_sar_kwargs,
+            2: self.cfg.footprint_sar_kwargs
+        }
 
         # The computation of sigma0 depends on properties
         # of the radar altimeter
@@ -395,35 +395,34 @@ class L1PSigma0(L1PProcItem):
             footprint_area = func(*args, **footprint_func_kwargs[radar_mode[i]])
 
             # Compute the backscatter coefficient
-            sigma0[i] = get_sigma0_sar(rx_power[i],
-                                       tx_power[i],
-                                       altitude[i],
-                                       footprint_area,
-                                       **sigma0_kwargs)
+            sigma0[i] = get_sigma0_sar(
+                rx_power[i],
+                tx_power[i],
+                altitude[i],
+                footprint_area,
+                **sigma0_kwargs
+            )
 
         # Eliminate infinite values
         sigma0[np.isinf(sigma0)] = np.nan
 
         return sigma0
 
-    @property
-    def required_options(self):
-        return ["footprint_pl_kwargs", "footprint_sar_kwargs", "sigma0_kwargs", "sigma0_bias"]
+
+class L1PWaveformPeakinessConfig(BaseModel):
+    skip_first_range_bins: PositiveInt = 0
+    norm_is_range_bin: bool = True
 
 
 class L1PWaveformPeakiness(L1PProcItem):
     """
     A L1P pre-processor item class for computing pulse peakiness """
 
-    def __init__(self,
-                 skip_first_range_bins: int = 0,
-                 norm_is_range_bin: bool = True
-                 ):
-
-        cfg = {"skip_first_range_bins": skip_first_range_bins,
-               "norm_is_range_bin": norm_is_range_bin
-               }
-        super(L1PWaveformPeakiness, self).__init__(**cfg)
+    def __init__(self, **kwargs):
+        """
+        initiate class
+        """
+        self.cfg = L1PWaveformPeakinessConfig(**kwargs)
 
     def apply(self, l1: Level1bData) -> None:
         """
@@ -434,7 +433,7 @@ class L1PWaveformPeakiness(L1PProcItem):
             norm_is_range_bin = True -> parameter name: 'peakiness'
             norm_is_range_bin = False -> parameter name: 'peakiness_normed'
 
-        :param l1: l1bdata.Level1bData instance
+        :param l1: Level1bData instance
 
         :raises None:
 
@@ -442,7 +441,7 @@ class L1PWaveformPeakiness(L1PProcItem):
         """
         waveforms = l1.waveform.power
         pulse_peakiness = self.compute_for_waveforms(waveforms)
-        parameter_target_name = "peakiness" if self.norm_is_range_bin else "peakiness_normed"
+        parameter_target_name = "peakiness" if self.cfg.norm_is_range_bin else "peakiness_normed"
         l1.classifier.add(pulse_peakiness, parameter_target_name)
 
     def compute_for_waveforms(self, waveforms: npt.NDArray) -> npt.NDArray:
@@ -460,14 +459,14 @@ class L1PWaveformPeakiness(L1PProcItem):
             waveforms = waveforms.astype(np.float64)
 
         # Get the norm (default is range bins)
-        norm = n_range_bins if self.norm_is_range_bin else 1.0
+        norm = n_range_bins if self.cfg.norm_is_range_bin else 1.0
 
         # Init output parameters
         pulse_peakiness = np.full(n_records, np.nan)
 
         # Compute peakiness for each waveform
         for i in np.arange(n_records):
-            waveform = waveforms[i, self.skip_first_range_bins:]
+            waveform = waveforms[i, self.cfg.skip_first_range_bins:]
             pulse_peakiness[i] = self._compute(waveform, norm)
 
         return pulse_peakiness
@@ -485,10 +484,10 @@ class L1PWaveformPeakiness(L1PProcItem):
         n_range_bins = waveform.shape
         if waveform.dtype.kind != "f":
             waveform = waveform.astype(np.float64)
-        waveform = waveform[self.skip_first_range_bins:]
+        waveform = waveform[self.cfg.skip_first_range_bins:]
 
         # Get the norm (default is range bins)
-        norm = n_range_bins if self.norm_is_range_bins else 1.0
+        norm = n_range_bins if self.cfg.norm_is_range_bins else 1.0
 
         return self._compute(waveform, norm)
 
@@ -508,9 +507,20 @@ class L1PWaveformPeakiness(L1PProcItem):
             pulse_peakiness = np.nan
         return pulse_peakiness
 
-    @property
-    def required_options(self):
-        return ["skip_first_range_bins", "norm_is_range_bin"]
+
+class L1PLeadingEdgeQualityConfig(BaseModel):
+    leading_edge_lookup_window: Dict[str, List[PositiveFloat]]
+    first_maximum_normalized_power_threshold: Dict[str, PositiveFloat]
+    minimum_valid_first_maximum_index: Dict[str, PositiveInt]
+
+    def check_radar_modes(self, radar_mode):
+        radar_mode_not_implemented = [
+            radar_mode not in self.leading_edge_lookup_window,
+            radar_mode not in self.first_maximum_normalized_power_threshold,
+            radar_mode not in self.minimum_valid_first_maximum_index
+        ]
+        if any(radar_mode_not_implemented):
+            raise ValueError(f"{radar_mode=} not present in all options {self}")
 
 
 class L1PLeadingEdgeQuality(L1PProcItem):
@@ -519,17 +529,14 @@ class L1PLeadingEdgeQuality(L1PProcItem):
     Requires `first_maximum_index` classifier parameter
     """
 
-    def __init__(self, **cfg):
-        super(L1PLeadingEdgeQuality, self).__init__(**cfg)
-        for option_name in self.required_options:
-            if option_name not in self.cfg.keys():
-                logger.error(f"Missing option: {option_name} -> Leading Edge Quality will not be computed")
+    def __init__(self, **kwargs):
+        self.cfg = L1PLeadingEdgeQualityConfig(**kwargs)
 
     def apply(self, l1):
         """
         Adds a quality indicator for the leading edge
 
-        :param l1: l1bdata.Level1bData instance
+        :param l1: Level1bData instance
 
         :return: None
         """
@@ -543,39 +550,14 @@ class L1PLeadingEdgeQuality(L1PProcItem):
         fmp = np.full(l1.info.n_records, np.nan)              # first maximum power fraction (to peak power)
 
         # --- Get the required options ---
-
-        # Waveform window in number of range bins before the first maximum
-        leading_edge_lookup_window = self.cfg.get("leading_edge_lookup_window", None)
-        if leading_edge_lookup_window is None:
-            return
-
+        self.cfg.check_radar_modes(l1.radar_modes)
         # The window for the quality computation depends on the radar mode
-        window = leading_edge_lookup_window.get(l1.radar_modes, None)
-        if window is None:
-            logger.error(f"leading_edge_lookup_window not defined for radar mode: {l1.radar_modes}")
-            return
-
+        window = self.cfg.leading_edge_lookup_window[l1.radar_modes]
         # Normalized power threshold for identifications of the first maximum
-        first_maximum_normalized_power_threshold = self.cfg.get("first_maximum_normalized_power_threshold", None)
-        if first_maximum_normalized_power_threshold is None:
-            return
-
         # The power threshold depends on the radar mode
-        power_threshold = first_maximum_normalized_power_threshold.get(l1.radar_modes, None)
-        if window is None:
-            logger.error(f"first_maximum_normalized_power_threshold not defined for radar mode: {l1.radar_modes}")
-            return
-
-        # Normalized power threshold for identifications of the first maximum
-        minimum_valid_first_maximum_index = self.cfg.get("minimum_valid_first_maximum_index", None)
-        if minimum_valid_first_maximum_index is None:
-            return
-
+        power_threshold = self.cfg.first_maximum_normalized_power_threshold[l1.radar_modes]
         # The power threshold depends on the radar mode
-        fmi_min = minimum_valid_first_maximum_index.get(l1.radar_modes, None)
-        if window is None:
-            logger.error(f"minimum_valid_first_maximum_index not defined for radar mode: {l1.radar_modes}")
-            return
+        fmi_min = self.cfg.minimum_valid_first_maximum_index[l1.radar_modes]
 
         # Loop over all waveforms
         for i in np.arange(l1.info.n_records):
@@ -607,11 +589,6 @@ class L1PLeadingEdgeQuality(L1PProcItem):
         l1.classifier.add(leq, "leading_edge_quality")
         l1.classifier.add(fmi, "first_maximum_index")
         l1.classifier.add(fmp, "first_maximum_power")
-
-    @property
-    def required_options(self):
-        return ["leading_edge_lookup_window", "first_maximum_normalized_power_threshold",
-                "minimum_valid_first_maximum_index"]
 
 
 class L1PLateTail2PeakPower(L1PProcItem):

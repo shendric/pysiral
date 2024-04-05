@@ -51,23 +51,11 @@ are currently implemented:
 """
 
 from loguru import logger
-from typing import Dict, TypeVar, List
-from schema import And, Schema
-
-from pysiral import psrlcfg, get_cls
-from pysiral.l1.data import Level1bData
+from typing import Dict
+from pysiral import psrlcfg
 
 
 class L1PProcItem(object):
-
-    def __init__(self, **cfg: Dict) -> None:
-        """
-        Base class for Level 1 Pre-Processor items. Not to be called directly, but
-        needs to be inherited by all Level-1 processor item classes.
-
-        :param cfg: Configuration dictionary
-        """
-        self.cfg = cfg
 
     def __init_subclass__(cls) -> None:
         """
