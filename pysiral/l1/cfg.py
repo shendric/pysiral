@@ -9,7 +9,7 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 import contextlib
 import importlib
 from pathlib import Path
-from typing import Dict, List, Literal, Union, Optional
+from typing import Dict, List, Literal, Union, Optional, Any
 from pydantic import BaseModel, FilePath, PositiveInt, field_validator, PositiveFloat, Field, ConfigDict, NonNegativeInt
 from ruamel.yaml import YAML
 
@@ -42,24 +42,20 @@ class PolarOceanSegmentsConfig(BaseModel):
     timestamp_discontinuities: bool = False
 
 
-class L1PProcOrbitConnectConfig(BaseModel):
-    max_connected_segment_timedelta_seconds: PositiveInt
+class OrbitConnectConfig(BaseModel):
+    max_timedelta_seconds: NonNegativeInt = Field(
+        description="Acceptable gap in seconds between two connected segments"
+    )
 
 
-class L1PProcItemConfig(BaseModel):
+class ProcItemConfig(BaseModel):
     label: str
     stage: Literal["post_source_file", "post_ocean_segment_extraction", "post_merge"]
     class_name: str
     options: Dict
 
 
-class L1PProcConfig(BaseModel):
-    polar_ocean: PolarOceanSegmentsConfig
-    orbit_segment_connectivity: L1PProcOrbitConnectConfig
-    processing_items: List[L1PProcItemConfig]
-
-
-class L1PPysiralPackageConfig(BaseModel):
+class PysiralPackageConfig(BaseModel):
     l1p_id: str = Field(description="Configuration id (must be unique for source data set")
     l1p_version: float = Field(description="Version number of the Level-1 processor definition")
     supported_source_datasets: List[str] = Field(description="List with id's of supported source data sets")
@@ -94,6 +90,14 @@ class Level1OutputHanderConfig(BaseModel):
     l1p_id: str
     l1p_version: Union[str, float, DataVersion]
     minimum_n_records: NonNegativeInt = 0
+    filename_template: Optional[str] = Field(
+        description="filename template for l1p files",
+        default=psrlcfg.local_path.pysiral_output.filenaming.l1p
+    )
+    filepath_template: Optional[str] = Field(
+        description="subfolder filepath template for l1p files",
+        default=psrlcfg.local_path.pysiral_output.sub_directories.l1p
+    )
 
     @field_validator("l1p_version")
     @classmethod
@@ -105,10 +109,32 @@ class L1pProcessorConfig(BaseModel):
     """
     Configuration data for the Level-1 pre-processor
     """
-    filepath: Optional[FilePath] = Field(description="Filepath to the Level-1 pre-processor configuration object")
-    pysiral_package_config: L1PPysiralPackageConfig
-    output: Level1OutputHanderConfig
-    level1_preprocessor: L1PProcConfig
+    filepath: Optional[FilePath] = Field(
+        description="Filepath to the Level-1 pre-processor configuration object"
+    )
+    pysiral_package_config: PysiralPackageConfig = Field(
+        description="Information for pysiral package configuration"
+    )
+    source_data_discovery: Optional[Dict[str, Any]] = Field(
+        description="Optional keyword arguments for source data discovery class",
+        default={}
+    )
+    source_data_loader: Optional[Dict[str, Any]] = Field(
+        description="Optional keyword arguments for source data loader class",
+        default={}
+    )
+    polar_ocean_detection: PolarOceanSegmentsConfig = Field(
+        description="Settings for retrieving polar ocean segments from source data"
+    )
+    orbit_segment_connect: OrbitConnectConfig = Field(
+        description="Settings for connecting orbit segments"
+    )
+    output: Level1OutputHanderConfig = Field(
+        description="Settings for writing l1p output files"
+    )
+    processing_items: List[ProcItemConfig] = Field(
+        description="List of Level-1 pre-processor items"
+    )
 
     @classmethod
     def from_yaml(

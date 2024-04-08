@@ -85,8 +85,6 @@ class Level1POutputHandler(object):
 
         :return: filename
         """
-
-        filename_template = psrlcfg.local_path.pysiral_output.filenaming.l1p
         time_fmt = "%Y%m%dT%H%M%S"
         values = {
             "platform": l1.info.mission,
@@ -97,7 +95,7 @@ class Level1POutputHandler(object):
             "tce": l1.time_orbit.timestamp[-1].strftime(time_fmt),
             "l1p_version_file": self.cfg.l1p_version.filename
         }
-        return filename_template.format(**values)
+        return self.cfg.filename_template.format(**values)
 
     def get_output_directory(self, l1: "Level1bData") -> Path:
         """
@@ -731,20 +729,20 @@ class Level1PreProcessor(object):
         self.ctlg_directory = ctlg_directory
 
         # --- Class Properties ---
-
         source_discovery_kwargs = {} if source_discovery_kwargs is None else source_discovery_kwargs
+        source_discovery_kwargs |= l1p_cfg.source_data_discovery
         self.source_file_discovery = SourceFileDiscovery.get_cls(
             self.source_dataset_id.version_str,
             **source_discovery_kwargs
         )
 
         source_loader_kwargs = {} if source_loader_kwargs is None else source_loader_kwargs
+        source_discovery_kwargs |= l1p_cfg.source_data_loader
         self.source_loader = SourceDataLoader.get_cls(
             self.source_dataset_id.version_str,
             **source_loader_kwargs
         )
-        self.polar_ocean_segments = PolarOceanSegments(l1p_cfg.level1_preprocessor.polar_ocean)
-
+        self.polar_ocean_segments = PolarOceanSegments(l1p_cfg.polar_ocean_detection)
         self.output_handler = Level1POutputHandler(self.source_dataset_id, **self.cfg.output.dict())
         self.processor_item_dict = self._init_processor_items()
 
@@ -985,7 +983,7 @@ class Level1PreProcessor(object):
 
         # Test if segments are adjacent based on time gap between them
         tdelta = l1_1.info.start_time - l1_0.info.stop_time
-        threshold = self.cfg.level1_preprocessor.orbit_segment_connectivity.max_connected_segment_timedelta_seconds
+        threshold = self.cfg.orbit_segment_connect.max_timedelta_seconds
         return tdelta.total_seconds() <= threshold
 
     @staticmethod
@@ -1047,7 +1045,7 @@ class Level1PreProcessor(object):
             on processor stage
         """
         processor_item_dict = defaultdict(list)
-        for proc_item_def in self.cfg.level1_preprocessor.processing_items:
+        for proc_item_def in self.cfg.processing_items:
             proc_item = L1PProcItem.get_cls(proc_item_def.class_name, **proc_item_def.options)
             processor_item_dict[proc_item_def.stage].append((proc_item, proc_item_def.label,))
         return processor_item_dict

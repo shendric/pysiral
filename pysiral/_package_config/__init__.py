@@ -14,7 +14,7 @@ import psutil
 import sys
 import os
 from pathlib import Path
-from typing import Union, Dict, List, Literal, Optional
+from typing import Union, Dict, List, Literal
 from pydantic import BaseModel, DirectoryPath, ConfigDict, PositiveInt, PositiveFloat, Field, ValidationError
 from ruamel.yaml import YAML
 
