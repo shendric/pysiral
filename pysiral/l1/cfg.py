@@ -10,10 +10,11 @@ import contextlib
 import importlib
 from pathlib import Path
 from typing import Dict, List, Literal, Union, Optional
-from pydantic import BaseModel, FilePath, PositiveInt, field_validator, PositiveFloat, Field
+from pydantic import BaseModel, FilePath, PositiveInt, field_validator, PositiveFloat, Field, ConfigDict, NonNegativeInt
 from ruamel.yaml import YAML
 
 from pysiral import psrlcfg
+from pysiral.core.config import DataVersion
 
 
 class ClassConfig(BaseModel):
@@ -59,8 +60,8 @@ class L1PProcConfig(BaseModel):
 
 
 class L1PPysiralPackageConfig(BaseModel):
-    id: str = Field(description="Configuration id (must be unique for source data set")
-    version: float = Field(description="Version number of the Level-1 processor definition")
+    l1p_id: str = Field(description="Configuration id (must be unique for source data set")
+    l1p_version: float = Field(description="Version number of the Level-1 processor definition")
     supported_source_datasets: List[str] = Field(description="List with id's of supported source data sets")
 
     @field_validator("supported_source_datasets")
@@ -88,12 +89,25 @@ class L1PPysiralPackageConfig(BaseModel):
         return dataset_id
 
 
+class Level1OutputHanderConfig(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    l1p_id: str
+    l1p_version: Union[str, float, DataVersion]
+    minimum_n_records: NonNegativeInt = 0
+
+    @field_validator("l1p_version")
+    @classmethod
+    def is_dataversion(cls, value):
+        return DataVersion(value) if isinstance(value, (str, float)) else value
+
+
 class L1pProcessorConfig(BaseModel):
     """
     Configuration data for the Level-1 pre-processor
     """
     filepath: Optional[FilePath] = Field(description="Filepath to the Level-1 pre-processor configuration object")
     pysiral_package_config: L1PPysiralPackageConfig
+    output: Level1OutputHanderConfig
     level1_preprocessor: L1PProcConfig
 
     @classmethod
@@ -116,7 +130,7 @@ class L1pProcessorConfig(BaseModel):
         else:
             config_filepath = psrlcfg.procdef.get("l1", filename_or_proc_id)
 
-        # Read the file content to a raw dictionay
+        # Read the file content to a raw dictionary
         # TODO: boilerpolate, move to function
         reader = YAML(typ="safe", pure=True)
         with config_filepath.open() as f:
@@ -130,6 +144,3 @@ class L1pProcessorConfig(BaseModel):
     @property
     def supports_multiple_platforms(self) -> bool:
         return isinstance(self.pysiral_package_config.supported_source_datasets, list)
-
-
-

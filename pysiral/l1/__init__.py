@@ -11,13 +11,14 @@ from operator import attrgetter
 from pathlib import Path
 from typing import Dict, List, Tuple, Literal, Union, Optional, Any
 
+import copy
 import numpy as np
+from geopy import distance
 from collections import defaultdict
 from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core.config import DataVersion
 from pysiral.core.dataset_ids import SourceDataID
 from pysiral.core.clocks import debug_timer
 from pysiral.core.helper import ProgressIndicator, get_first_array_index, get_last_array_index, rle
@@ -25,7 +26,7 @@ from pysiral.core.output import L1bDataNC
 from pysiral.l1.data import L1bMetaData, Level1bData, L1bdataNCFile, L1bTimeOrbit
 from pysiral.l1.alg import L1PProcItem
 from pysiral.l1.io import SourceDataLoader, SourceFileDiscovery
-from pysiral.l1.cfg import L1pProcessorConfig, PolarOceanSegmentsConfig
+from pysiral.l1.cfg import L1pProcessorConfig, PolarOceanSegmentsConfig, Level1OutputHanderConfig
 
 
 from pysiral.l1.debug import l1p_debug_map
@@ -40,18 +41,9 @@ __all__ = [
 class Level1POutputHandler(object):
     """
     """
-
-    def __init__(
-            self,
-            platform: str,
-            timeliness: str,
-            l1p_version: str,
-            file_version: str
-    ) -> None:
-        self.platform = platform
-        self.timeliness = timeliness
-        self.l1p_version = l1p_version
-        self.file_version = file_version
+    def __init__(self, source_dataset_id: Union[str, SourceDataID], **kwargs) -> None:
+        self.source_dataset_id = source_dataset_id
+        self.cfg = Level1OutputHanderConfig(**kwargs)
         self._last_written_file = None
 
     @staticmethod
@@ -83,6 +75,8 @@ class Level1POutputHandler(object):
         ncfile.filename = filename
         ncfile.export()
 
+        self._last_written_file = filename
+
     def get_output_filename(self, l1: "Level1bData") -> str:
         """
         Construct the filename from the Level-1 data object
@@ -92,15 +86,17 @@ class Level1POutputHandler(object):
         :return: filename
         """
 
-        filename_template = "pysiral-l1p-{platform}-{source}-{timeliness}-{hemisphere}-{tcs}-{tce}-{file_version}.nc"
+        filename_template = psrlcfg.local_path.pysiral_output.filenaming.l1p
         time_fmt = "%Y%m%dT%H%M%S"
-        values = {"platform": l1.info.mission,
-                  "source": self.l1p_version,
-                  "timeliness": l1.info.timeliness,
-                  "hemisphere": l1.info.hemisphere,
-                  "tcs": l1.time_orbit.timestamp[0].strftime(time_fmt),
-                  "tce": l1.time_orbit.timestamp[-1].strftime(time_fmt),
-                  "file_version": self.file_version}
+        values = {
+            "platform": l1.info.mission,
+            "l1p_id": self.cfg.l1p_id,
+            "timeliness": l1.info.timeliness,
+            "hemisphere": l1.info.hemisphere,
+            "tcs": l1.time_orbit.timestamp[0].strftime(time_fmt),
+            "tce": l1.time_orbit.timestamp[-1].strftime(time_fmt),
+            "l1p_version_file": self.cfg.l1p_version.filename
+        }
         return filename_template.format(**values)
 
     def get_output_directory(self, l1: "Level1bData") -> Path:
@@ -112,13 +108,23 @@ class Level1POutputHandler(object):
         :return: None
         """
         export_folder = psrlcfg.local_path.pysiral_output.base_directory
-        yyyy = "%04g" % l1.time_orbit.timestamp[0].year
-        mm = "%02g" % l1.time_orbit.timestamp[0].month
-        return export_folder / "l1p" / self.platform / self.l1p_version / self.file_version / l1.info.hemisphere / yyyy / mm
+        sub_folder_template = psrlcfg.local_path.pysiral_output.sub_directories.l1p
+
+        properties = {
+            "platform": self.source_dataset_id.platform_or_mission,
+            "timeliness": self.source_dataset_id.timeliness,
+            "l1p_id": self.cfg.l1p_id,
+            "l1p_version": self.cfg.l1p_version.filename,
+            "hemisphere": l1.info.hemisphere,
+            "year": f"{l1.time_orbit.timestamp[0].year:04g}",
+            "month": f"{l1.time_orbit.timestamp[0].month:02g}",
+
+        }
+        return export_folder / sub_folder_template.format(**properties)
 
     @property
     def last_written_file(self) -> Path:
-        return self.last_written_file
+        return self._last_written_file
 
 
 class PolarOceanSegments(object):
@@ -217,7 +223,7 @@ class PolarOceanSegments(object):
         # Step: Filter small ocean segments
         # NOTE: The objective is to remove any small marine regions (e.g. in fjords) that do not have any
         #       reasonable chance of freeboard/ssh retrieval early on in the pre-processing.
-        if "ocean_mininum_size_nrecords" in self.cfg.polar_ocean:
+        if "ocean_mininum_size_nrecords" in self.cfg:
             logger.info("- filter ocean segments")
             l1 = self.filter_small_ocean_segments(l1)
 
@@ -392,14 +398,14 @@ class PolarOceanSegments(object):
         # Loop over the two hemispheres
         for hemisphere in self.cfg.target_hemisphere:
 
-            if hemisphere == "north":
+            if hemisphere == "nh":
                 is_polar = l1.time_orbit.latitude >= polar_threshold
 
-            elif hemisphere == "south":
+            elif hemisphere == "sh":
                 is_polar = l1.time_orbit.latitude <= (-1.0 * polar_threshold)
 
             else:
-                raise ValueError(f"Unknown {hemisphere=} [north|south]")
+                raise ValueError(f"Unknown {hemisphere=} [nh|sh]")
 
             # Extract the subset (if applicable)
             polar_subset = np.where(is_polar)[0]
@@ -518,7 +524,7 @@ class PolarOceanSegments(object):
         """
 
         # Minimum size for valid ocean segments
-        ocean_mininum_size_nrecords = self.cfg.polar_ocean.ocean_mininum_size_nrecords
+        ocean_mininum_size_nrecords = self.cfg.ocean_mininum_size_nrecords
 
         # Get the clusters of ocean parts in the l1 object
         ocean_flag = l1.surface_type.get_by_name("ocean").flag
@@ -590,7 +596,7 @@ class PolarOceanSegments(object):
         # Test if non-ocean segments above the size threshold that will require a split of the segment.
         # The motivation behind this step to keep l1p data files as small as possible, while tolerating
         # smaller non-ocean sections
-        treshold = self.cfg.polar_ocean.allow_nonocean_segment_nrecords
+        treshold = self.cfg.allow_nonocean_segment_nrecords
         large_landsegs_index = np.where(segments_len[landseg_index] > treshold)[0]
         large_landsegs_index = landseg_index[large_landsegs_index]
 
@@ -738,7 +744,8 @@ class Level1PreProcessor(object):
             **source_loader_kwargs
         )
         self.polar_ocean_segments = PolarOceanSegments(l1p_cfg.level1_preprocessor.polar_ocean)
-        self.output_handler = self._get_output_handler()
+
+        self.output_handler = Level1POutputHandler(self.source_dataset_id, **self.cfg.output.dict())
         self.processor_item_dict = self._init_processor_items()
 
     @classmethod
@@ -825,7 +832,7 @@ class Level1PreProcessor(object):
 
             if not l1_export_list:
                 continue
-            if psrlcfg.debug_mode:
+            if psrlcfg.debug_mode_l1p:
                 l1p_debug_map(l1_export_list, title="Polar Ocean Segments - Export")
 
             # Step 4: Processor items post
@@ -837,7 +844,7 @@ class Level1PreProcessor(object):
             for l1_export in l1_export_list:
                 self.l1_export_to_netcdf(l1_export)
 
-            if psrlcfg.debug_mode:
+            if psrlcfg.debug_mode_l1p:
                 l1p_debug_map(l1_connected_stack, title="Stack after Export")
 
         # Step : Export the last item in the stack (if it exists)
@@ -874,7 +881,7 @@ class Level1PreProcessor(object):
             logger.info("- No polar ocean data for curent job -> skip file")
             return None
 
-        if psrlcfg.debug_mode:
+        if psrlcfg.debug_mode_l1p:
             l1p_debug_map([l1], title="Source File")
 
         # Step 2: Apply processor items on source data
@@ -899,7 +906,7 @@ class Level1PreProcessor(object):
         # Step 3: Extract and subset
 
         l1_po_segments = self.polar_ocean_segments.extract(l1_source)
-        if psrlcfg.debug_mode:
+        if psrlcfg.debug_mode_l1p:
             l1p_debug_map(l1_po_segments, title="Polar Ocean Segments")
         self.l1_apply_processor_items(l1_po_segments, "post_ocean_segment_extraction")
 
@@ -911,13 +918,75 @@ class Level1PreProcessor(object):
             l1_polar_ocean_segments: List[Level1bData]
     ) -> Tuple[List[Level1bData], List[Level1bData]]:
         """
+        This method sorts the stack of connected l1 segments and the polar ocean segments
+        of the most recent file and sorts the segments into (connected) output and
+        the new stack, defined by the last (connected) item.
 
-        :param l1_connected_stack:
-        :param l1_polar_ocean_segments:
+        :param l1_connected_stack: List of connected L1 polar ocean segments (from previous file(s))
+        :param l1_polar_ocean_segments: List of L1 polar ocean segments (from current file)
+
+        :return: L1 segments for the ouput, New l1 stack of connected items
 
         :return:
         """
-        breakpoint()
+
+        # Create a list of all currently available l1 segments. This includes the
+        # elements from the stack and the polar ocean segments
+        all_l1_po_segments = [*l1_connected_stack, *l1_polar_ocean_segments]
+
+        # There is a number of case to be caught her.
+        # Case 1: The list of polar ocean segments might be empty
+        if not l1_polar_ocean_segments:
+            return l1_connected_stack, l1_polar_ocean_segments
+
+        # Case 2: If there is only one element, all data goes to the stack
+        # and no data needs to be exported.
+        # (because the next file could be connected to it)
+        if len(all_l1_po_segments) == 1:
+            return [], l1_polar_ocean_segments
+
+        # Check if segment is connected to the next one
+        are_connected = [
+            self.l1_are_connected(l1_0, l1_1)
+            for l1_0, l1_1 in zip(all_l1_po_segments[:-1], all_l1_po_segments[1:])
+        ]
+
+        # Create a list of (piece-wise) merged elements.
+        # The last element of this list will be the transferred to the
+        # next iteration of the file list
+        merged_l1_list = [copy.deepcopy(all_l1_po_segments[0])]
+        for idx, is_connected in enumerate(are_connected):
+            target_l1 = all_l1_po_segments[idx + 1]
+            if is_connected:
+                merged_l1_list[-1].append(target_l1, remove_overlap=True)
+            else:
+                merged_l1_list.append(copy.deepcopy(target_l1))
+
+        # Return (elements marked for export, l1_connected stack)
+        return merged_l1_list[:-1], [merged_l1_list[-1]]
+
+    def l1_are_connected(self, l1_0: "Level1bData", l1_1: "Level1bData") -> bool:
+        """
+        Check if the start time of l1 segment 1 and the stop time of l1 segment 0
+        indicate neighbouring orbit segments.
+        -> Assumes explicitly that l1_0 comes before l1_1
+
+        :param l1_0:
+        :param l1_1:
+
+        :return: Flag if l1 segments are connected (True of False)
+        """
+
+        # test alternate way of checking connectivity (distance)
+        l1_0_last_latlon = l1_0.time_orbit.latitude[-1], l1_0.time_orbit.longitude[-1]
+        l1_1_first_latlon = l1_1.time_orbit.latitude[0], l1_1.time_orbit.longitude[0]
+        distance_km = distance.distance(l1_0_last_latlon, l1_1_first_latlon).km
+        logger.debug(f"- distance_km={distance_km}")
+
+        # Test if segments are adjacent based on time gap between them
+        tdelta = l1_1.info.start_time - l1_0.info.stop_time
+        threshold = self.cfg.level1_preprocessor.orbit_segment_connectivity.max_connected_segment_timedelta_seconds
+        return tdelta.total_seconds() <= threshold
 
     @staticmethod
     def _validate_source_dataset_id(
@@ -983,19 +1052,16 @@ class Level1PreProcessor(object):
             processor_item_dict[proc_item_def.stage].append((proc_item, proc_item_def.label,))
         return processor_item_dict
 
-    def _get_output_handler(self) -> Level1POutputHandler:
+    def _get_output_handler(
+            self,
+            **output_kwargs
+    ) -> Level1POutputHandler:
         """
         Return the initialized output handler
 
         :return:
         """
-        file_version = DataVersion(self.cfg.pysiral_package_config.version).filename
-        return Level1POutputHandler(
-            self.source_dataset_id.platform_or_mission,
-            self.source_dataset_id.timeliness,
-            self.cfg.pysiral_package_config.id,
-            file_version
-        )
+        return Level1POutputHandler(source_dataset_id=self.source_dataset_id, **output_kwargs)
 
     def l1_export_to_netcdf(self, l1: "Level1bData") -> None:
         """
@@ -1005,7 +1071,7 @@ class Level1PreProcessor(object):
 
         :return:
         """
-        minimum_n_records = self.cfg.level1_preprocessor.export_minimum_n_records
+        minimum_n_records = self.output_handler.cfg.minimum_n_records
         if l1.n_records >= minimum_n_records:
             self.output_handler.export_to_netcdf(l1)
             logger.info(f"- Written l1p product: {self.output_handler.last_written_file}")

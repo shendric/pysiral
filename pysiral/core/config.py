@@ -14,7 +14,7 @@ Created on Mon Jul 06 10:38:41 2015
 
 @author: Stefan
 """
-
+import re
 from pathlib import Path
 from typing import Dict, Union
 from ruamel.yaml import YAML
@@ -28,9 +28,11 @@ class DataVersion(Version):
     (1.0 -> v1p0 -> 1.0)
     """
 
-    def __init__(self, version_str: str) -> None:
-        version_str = str(version_str).replace("v", "")
+    def __init__(self, version: Union[str, float]) -> None:
+        version_str = str(version).replace("v", "")
         version_str = version_str.replace("p", ".")
+        assert re.match(r"\d*\.*\d+$", version_str) is not None, \
+            f"not a valid version string {version_str} (<major_version>[.<minor_version])"
         super(DataVersion, self).__init__(version_str)
 
     @property

@@ -1,14 +1,15 @@
 # --- Basic Information for pysiral---
 pysiral_package_config:
-    id: &l1p_id "cryosat2_l1b_default"
-    version: &l1p_version 1.2
+    l1p_id: &l1p_id "cryosat2_l1b_default"
+    l1p_version: &l1p_version 1.2
     supported_source_datasets:
         - "cryosat2_nrt_esa_iceb0E"
         - "cryosat2_rep_esa_iceb0E"
 
 output:
-    id: *l1p_id
-    version: *l1p_version
+    l1p_id: *l1p_id
+    l1p_version: *l1p_version
+    export_minimum_n_records: 10
 
 # Settings for the pre-processor
 level1_preprocessor:
@@ -17,7 +18,6 @@ level1_preprocessor:
         orbit_coverage: custom_orbit_segment
         target_hemisphere: [nh, sh]
         polar_latitude_threshold: 45.0
-        input_file_is_single_hemisphere: False
         allow_nonocean_segment_nrecords: 1000
 
     orbit_segment_connectivity:
@@ -25,6 +25,7 @@ level1_preprocessor:
 
     # NOTE: if no options are required use an empty mapping {} instead of null!
     processing_items:
+
         # Compute pulse peakiness
         - label: "Compute Pulse Peakiness"
           stage: post_ocean_segment_extraction

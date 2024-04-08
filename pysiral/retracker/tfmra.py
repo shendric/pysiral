@@ -313,13 +313,13 @@ class cTFMRA(BaseRetracker):
 
         # A factor by how much points the waveform should be oversampled
         # before smoothing
-        oversampling_factor = self._options.wfm_oversampling_factor
+        oversampling_factor = self._options["wfm_oversampling_factor"]
 
         # The window size for the box filter (radar mode dependant list)
-        wfm_smoothing_window_size = self._options.wfm_smoothing_window_size
+        wfm_smoothing_window_size = self._options["wfm_smoothing_window_size"]
 
         # The power threshold for the first maximum (radar mode dependant list)
-        first_maximum_normalized_threshold = self._options.first_maximum_normalized_threshold
+        first_maximum_normalized_threshold = self._options["first_maximum_normalized_threshold"]
 
         # ---  Prepare Output ---
 
@@ -370,8 +370,8 @@ class cTFMRA(BaseRetracker):
         r1 = np.full(rng.shape[0], np.nan, dtype=np.float32)
         p1 = np.full(rng.shape[0], np.nan, dtype=np.float32)
 
-        noise_level_range_bin_idx = self._options.noise_level_range_bin_idx
-        oversampling_factor = self._options.wfm_oversampling_factor
+        noise_level_range_bin_idx = self._options["noise_level_range_bin_idx"]
+        oversampling_factor = self._options["wfm_oversampling_factor"]
         first_valid_idx = noise_level_range_bin_idx[1] * oversampling_factor
         for i in np.arange(rng.shape[0]):
             if fmi[i] is None:

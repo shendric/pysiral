@@ -14,7 +14,7 @@ import bottleneck as bn
 import numpy as np
 import numpy.typing as npt
 from loguru import logger
-from pydantic import BaseModel, PositiveInt, PositiveFloat
+from pydantic import BaseModel, NonNegativeInt, PositiveFloat
 from scipy.interpolate import interp1d
 from scipy.optimize import curve_fit
 from scipy.signal import argrelmin
@@ -410,7 +410,7 @@ class L1PSigma0(L1PProcItem):
 
 
 class L1PWaveformPeakinessConfig(BaseModel):
-    skip_first_range_bins: PositiveInt = 0
+    skip_first_range_bins: NonNegativeInt = 0
     norm_is_range_bin: bool = True
 
 
@@ -509,9 +509,9 @@ class L1PWaveformPeakiness(L1PProcItem):
 
 
 class L1PLeadingEdgeQualityConfig(BaseModel):
-    leading_edge_lookup_window: Dict[str, List[PositiveFloat]]
+    leading_edge_lookup_window: Dict[str, NonNegativeInt]
     first_maximum_normalized_power_threshold: Dict[str, PositiveFloat]
-    minimum_valid_first_maximum_index: Dict[str, PositiveInt]
+    minimum_valid_first_maximum_index: Dict[str, NonNegativeInt]
 
     def check_radar_modes(self, radar_mode):
         radar_mode_not_implemented = [
@@ -529,8 +529,8 @@ class L1PLeadingEdgeQuality(L1PProcItem):
     Requires `first_maximum_index` classifier parameter
     """
 
-    def __init__(self, **kwargs):
-        self.cfg = L1PLeadingEdgeQualityConfig(**kwargs)
+    def __init__(self, **cfg_kwargs):
+        self.cfg = L1PLeadingEdgeQualityConfig(**cfg_kwargs)
 
     def apply(self, l1):
         """
@@ -820,30 +820,6 @@ class L1PTrailingEdgeProperties(L1PProcItem):
     #     # for result in results[1:]:
     #     #     params.add(result.params)
     #     return params
-
-    @property
-    def config_validation_schema(self) -> Schema:
-
-        return Schema(
-            {
-                "use_multiprocessing": bool,
-                "valid_first_maximum_index_range": And(
-                    list,
-                    lambda x: all(item > 0 for item in x)
-                ),
-                "trailing_edge_width": {
-                    "trailing_edge_end_power_treshold_normed": And(
-                        float,
-                        lambda x: 0.0 <= x <= 1.0,
-                    ),
-                    "oversample_factor": And(
-                        int,
-                        lambda x: x > 0
-                    )
-                },
-            },
-            error=f"Invalid config for {self.__class__.__name__}:\n "+"{}"
-        )
 
 
 class WaveFormTrailingEdgeParameterData(object):
@@ -1164,13 +1140,14 @@ class WaveFormTrailingEdgeParameter(object):
         return idx_le[wfm_change < 0.0]
 
 
+class L1PLeadingEdgePeakinessConfig(BaseModel):
+    window_size: NonNegativeInt
+
+
 class L1PLeadingEdgePeakiness(L1PProcItem):
 
-    def __init__(self, **cfg):
-        super(L1PLeadingEdgePeakiness, self).__init__(**cfg)
-        for option_name in self.required_options:
-            if option_name not in self.cfg.keys():
-                logger.error(f"Missing option: {option_name} -> Leading Edge Quality will not be computed")
+    def __init__(self, **cfg_kwargs):
+        self.cfg = L1PLeadingEdgePeakinessConfig(**cfg_kwargs)
 
     def apply(self, l1: Level1bData):
         """
@@ -1193,18 +1170,11 @@ class L1PLeadingEdgePeakiness(L1PProcItem):
             l1.classifier.add(lep, "leading_edge_peakiness")
             return
 
-        # Get the window for the pulse peakiness computation
-        window_size = self.cfg.get("window_size", None)
-        if window_size is None:
-            logger.error("Option `window size` not available -> skipping leading edge peakiness")
-            l1.classifier.add(lep, "leading_edge_peakiness")
-            return
-
         # Loop over all waveforms
         for i in np.arange(wfm.shape[0]):
             if fmi[i] < 0:
                 continue
-            lep[i] = self.leading_edge_peakiness(wfm[i, :], fmi[i], window_size)
+            lep[i] = self.leading_edge_peakiness(wfm[i, :], fmi[i], self.cfg.window_size)
 
         # Convert inf to nan
         lep[np.isinf(lep)] = np.nan
@@ -1227,10 +1197,6 @@ class L1PLeadingEdgePeakiness(L1PProcItem):
         i0 = fmi - window
         i0 = max(i0, 0)
         return wfm[fmi] / bn.nanmean(wfm[i0:fmi]) * (fmi - i0)
-
-    @property
-    def required_options(self):
-        return ["window_size"]
 
 
 class CS2OCOGParameter(object):

@@ -1,5 +1,5 @@
 pysiral_package_config:
-  id: "cryotempo_nrt_c001"
+  l1p_id: "cryotempo_nrt_c001"
   version: 1.0
   supported_source_datasets:
     - "cryosat2_nrt_esa_iceb0E"

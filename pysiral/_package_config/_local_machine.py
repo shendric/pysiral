@@ -24,6 +24,10 @@ class _PysiralProductOutputPattern(BaseModel):
         return pattern
 
 
+class _PysiralOutputFilenaming(BaseModel):
+    l1p: str
+
+
 class _DataSourceEntry(BaseModel):
     id: str
     path: Union[str, Dict]
@@ -49,6 +53,7 @@ class _RadarAltimeterCatalogPlatforms(ConvenientRootModel):
 class _PysiralOutputDirectory(BaseModel):
     base_directory: DirectoryPath
     sub_directories: _PysiralProductOutputPattern
+    filenaming: _PysiralOutputFilenaming
 
 
 class _AuxiliaryDataPath(BaseModel):

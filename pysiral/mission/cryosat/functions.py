@@ -10,15 +10,19 @@ from pathlib import Path
 
 import numpy as np
 import numpy.typing as npt
-from typing import Union, Dict
+from typing import Union, Dict, List
 import parse
 import xmltodict
 from dateutil import parser as dtparser
+from pydantic import BaseModel, PositiveInt
 from loguru import logger
 
 from pysiral.l1 import Level1bData, L1PProcItem
-from pysiral.waveform import (get_footprint_sar, get_sigma0_sar,
-                              get_waveforms_peak_power)
+from pysiral.waveform import get_footprint_sar, get_sigma0_sar, get_waveforms_peak_power
+
+
+class L1PWaveformResampleSINConfig(BaseModel):
+    sin_target_bins: PositiveInt
 
 
 class L1PWaveformResampleSIN(L1PProcItem):
@@ -27,8 +31,8 @@ class L1PWaveformResampleSIN(L1PProcItem):
     to the same size as SAR waveform group
     """
 
-    def __init__(self, **cfg) -> None:
-        super(L1PWaveformResampleSIN, self).__init__(**cfg)
+    def __init__(self, **cfg_kwargs) -> None:
+        self.cfg = L1PWaveformResampleSINConfig(**cfg_kwargs)
 
     def apply(self, l1: Level1bData) -> None:
         """
@@ -39,8 +43,12 @@ class L1PWaveformResampleSIN(L1PProcItem):
         """
 
         # The functionality to reduce the waveform bins is built-in in the Level-1 data object
-        if l1.radar_modes == "sin" and self.sin_target_bins is not None:
-            l1.reduce_waveform_bin_count(self.sin_target_bins)
+        if l1.radar_modes == "sin" and self.cfg.sin_target_bins is not None:
+            l1.reduce_waveform_bin_count(self.cfg.sin_target_bins)
+
+
+class L1PWaveformPadLRMConfig(BaseModel):
+    lrm_target_bins: PositiveInt
 
 
 class L1PWaveformPadLRM(L1PProcItem):
@@ -49,8 +57,8 @@ class L1PWaveformPadLRM(L1PProcItem):
     to the same size as SAR waveform group
     """
 
-    def __init__(self, **cfg) -> None:
-        super(L1PWaveformPadLRM, self).__init__(**cfg)
+    def __init__(self, **cfg_kwargs) -> None:
+        self.cfg = L1PWaveformPadLRMConfig(**cfg_kwargs)
 
     def apply(self, l1: Level1bData) -> None:
         """
@@ -63,8 +71,15 @@ class L1PWaveformPadLRM(L1PProcItem):
         """
 
         # The functionality to reduce the waveform bins is built-in in the Level-1 data object
-        if l1.radar_modes == "lrm" and self.lrm_target_bins is not None:
-            l1.increase_waveform_bin_count(self.lrm_target_bins)
+        if l1.radar_modes == "lrm" and self.cfg.lrm_target_bins is not None:
+            l1.increase_waveform_bin_count(self.cfg.lrm_target_bins)
+
+
+class L1PCryoSat2Sigma0Config(BaseModel):
+    footprint_pl_kwargs: Dict[str, float]
+    footprint_sar_kwargs: Dict[str, float]
+    sigma0_sar_kwargs: Dict[str, float]
+    sigma0_bias: List[float]
 
 
 class L1PCryoSat2Sigma0(L1PProcItem):
@@ -73,8 +88,8 @@ class L1PCryoSat2Sigma0(L1PProcItem):
     from waveform data.
     """
 
-    def __init__(self, **cfg):
-        super(L1PCryoSat2Sigma0, self).__init__(**cfg)
+    def __init__(self, **cfg_kwargs):
+        self.cfg = L1PCryoSat2Sigma0Config(**cfg_kwargs)
 
     def apply(self, l1: Level1bData):
         """
@@ -151,8 +166,8 @@ class L1PCryoSat2Sigma0(L1PProcItem):
         :return:
         """
 
-        footprint_sar_kwargs = self.cfg.get("footprint_sar_kwargs", {})
-        sigma0_sar_kwargs = self.cfg.get("sigma0_sar_kwargs", {})
+        footprint_sar_kwargs = self.cfg.footprint_sar_kwargs
+        sigma0_sar_kwargs = self.cfg.sigma0_sar_kwargs
         velocity = self._get_orbit_velocity_from_l1(l1)
         sigma0 = np.full(rx_power.shape, np.nan)
 

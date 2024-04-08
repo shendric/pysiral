@@ -54,7 +54,7 @@ class ProcDefCatalog(BaseModel):
         """
         Entry = namedtuple("Entry", ["l1p_id", "filepath", "file_id"])
         content_dict = get_yaml_as_dict(filepath)
-        l1p_id = content_dict["pysiral_package_config"]["id"]
+        l1p_id = content_dict["pysiral_package_config"]["l1p_id"]
         for dataset_id in content_dict["pysiral_package_config"]["supported_source_datasets"]:
             self.l1_ctlg[dataset_id].append(Entry(l1p_id, filepath, filepath.stem))
 

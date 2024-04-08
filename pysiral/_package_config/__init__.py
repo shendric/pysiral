@@ -135,6 +135,7 @@ class PysiralPackageConfiguration(object):
         """
 
         self.debug_mode = "PYSIRAL_DEBUG_MODE" in os.environ
+        self.debug_mode_l1p = "PYSIRAL_DEBUG_MODE_l1p" in os.environ
 
         # --- Establish the path information ---
         # This step gets the default path (user home, set path for the resources)
