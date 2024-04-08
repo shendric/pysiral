@@ -37,6 +37,27 @@ Glossary
         platform identifier, which is by default the lower case name ([a-z0-9]) e.g. ``cryosat2`` or
         ``envisat``.
 
+    Processing Item
+        A class that can be called during a processing run for a specific processing level
+        (Level-2 processor). Examples are computing variables, statistics or filtering data.
+        The class must be compliant with the conventions of a processing item for
+        the specific processor. These requirements are generally:
+
+        1. The class must have a unique name (typically starts with target processing level)
+        2. The class receives configuration keywords during initialization.
+        3. The class must be a subclass of a processing item class (sub-classing registers
+           the processing item class)
+        4. The class must have a required method that receives the data container, which
+           is then modified in-place
+
+        It is advisable to implement processing items with a dedicated configuration class
+        and store it in the module ``pysiral.<target_processing_level>.alg``, but any
+        location is technically possible.
+
+        Processing items are added in processing configuration files to the workflow. The
+        specification includes the class name, optionally the stage in the workflow
+        and any options if required.
+
     Processing Level
         Data processing levels describe the state of data processing from lower  
         (close to the actual sensor data) to higher levels (geophysical retrievals). 
@@ -62,6 +83,12 @@ Glossary
         |         |                                               |
         |         | Output of the :term:`Level-2 Pre-Processor`   |
         +---------+-----------------------------------------------+
+
+    Product Line
+        An identifier of products and part of the data id of processing levels 2 or higher.
+        The string is usually a short name of the project or institute funding or implementing
+        the data production (Examples: ``cci`` for sea ice thickness climate data records
+        of the ESA Climate Change Initiative).
 
     Sensor
         The name of the radar altimeter sensor. In pysiral, each sensor is referenced by a unique
