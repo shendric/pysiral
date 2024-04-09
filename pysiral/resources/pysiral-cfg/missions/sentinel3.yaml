@@ -23,15 +23,11 @@ platforms:
 
         long_name: ""
         reference: ""
-        file_discovery_options: {}
-        l1_input_adapter_options: {}
 
       sentinel3a_nrt_l2lansi_v5p0:
 
         long_name: ""
         reference: ""
-        file_discovery_options: {}
-        l1_input_adapter_options: {}
 
   sentinel3b:
 
@@ -54,14 +50,8 @@ platforms:
 
         long_name: ""
         reference: ""
-        file_discovery_options: {}
-        l1_input_adapter_options: {}
 
       sentinel3b_nrt_l2lansi_v5p0:
 
         long_name: ""
         reference: ""
-        file_discovery_options: {}
-        l1_input_adapter_options: {}
-
-

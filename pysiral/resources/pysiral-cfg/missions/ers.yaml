@@ -24,10 +24,6 @@ platforms:
         long_name: ""
         reference: ""
 
-        file_discovery_options: {}
-
-        l1_input_adapter_options: {}
-
   ers2:
 
     name: ERS-2
@@ -40,6 +36,7 @@ platforms:
     time_coverage:
         start: 1995-05-14T00:00:00.00
         end: 2003-07-02T23:59:59.99
+
     sea_ice_radar_modes: ["lrm"]
     orbit_max_latitude: 81.5
 
@@ -50,8 +47,3 @@ platforms:
 
         long_name: ""
         reference: ""
-
-        file_discovery_options: {}
-
-        l1_input_adapter_options: {}
-

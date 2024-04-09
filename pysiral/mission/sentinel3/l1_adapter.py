@@ -16,6 +16,88 @@ from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.helper import parse_datetime_str
 from pysiral.l1 import Level1bData, SourceDataLoader
 
+# Information of getting an input file list
+# input_handler:
+#
+#     module_name: pysiral.sentinel3.iotools
+#     class_name: L2SeaIceFileDiscovery
+#
+#     options:
+#         local_machine_def_tag: l2_lan_si  # -> l1b_repository.$platform.$input_tag in (local_machine_def.yaml)
+#         lookup_dir: null  # Leave emtpy: This will be automatically filled with information from local_machine_def
+#         filename_search: enhanced_measurement.nc
+#
+# # Class that will generate the initial l1p data object from
+# # the input data
+# input_adapter:
+#
+#     module_name: pysiral.sentinel3.l1_adapter
+#     class_name: Sentinel3L2SeaIce
+#
+#     # Configuration of the
+#     options:
+#
+#         name: "IPF SRAL/MWR Level 2 Measurement"
+#
+#         range_bin_width: 0.2342125  # Number communicated via Sara Fleury
+#         nominal_tracking_bin: 88
+#
+#         # Settings for the xml manifest
+#         xml_manifest: xfdumanifest.xml
+#         xml_metadata_object_index:
+#             processing: 0
+#             acquisitionPeriod: 1
+#             platform: 2
+#             generalProductInformation: 3
+#             measurementOrbitReference: 4
+#             measurementQualityInformation: 5
+#             measurementFrameSet: 6
+#             sralProductInformation: 7
+#
+#         # Translates the timeliness nomenclature to pysiral conventions
+#         timeliness_dict:
+#             NT: rep
+#             NR: nrt
+#
+#         # Translates instrument operate mode nomenclature to pysiral conventions
+#         # From the documentation in the netCDF global attributes:
+#         # :long_name = "Instrument operating mode : 20 Hz Ku band";
+#         # :flag_values = 0B, 1B, 2B; // byte
+#         # :flag_meanings = "LRM SAR LRM_and_SAR";
+#         # The flag is translated to [lrm, sar, sar]
+#         instr_op_mode_list: [0, 1, 1]
+#
+#         # List of range corrections. The values correspond to netcdf variable names
+#         range_correction_targets:
+#             dry_troposphere: mod_dry_tropo_cor_meas_altitude_01
+#             wet_troposphere: mod_wet_tropo_cor_meas_altitude_01
+#             inverse_barometric: inv_bar_cor_01
+#             dynamic_atmosphere: hf_fluct_cor_01 # "Provided as a correction to the inverted barometer correction (inv_bar_cor_01)";
+#             ionosphere: iono_cor_alt_20_ku
+#             ionosphere_gim: iono_cor_gim_01_ku
+#             ocean_tide_elastic: ocean_tide_non_eq_01
+#             ocean_tide_long_period: ocean_tide_eq_01
+#             ocean_loading_tide: load_tide_sol1_01
+#             solid_earth_tide: solid_earth_tide_01
+#             geocentric_polar_tide: pole_tide_01
+#             geoid: geoid_01
+#
+#         # List of classifiers. The values correspond to netcdf variable names
+#         classifier_targets:
+#             tracking_configuration: cl_gain_20_ku
+#             distance_coast: dist_coast_20_ku
+#             sigma0_ocean: sig0_water_20_ku
+#             surface_type_classification: surf_type_class_20_ku
+#             stack_kurtosis: kurt_stack_20_ku
+#             stack_skewness: skew_stack_20_ku
+#             stack_standard_deviation: stdev_stack_20_ku
+#             swh_ocean: swh_water_20_ku
+#             brightness_temperature_238: tb_238_01
+#             brightness_temperature_365: tb_365_01
+#             first_year_ice_class_membership: first_year_ice_class_01_ku
+#             multi_year_ice_class_membership: multi_year_ice_class_01_ku
+#             open_water_class_membership: open_water_class_01_ku
+
 
 class Sentinel3L2SeaIce(
     SourceDataLoader,

@@ -18,6 +18,94 @@ from pysiral.core.flags import ESA_SURFACE_TYPE_DICT, ORCondition
 from pysiral.mission.ers.sgdrfile import ERSSGDR
 from pysiral.l1 import SourceDataLoader, Level1bData
 
+# # Information of getting an input file list
+# input_handler:
+#
+#     module_name: pysiral.ers.iotools
+#     class_name: ERSCycleBasedSGDR
+#
+#     options:
+#         local_machine_def_tag: sgdr_reaper_v1p08  # -> l1b_repository.$platform.$input_tag in (local_machine_def.yaml)
+#         lookup_dir: null  # Leave emtpy: This will be automatically filled with information from local_machine_def
+#         cycle_folder_regex: E._REAP_ERS_ALT_2S_.
+#         folder_parser: E{ers_number:1d}_REAP_ERS_ALT_2S_{tcs}_{tce}_{cycle:04d}
+#         filename_search: E*_REAP_ERS_ALT_2S_{year:04d}{month:02d}{day:02d}T*_RP01.NC
+#         filename_sep: _   # character to split the filename
+#         tcs_str_index: 5  # index of time_coverage_start string in file (when splitting filename with filename_sep)
+
+# input_adapter:
+#
+#     module_name: pysiral.ers.l1_adapter
+#     class_name: ERSReaperSGDR
+#
+#     options:
+#
+#         name: "Radar Altimeter REAPER Sensor Geophysical Data Record - SGDR "
+#
+#         # Radar Altimeter Settings
+#         range_bin_width: 0.4545
+#         nominal_tracking_bin: 32.5
+#
+#         # SGDR Input Settings
+#         sgdr_n_blocks: 20
+#
+#         # SGDR timestamp units
+#         sgdr_timestamp_units: seconds since 1990-01-01 00:00:00
+#         sgdr_timestamp_calendar: gregorian
+#
+#         platform_name_dict:
+#             E1: ers1
+#             E2: ers2
+#
+#
+#         # The timeliness is fixed (always reprocessed)
+#         timeliness: rep
+#
+#         range_correction_targets:
+#             dry_troposphere: model_dry_tropo_corr
+#             wet_troposphere: model_wet_tropo_corr
+#             inverse_barometric: inv_bar_corr
+#             dynamic_atmosphere: hf_fluctuations_corr
+#             ionosphere: iono_corr_model
+#             ocean_tide_elastic: ocean_tide_sol1
+#             ocean_tide_long_period: ocean_tide_equil
+#             ocean_loading_tide: load_tide_sol1
+#             solid_earth_tide: solid_earth_tide
+#             geocentric_polar_tide: pole_tide
+#             total_geocentric_ocean_tide: Null
+#
+#         classifier_targets:
+#             chirp_type: alt_state_flag_chirp_type_20hz
+#             peakiness_sgdr: peakiness_20hz
+#             ocog_width: width_20hz
+#             ocog_amplitude: amplitude_20hz
+#             sigma0: sitrack_sig0_20hz
+#             sigma0_ice1: ice1_sig0_20hz
+#             sigma0_ice2: ice2_sig0_20hz
+#             slope: slope
+#             leading_edge_width_ice2: ice2_le_width_20hz
+#             ice1_range: ice1_range_20hz
+#             ice2_range: ice2_range_20hz
+#             sitrack_range: sitrack_range_20hz
+#             ocean_range: ocean_range_20hz
+#             significant_wave_height: swh_20hz
+#             center_of_gravity_corr: cog_corr_20hz
+#             epsilon_sec: htl_disc_out
+#             alt_state_flag: alt_state_flag_20hz
+#             alt_state_flag_chirp_type: alt_state_flag_chirp_type_20hz
+#             alt_state_flag_tracking_type: alt_state_flag_tracking_type_20hz
+#             alt_state_flag_tracking_surface: alt_state_flag_tracking_surface_20hz
+#             noise_floor: noise_floor
+#
+#
+# # Output handler (will always be default handler -> only options)
+# output_handler:
+#
+#     options:
+#         local_machine_def_tag: sgdr_reaper_v1p08
+#         version:
+#             source_file_tag: esa_sgdr_v1p08
+#             version_file_tag: v1p3
 
 class ERSReaperSGDR(
     SourceDataLoader,

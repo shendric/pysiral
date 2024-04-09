@@ -17,5 +17,3 @@ platforms:
             envisat_sgdr_esa_v3p0:
                 long_name: ""
                 reference: ""
-                file_discovery_options: {}
-                l1_input_adapter_options: {}
