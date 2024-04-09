@@ -25,7 +25,7 @@ def import_submodules(package, recursive=True):
     """ Import all submodules of a module, recursively, including subpackages
 
     :param package: package (name or actual module)
-    :param recursive: for sub-modules
+    :param recursive: for submodules
     :type package: str | module
     :rtype: dict[str, types.ModuleType]
     """
@@ -33,10 +33,7 @@ def import_submodules(package, recursive=True):
         package = importlib.import_module(package)
     results = {}
     for loader, name, is_pkg in pkgutil.walk_packages(package.__path__):
-        full_name = package.__name__ + '.' + name
-        # Make an exception for the cythonized part of pysiral
-        if "bnfunc" in full_name:
-            continue
+        full_name = f'{package.__name__}.{name}'
         results[full_name] = importlib.import_module(full_name)
         if recursive and is_pkg:
             results.update(import_submodules(full_name))

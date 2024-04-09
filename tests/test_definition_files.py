@@ -39,8 +39,8 @@ class TestDefinitionfiles(unittest.TestCase):
             self.assertIsInstance(tce, datetime.datetime)
 
     def testAuxdataDefinitionBasic(self):
-        self.assertTrue(hasattr(psrlcfg, "auxdef"))
-        keys = psrlcfg.auxdef.iter_keys
+        self.assertTrue(hasattr(psrlcfg, "auxdata"))
+        keys = psrlcfg.auxdata.get_entries()
         self.assertGreater(len(keys), 0)
 
     def testAuxdataDefinitionContent(self):

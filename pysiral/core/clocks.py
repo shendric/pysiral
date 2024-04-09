@@ -28,8 +28,10 @@ def debug_timer(message: str = None, show_parameters: List[str] = None):
     :return: decorated function
     """
     def decorated_func(func):
+
         def wrapped_func(*args, **kwargs):
 
+            # Use function/method name as message if none has been specified
             stack = inspect.stack()
             caller_obj = stack[1][0].f_locals["self"]
             caller = caller_obj if message is None else message
@@ -44,6 +46,7 @@ def debug_timer(message: str = None, show_parameters: List[str] = None):
                     parameter_value = args[parameter_idx]
                     caller += f" [{parameter_name}={parameter_value}]"
 
+            # Execute function and measure the time
             t0 = time.time()
             return_value = func(*args, **kwargs)
             t1 = time.time()

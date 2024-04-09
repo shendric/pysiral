@@ -36,13 +36,13 @@ class L1PWaveformResampleSIN(L1PProcItem):
 
     def apply(self, l1: Level1bData) -> None:
         """
-        API class for the Level-1 pre-processor. Functionality is reduce the size of the waveform power and
-        range arrays for SIN data to the one for SAR data.
+        API class for the Level-1 pre-processor. Functionality is to reduce the size of the
+        waveform power and range arrays for SIN data to the one for SAR data.
+
         :param l1: A Level-1 data instance
+
         :return: None, Level-1 object is change in place
         """
-
-        # The functionality to reduce the waveform bins is built-in in the Level-1 data object
         if l1.radar_modes == "sin" and self.cfg.sin_target_bins is not None:
             l1.reduce_waveform_bin_count(self.cfg.sin_target_bins)
 

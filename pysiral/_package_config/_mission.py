@@ -23,8 +23,8 @@ class _AltimeterTimeCoverage(BaseModel):
 class _AltimeterSourceDataset(BaseModel):
     long_name: str
     reference: str
-    file_discovery_options: dict
-    l1_input_adapter_options: dict
+    # file_discovery_options: dict
+    # l1_input_adapter_options: dict
 
 
 class _AltimeterSourceDatasets(ConvenientRootModel):
