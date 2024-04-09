@@ -173,9 +173,9 @@ class PolarOceanSegments(object):
         logger.info(f"- extracted {len(l1_list)} polar region subset(s)")
 
         # Step: Split the l1 segments at time discontinuities.
-        # NOTE: This step is optional. It requires the presence of the options `timestamp_discontinuities`
+        # NOTE: This step is optional. It requires the presence of the options `split_at_time_gap_seconds`
         #       in the L1 pre-processor config file
-        if self.cfg.timestamp_discontinuities:
+        if self.cfg.split_at_time_gap_seconds is not None:
             logger.info("- split at time discontinuities")
             l1_list = self.split_at_time_discontinuities(l1_list)
 
@@ -627,7 +627,7 @@ class PolarOceanSegments(object):
         """
 
         # Prepare input (should always be list)
-        seconds_threshold = self.cfg.timestamp_discontinuities.split_at_time_gap_seconds
+        seconds_threshold = self.cfg.split_at_time_gap_seconds
         dt_threshold = timedelta(seconds=seconds_threshold)
 
         # Output (list with l1b segments)
@@ -744,7 +744,7 @@ class Level1PreProcessor(object):
         )
         self.polar_ocean_segments = PolarOceanSegments(l1p_cfg.polar_ocean_detection)
         self.output_handler = Level1POutputHandler(self.source_dataset_id, **self.cfg.output.dict())
-        self.processor_item_dict = self._init_processor_items()
+        self.processor_item_dict = self.init_processor_items()
 
     @classmethod
     def from_ids(
@@ -806,10 +806,6 @@ class Level1PreProcessor(object):
         # Init helpers
         prgs = ProgressIndicator(n_input_files)
 
-        # # A class that is passed to the input adapter to check if the pre-processor wants the
-        # # content of the current file
-        # polar_ocean_check = L1PreProcPolarOceanCheck(self.polar_ocean_props)
-
         # The stack of connected l1 segments is a list of l1 objects that together form a
         # continuous trajectory over polar oceans. This stack will be emptied and its content
         # exported to a l1p netcdf if the next segment is not connected to the stack.
@@ -822,14 +818,24 @@ class Level1PreProcessor(object):
         for i, source_data_file in enumerate(source_data_files):
 
             logger.info(f"+ Process input file {prgs.get_status_report(i)} [{source_data_file.name}]")
-            l1_source = self._load_source_data(source_data_file)
-            if l1_source is None:
-                continue
-            l1_po_segments = self._get_source_data_polar_ocean_segments(l1_source)
-            l1_export_list, l1_connected_stack = self._get_merged_segments(l1_connected_stack, l1_po_segments)
 
+            # Step 1: Map data from source data file to L1 object
+            if (l1_source := self.load_source_data(source_data_file)) is None:
+                continue
+
+            # Step 2: Extract Polar Ocean Segments
+            l1_po_segments = self.get_polar_ocean_segments(l1_source)
+
+            # Step 3: Merge polar ocean segments (if applicable)
+            l1_export_list, l1_connected_stack = self.get_merged_segments(
+                l1_connected_stack,
+                l1_po_segments
+            )
+
+            # All segments are connected if export list is empty
             if not l1_export_list:
                 continue
+
             if psrlcfg.debug_mode_l1p:
                 l1p_debug_map(l1_export_list, title="Polar Ocean Segments - Export")
 
@@ -858,7 +864,7 @@ class Level1PreProcessor(object):
         else:
             raise ValueError("something went wrong here")
 
-    def _load_source_data(self, source_data_file: Path) -> Optional[Level1bData]:
+    def load_source_data(self, source_data_file: Path) -> Optional[Level1bData]:
         """
         Extract polar ocean segments from a source data file.
 
@@ -888,7 +894,7 @@ class Level1PreProcessor(object):
 
         return l1
 
-    def _get_source_data_polar_ocean_segments(self, l1_source: Level1bData) -> List[Level1bData]:
+    def get_polar_ocean_segments(self, l1_source: Level1bData) -> List[Level1bData]:
         """
         Extract polar ocean segments from a source data file. The input files may
         contain unwanted data (low latitude/land segments). It is the job of the
@@ -902,15 +908,13 @@ class Level1PreProcessor(object):
         """
 
         # Step 3: Extract and subset
-
         l1_po_segments = self.polar_ocean_segments.extract(l1_source)
         if psrlcfg.debug_mode_l1p:
             l1p_debug_map(l1_po_segments, title="Polar Ocean Segments")
         self.l1_apply_processor_items(l1_po_segments, "post_ocean_segment_extraction")
-
         return l1_po_segments
 
-    def _get_merged_segments(
+    def get_merged_segments(
             self,
             l1_connected_stack: List[Level1bData],
             l1_polar_ocean_segments: List[Level1bData]
@@ -986,51 +990,7 @@ class Level1PreProcessor(object):
         threshold = self.cfg.orbit_segment_connect.max_timedelta_seconds
         return tdelta.total_seconds() <= threshold
 
-    @staticmethod
-    def _validate_source_dataset_id(
-            source_dataset_id: Union[str, SourceDataID]
-    ) -> SourceDataID:
-        """
-        Ensures that source data set id is always of type SourceDataID
-
-        :param source_dataset_id:
-
-        :return: source dataset identifier as SourceDataID intance
-        """
-        return (
-            source_dataset_id if isinstance(source_dataset_id, SourceDataID) else
-            SourceDataID.from_str(source_dataset_id)
-        )
-
-    @staticmethod
-    def _validate_hemisphere(hemisphere: Any) -> List[Literal["nh", "sh"]]:
-        """
-        Ensure that value of hemisphere value is list of "nh" and "sh"
-
-        :param hemisphere: class input for hemisphere keyword
-
-        :raises ValueError: Invalid hemisphere definition
-
-        :return: validated list of target hemispheres
-        """
-
-        # Default is global
-        if hemisphere is None:
-            return ["nh", "sh"]
-
-        if isinstance(hemisphere, str):
-            hemisphere = [hemisphere]
-
-        error_msg = f"Invalid {hemisphere=} (Must be list with literals `nh` and `sh`"
-        if not isinstance(hemisphere, list):
-            raise ValueError(error_msg)
-
-        if any(h not in ["nh", "sh"] for h in hemisphere):
-            raise ValueError(error_msg)
-
-        return hemisphere
-
-    def _init_processor_items(self) -> Dict[str, list]:
+    def init_processor_items(self) -> Dict[str, list]:
         """
         Populate the processor item dictionary with initialized processor item classes
         for the different stages of the Level-1 pre-processor.
@@ -1050,17 +1010,6 @@ class Level1PreProcessor(object):
             processor_item_dict[proc_item_def.stage].append((proc_item, proc_item_def.label,))
         return processor_item_dict
 
-    def _get_output_handler(
-            self,
-            **output_kwargs
-    ) -> Level1POutputHandler:
-        """
-        Return the initialized output handler
-
-        :return:
-        """
-        return Level1POutputHandler(source_dataset_id=self.source_dataset_id, **output_kwargs)
-
     def l1_export_to_netcdf(self, l1: "Level1bData") -> None:
         """
         Exports the Level-1 object as l1p netCDF
@@ -1076,6 +1025,7 @@ class Level1PreProcessor(object):
         else:
             logger.warning(f"- Orbit segment below {minimum_n_records=} ({l1.n_records}), skipping")
 
+    @debug_timer("L1 processor items", show_parameters=["stage_name"])
     def l1_apply_processor_items(
             self,
             l1: Union["Level1bData", List["Level1bData"]],
@@ -1106,7 +1056,6 @@ class Level1PreProcessor(object):
             else self._l1_apply_proc_item(l1, stage_name)
         )
 
-    @debug_timer("L1 processor items")
     def _l1_apply_proc_item_list(self,
                                  l1_list: List["Level1bData"],
                                  stage_name: str
@@ -1122,7 +1071,6 @@ class Level1PreProcessor(object):
         for procitem, label in self.processor_item_dict.get(stage_name, []):
             procitem.apply_list(l1_list)
 
-    @debug_timer("L1 processor items")
     def _l1_apply_proc_item(self, l1: "Level1bData", stage_name: str) -> None:
         """
         Apply l1 processor items
@@ -1133,6 +1081,49 @@ class Level1PreProcessor(object):
         for procitem, label in self.processor_item_dict.get(stage_name, []):
             procitem.apply(l1)
 
+    @staticmethod
+    def _validate_hemisphere(hemisphere: Any) -> List[Literal["nh", "sh"]]:
+        """
+        Ensure that value of hemisphere value is list of "nh" and "sh"
+
+        :param hemisphere: class input for hemisphere keyword
+
+        :raises ValueError: Invalid hemisphere definition
+
+        :return: validated list of target hemispheres
+        """
+
+        # Default is global
+        if hemisphere is None:
+            return ["nh", "sh"]
+
+        if isinstance(hemisphere, str):
+            hemisphere = [hemisphere]
+
+        error_msg = f"Invalid {hemisphere=} (Must be list with literals `nh` and `sh`"
+        if not isinstance(hemisphere, list):
+            raise ValueError(error_msg)
+
+        if any(h not in ["nh", "sh"] for h in hemisphere):
+            raise ValueError(error_msg)
+
+        return hemisphere
+
+    @staticmethod
+    def _validate_source_dataset_id(
+            source_dataset_id: Union[str, SourceDataID]
+    ) -> SourceDataID:
+        """
+        Ensures that source data set id is always of type SourceDataID
+
+        :param source_dataset_id:
+
+        :return: source dataset identifier as SourceDataID intance
+        """
+        return (
+            source_dataset_id if isinstance(source_dataset_id, SourceDataID) else
+            SourceDataID.from_str(source_dataset_id)
+        )
 # class L1PreProcBase(object):
 #
 #     def __init__(
@@ -1157,12 +1148,12 @@ class Level1PreProcessor(object):
 #
 #         # Initialize the L1 processor items
 #         self.processor_item_dict = {}
-#         self._init_processor_items()
+#         self.init_processor_items()
 #
 #         # # The stack of Level-1 objects is a simple list
 #         # self.l1_stack = []
 #
-#     def _init_processor_items(self) -> None:
+#     def init_processor_items(self) -> None:
 #         """
 #         Popuplate the processor item dictionary with initialized processor item classes
 #         for the different stages of the Level-1 pre-processor.

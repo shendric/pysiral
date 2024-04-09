@@ -18,10 +18,11 @@ polar_ocean_detection:
     target_hemisphere: [nh, sh]
     polar_latitude_threshold: 45.0
     allow_nonocean_segment_nrecords: 1000
+    split_at_time_gap_seconds: 10.
 
 # Settings for merging orbit segments
 orbit_segment_connect:
-    max_timedelta_seconds: 10
+    max_timedelta_seconds: 10.
 
 # Settings for l1p netCDF output
 output:

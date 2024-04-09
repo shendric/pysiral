@@ -11,29 +11,44 @@ import time
 import inspect
 from loguru import logger
 from datetime import datetime
+from typing import List
 
 from dateutil.relativedelta import relativedelta
 
 
-def debug_timer(message: str = None):
+def debug_timer(message: str = None, show_parameters: List[str] = None):
     """
     Decorator function that logs the time in seconds for a function/method
     if python is run in debug mode with environment variable set PYTHON_DEBUG_MODE=1.
     (only the log level is set to DEBUG)
 
     :param message: Message for the log
+    :param show_parameters: display variables to debug message
 
     :return: decorated function
     """
     def decorated_func(func):
         def wrapped_func(*args, **kwargs):
+
             stack = inspect.stack()
             caller_obj = stack[1][0].f_locals["self"]
             caller = caller_obj if message is None else message
+
+            # Add value of parameters to debug message
+            # TODO: Only implemented for arguments, not keyword arguments
+            if isinstance(show_parameters, list):
+                parameters = inspect.signature(func).parameters
+                for parameter_name in show_parameters:
+                    parameter_idx = list(parameters.keys()).index(parameter_name)
+
+                    parameter_value = args[parameter_idx]
+                    caller += f" [{parameter_name}={parameter_value}]"
+
             t0 = time.time()
             return_value = func(*args, **kwargs)
             t1 = time.time()
             elapsed_seconds = t1 - t0
+
             logger.debug(f"{caller} run in {elapsed_seconds:.3f} seconds ({get_duration(elapsed_seconds)})")
             return return_value
         # Preserve function metadata (especially annotations) of the wrapped function
@@ -44,11 +59,11 @@ def debug_timer(message: str = None):
     return decorated_func
 
 
-def get_duration(elapsed_seconds, fmt="%H:%M:%S"):
+def get_duration(elapsed_seconds, fmt="%H:%M:%S.%f"):
     # Example time
     datum = datetime(1900, 1, 1)
     duration = datum + relativedelta(seconds=elapsed_seconds)
-    return duration.strftime(fmt)
+    return duration.strftime(fmt)[:-3]
 
 
 class StopWatch(object):
