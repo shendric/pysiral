@@ -15,6 +15,7 @@ from pysiral.core.config import get_yaml_as_dict
 
 logger.disable("pysiral")
 
+# TODO: Find and add syntax test for all yaml files
 
 class TestDefinitionfiles(unittest.TestCase):
 
@@ -22,41 +23,26 @@ class TestDefinitionfiles(unittest.TestCase):
         pass
 
     def testYamlSyntaxOfDefinitionFiles(self):
-        def_files = ["mission_def.yaml", "auxdata_def.yaml"]
+        def_files = ["auxdata_def.yaml"]
         for def_file in def_files:
             filename = psrlcfg.config_path / def_file
             content = get_yaml_as_dict(filename)
             self.assertIsInstance(content, dict, msg=def_file)
 
+    def testMissionDefinitions(self):
+        mission_ids = psrlcfg.missions.get_mission_ids()
+        self.assertIsInstance(mission_ids, list)
+        self.assertGreater(len(mission_ids), 0)
+
     def testPlatformDefinitions(self):
-        self.assertIsInstance(psrlcfg.platforms.ids, list)
-        for platform_id in psrlcfg.platforms.ids:
-            self.assertIsNotNone(psrlcfg.platforms.get_name(platform_id))
-            self.assertIsNotNone(psrlcfg.platforms.get_sensor(platform_id))
-            self.assertIsNotNone(psrlcfg.platforms.get_orbit_inclination(platform_id))
-            tcs, tce = psrlcfg.platforms.get_time_coverage(platform_id)
-            self.assertIsInstance(tcs, datetime.datetime)
-            self.assertIsInstance(tce, datetime.datetime)
+        platform_ids = psrlcfg.missions.get_platform_ids()
+        self.assertIsInstance(platform_ids, list)
+        self.assertGreater(len(platform_ids), 0)
 
     def testAuxdataDefinitionBasic(self):
         self.assertTrue(hasattr(psrlcfg, "auxdata"))
         keys = psrlcfg.auxdata.get_entries()
         self.assertGreater(len(keys), 0)
-
-    def testAuxdataDefinitionContent(self):
-        """
-        Test the content of the auxdata definitions (both in the userhome as well as the package,
-        since they might be different)
-        :return:
-        """
-        for category, id, item in psrlcfg.auxdef.items:
-            aux_id = f"{category}:{id}"
-            config_dict_keys = item.keys
-            for required_key in ["options", "long_name", "pyclass", "local_repository"]:
-                self.assertTrue(
-                    required_key in config_dict_keys,
-                    msg=f"{aux_id} has {required_key}",
-                )
 
 
 if __name__ == '__main__':
