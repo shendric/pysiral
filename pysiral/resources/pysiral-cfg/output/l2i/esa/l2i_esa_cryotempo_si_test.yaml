@@ -178,13 +178,6 @@ variables:
     standard_name: mean_sea_surface
     units: m
     coordinates: longitude latitude
-    
-  sea_ice_freeboard_filtered:
-    long_name: "freeboard of the sea ice layer"
-    comment: "Filtered with a 450km lowess filter"
-    standard_name: sea_ice_freeboard
-    units: m
-    coordinates: longitude latitude
 
   flag:
     long_name: "L2 algorithm error flag"

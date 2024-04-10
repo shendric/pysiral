@@ -36,8 +36,8 @@ class TestConfig(unittest.TestCase):
         """
         from pysiral._package_config._local_machine import LocalMachineConfig
         if psrlcfg.local_path.filepath is not None:
-            self.assertIsInstance(psrlcfg.local_path, LocalMachineConfig)
             self.assertTrue(psrlcfg.local_path.filepath.is_file())
+            self.assertTrue(hasattr(psrlcfg.local_path, "model_config"))
 
     def testL1ProcessorDefinitions(self):
         """

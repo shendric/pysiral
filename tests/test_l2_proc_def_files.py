@@ -18,16 +18,10 @@ logger.disable("pysiral")
 
 class TestL2ProcDef(unittest.TestCase):
 
-    def setUp(self):
-
-        # Get a list of processor definition files in the code repository
-        l2proc_ids = psrlcfg.get_setting_ids("proc", "l2")
-        self.l2procdef_files = [psrlcfg.get_settings_file("proc", "l2", l2proc_id) for l2proc_id in l2proc_ids]
-
     def testYamlSyntaxOfDefinitionFiles(self):
-        for filename in self.l2procdef_files:
-            content = get_yaml_as_dict(filename)
-            self.assertIsInstance(content, dict, msg=filename)
+        for procdef_id, procdef_entry in psrlcfg.procdef.l2.items():
+            content = get_yaml_as_dict(procdef_entry.filepath)
+            self.assertIsInstance(content, dict, msg=procdef_entry.filepath)
 
 
 if __name__ == '__main__':

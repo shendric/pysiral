@@ -20,15 +20,10 @@ logger.disable("pysiral")
 
 class TestL3OutputDef(unittest.TestCase):
 
-    def setUp(self):
-
-        # Get a list of processor definition files in the code repository
-        self.l3_output_files = psrlcfg.get_settings_files("output", "l3")
-
     def testYamlSyntaxOfDefinitionFiles(self):
-        for filename in self.l3_output_files:
-            content = get_yaml_as_dict(filename)
-            self.assertIsInstance(content, dict, msg=filename)
+        for procdef_id, procdef_entry in psrlcfg.outputdef.l3.items():
+            content = get_yaml_as_dict(procdef_entry.filepath)
+            self.assertIsInstance(content, dict, msg=procdef_entry.filepath)
 
 
 if __name__ == '__main__':

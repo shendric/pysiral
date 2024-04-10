@@ -17,17 +17,16 @@ logger.disable("pysiral")
 
 # TODO: Find and add syntax test for all yaml files
 
+
 class TestDefinitionfiles(unittest.TestCase):
 
     def setUp(self):
         pass
 
-    def testYamlSyntaxOfDefinitionFiles(self):
-        def_files = ["auxdata_def.yaml"]
-        for def_file in def_files:
-            filename = psrlcfg.config_path / def_file
-            content = get_yaml_as_dict(filename)
-            self.assertIsInstance(content, dict, msg=def_file)
+    def testYamlSyntaxOfAuxDataDefinitionFile(self):
+        filename = psrlcfg.package.config_path / "auxdata_def.yaml"
+        content = get_yaml_as_dict(filename)
+        self.assertIsInstance(content, dict, msg=filename)
 
     def testMissionDefinitions(self):
         mission_ids = psrlcfg.missions.get_mission_ids()
