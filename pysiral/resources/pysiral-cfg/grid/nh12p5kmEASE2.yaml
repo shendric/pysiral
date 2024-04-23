@@ -38,7 +38,7 @@ extent:
 
 area_def: 
     ease2nh:
-        description: Equal-Area Scalable Earth Grid (v2), northern hemisphere, resolution 25km
+        description: Equal-Area Scalable Earth Grid (v2), northern hemisphere, resolution 12.5km
         projection:
             proj: laea
             lat_0: 90.0
