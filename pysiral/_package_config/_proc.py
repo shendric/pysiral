@@ -70,7 +70,7 @@ class ProcDefCatalog(BaseModel):
         """
         Get a list of known processor settings id's for the specified processing level
 
-        :param processing_level: One of l1, l2, l3
+        :param processing_level: One of l1 (source), l1p, l2, l3
 
         :raises ValueError: Invalid processing level
 
@@ -79,7 +79,7 @@ class ProcDefCatalog(BaseModel):
         try:
             proc_level_cfg = getattr(self, processing_level)
         except AttributeError as ae:
-            raise ValueError(f"Invalid processing level: {processing_level} [l1, l2, l3]") from ae
+            raise ValueError(f"Invalid processing level: {processing_level} [l1, l1p, l2, l3]") from ae
 
         return sorted(list(proc_level_cfg.keys()))
 
