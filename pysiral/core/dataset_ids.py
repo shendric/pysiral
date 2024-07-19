@@ -4,8 +4,10 @@
 Module containing class for data set id definitions
 """
 import parse
-from typing import Literal
-from pydantic import BaseModel, PrivateAttr, field_validator
+from typing import Literal, Union
+from pydantic import BaseModel, PrivateAttr, field_validator, ConfigDict
+
+from pysiral.core.config import DataVersion
 
 
 # noinspection PyNestedDecorators
@@ -50,13 +52,21 @@ class L1PDataID(BaseModel):
     """
     Version for Level-1P dataset
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     platform: str
-    timeliness: str
     source_dataset: str
-    version: str
-    _parser_str: str = PrivateAttr(default="{platform}_{timeliness}_{source_dataset}_{version}")
+    timeliness: str
+    version: Union[str, float, DataVersion]
+    _parser_str: str = PrivateAttr(default="{platform}_{source_dataset}_{timeliness}_{version}")
 
-    @field_validator("platform", "timeliness", "source_dataset", "version")
+    @field_validator("version")
+    @classmethod
+    def version(cls, version_value) -> DataVersion:
+        if isinstance(version_value, (str, float)):
+            version_value = DataVersion(version_value)
+        return version_value
+
+    @field_validator("platform", "timeliness", "source_dataset")
     @classmethod
     def is_instance(cls, str_value: str) -> str:
         assert str_value.isidentifier()
@@ -79,26 +89,34 @@ class L1PDataID(BaseModel):
 
     @property
     def version_str(self) -> str:
-        return self._parser_str.format(**dict(self))
+        tag_dict = dict(self)
+        tag_dict["version"] = self.version.filename
+        return self._parser_str.format(**tag_dict)
 
 
 class L2ProcessingLevel(BaseModel):
     """
     Dataset identifier of Level-2 data products
     """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     processing_level: Literal["l2", "l2i"]
     product_line: str
     platform: str
     hemisphere: str
     timeliness: str
-    version: str
+    version: Union[float, str, DataVersion]
     _parser_str: str = PrivateAttr(
         default="{processing_level}_{product_line}_{platform}_{hemisphere}_{timeliness}_{version}"
     )
 
-    @field_validator(
-        "processing_level", "product_line", "platform", "hemisphere", "timeliness", "version"
-    )
+    @field_validator("version")
+    @classmethod
+    def version(cls, version_value) -> DataVersion:
+        if isinstance(version_value, (str, float)):
+            version_value = DataVersion(version_value)
+        return version_value
+
+    @field_validator("processing_level", "product_line", "platform", "hemisphere", "timeliness")
     @classmethod
     def is_instance(cls, str_value: str) -> str:
         assert str_value.isidentifier()
@@ -121,4 +139,6 @@ class L2ProcessingLevel(BaseModel):
 
     @property
     def version_str(self) -> str:
-        return self._parser_str.format(**dict(self))
+        tag_dict = dict(self)
+        tag_dict["version"] = self.version.filename
+        return self._parser_str.format(**tag_dict)

@@ -12,7 +12,7 @@ from loguru import logger
 
 from ._models import _YamlDefEntry
 from pysiral.core.config import get_yaml_as_dict
-from pysiral.core.dataset_ids import SourceDataID
+from pysiral.core.dataset_ids import SourceDataID, L1PDataID
 
 
 class ProcDefCatalog(BaseModel):
@@ -23,7 +23,7 @@ class ProcDefCatalog(BaseModel):
 
     """
     l1: Dict[str, _YamlDefEntry] = Field(
-        description="ID's and filenames of Level-1 preprocesor definition files"
+        description="ID's and filenames of Level-1 preprocessor definition files"
     )
     l2: Dict[str, _YamlDefEntry] = Field(
         description="ID's and filenames of Level-2 procesor definition files"
@@ -34,6 +34,11 @@ class ProcDefCatalog(BaseModel):
     l1_ctlg: Dict = Field(
         description="Mapping of Level-1 preprocessor files to source data set id's",
         default=defaultdict(list)
+    )
+
+    l1p: Dict = Field(
+        description="List of l1p data set ids (constructed from Level-1 preprocessor definition files)",
+        default={}
     )
 
     def __init__(self, **data) -> None:
@@ -55,8 +60,18 @@ class ProcDefCatalog(BaseModel):
         Entry = namedtuple("Entry", ["l1p_id", "filepath", "file_id"])
         content_dict = get_yaml_as_dict(filepath)
         l1p_id = content_dict["pysiral_package_config"]["l1p_id"]
+        version = content_dict["pysiral_package_config"]["l1p_version"]
         for dataset_id in content_dict["pysiral_package_config"]["supported_source_datasets"]:
             self.l1_ctlg[dataset_id].append(Entry(l1p_id, filepath, filepath.stem))
+            # foresee l1p dataset ids.
+            sid = SourceDataID.from_str(dataset_id)
+            l1_dataset_id = L1PDataID(
+                platform=sid.platform_or_mission,
+                source_dataset=l1p_id,
+                timeliness=sid.timeliness,
+                version=version
+            )
+            self.l1p[l1_dataset_id.version_str] = Entry(l1p_id, filepath, filepath.stem)
 
     def _register_all_l1_procdefs(self) -> None:
         """
@@ -66,7 +81,7 @@ class ProcDefCatalog(BaseModel):
         for l1p_name, l1p_def in self.l1.items():
             self.register_l1procdef(l1p_def.filepath)
 
-    def get_ids(self, processing_level: Literal["l1", "l2", "l3"]) -> List[str]:
+    def get_ids(self, processing_level: Literal["l1", "l1p", "l2", "l3"]) -> List[str]:
         """
         Get a list of known processor settings id's for the specified processing level
 
@@ -80,7 +95,6 @@ class ProcDefCatalog(BaseModel):
             proc_level_cfg = getattr(self, processing_level)
         except AttributeError as ae:
             raise ValueError(f"Invalid processing level: {processing_level} [l1, l1p, l2, l3]") from ae
-
         return sorted(list(proc_level_cfg.keys()))
 
     def get_l1_from_dataset_id(
