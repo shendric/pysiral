@@ -34,7 +34,7 @@ from pysiral.l1.debug import l1p_debug_map
 __all__ = [
     "Level1POutputHandler", "Level1PreProcessor", "L1pProcessorConfig",
     "Level1bData", "L1bMetaData", "L1PProcItem", "SourceDataLoader",
-    "SourceFileDiscovery", "L1bDataNC", "L1bdataNCFile"
+    "SourceFileDiscovery", "L1bDataNC", "L1bdataNCFile", "L1bTimeOrbit"
 ]
 
 
