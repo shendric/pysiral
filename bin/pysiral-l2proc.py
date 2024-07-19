@@ -7,37 +7,130 @@ import glob
 import re
 import sys
 import time
+
+from pathlib import Path
+from typing import Union, List, Optional, Literal
 from datetime import timedelta
 
 from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral import psrlcfg
-from pysiral.core.config import DefaultCommandLineArguments
+from pysiral.core.cli import DefaultCommandLineArguments
 from pysiral.core.datahandler import L1PDataHandler
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.l2 import Level2Processor, Level2ProductDefinition
 
 
-def pysiral_l2proc():
-    # Collect job settings from pysiral configuration data and
-    # command line arguments
-    args = Level2ProcArgParser()
+def pysiral_l2proc_cli_wrapper() -> None:
+    """
+    The console scripts version of the pysiral-l1preprocessor scripts.
+    It takes the required input from the command line with initial
+    input processing and validation and starts the
+    Level-1 pre-processor script.
 
-    # Parse and validate the command line arguments
-    args.parse_command_line_arguments()
+    :return:
+    """
 
-    # Get confirmation for critical choices (if necessary)
-    args.critical_prompt_confirmation()
+    # Get the command line arguments
+    cli = Level2ProcArgParser()
+    cli.parse_command_line_arguments()
 
-    # From here on there are two options
-    # a. Time range given -> Get l1bdata input with datahandler
-    # b. Predefined set of l1b input files
-    # Splitting into functions for clarity
-    if args.is_time_range_request:
-        pysiral_l2proc_time_range_job(args)
-    else:
-        pysiral_l2proc_l1b_predef_job(args)
+    # TODO: Implement ignore month
+    target_period = DatePeriod(cli.args.start_date, cli.args.stop_date)
+
+    pysiral_l2proc(
+        cli.args.l1p_dataset_id,
+        cli.args.l2_dataset_id,
+        target_period,
+        l2i_output_ids=cli.args.l2i_output_ids,
+        output_processing_level=cli.args.output_processing_levels,
+        overwrite_protection=cli.args.overwrite_protection
+    )
+
+
+def pysiral_l2proc(
+        l1p_dataset_id: str,
+        l2_dataset_id: str,
+        period: DatePeriod,
+        l2i_output_ids: Optional[Union[str, List[str]]] = None,
+        output_processing_level: Optional[Literal["l2", "l2i"]] = "l2i",
+        overwrite_protection: Optional[bool] = False
+) -> None:
+    """
+
+    Statement of Function
+    ---------------------
+
+    Starts the pysiral l2 processor generating a l2 dataset for a defined
+    l1p dataset input dataset and period in monthly chunks. One Level-2 dataset
+    is generated for each l1p dataset with identical coverage.
+
+    Required Input Arguments
+    ------------------------
+
+    **L1P dataset id**: The identifier of the input data for the Level-2
+    processors. pysiral will identify suitable l1p input files for the given period
+
+    **L2p dataset id**: Identifier of the Level-2 dataset. Defines the Level-2
+    processor algorithm definition and the (default) output format.
+
+    **Processing Period**: A `dateperiod.Dateperiod` instance defining
+    the processing period.
+
+
+    Configuration Options
+    ---------------------
+
+    **L2 Output ID's**: Each l2 dataset is defined with a default output format, but the type
+    of output can be overwritten with one or multiple out files using the `l2i_output_ids`
+    keyword argument. Please note that the content of `l2i_output_ids` overwrites the
+    default output.
+
+    **Output Processing Level**: Defines the output processing level of the Level-2 processor.
+    Default value is `l2i`, but for some algorithms the processing level is defined as `l2`
+    and needs to be set accordingly.
+
+    :param l1p_dataset_id: Identifier of the l1p input dataset of type
+        `{platform}_{l1p_id}_{version}`. Pysiral will look in
+        `{pysiral_product_dir}/{platform}/{l1p_id}/{version}` for data files.
+    :param l2_dataset_id: Identifier of the l2 output dataset of type
+        l2_{product_line}_{timeliness}_{platform}_{hemisphere}_{version}.
+    :param period: The processing period definition.
+    :param l2i_output_ids: (Optional): Overwrites the default l2 dataset
+        output with (list of) output ids.
+    :param output_processing_level: Defines the output processing level of the
+        Level-2 processor. Default value is `l2i`, but for some algorithms
+        the processing level is defined as `l2`. In the latter case, this
+        parameter must be set.
+    :param overwrite_protection: (Optional) Boolean flag that is false be default.
+        If set to true, pysiral will add a subdirectory with the processing data
+        to the l2 output folder structure to avoid overwriting existing files.
+
+    :raises ValueError: Incorrect l1p dataset id | Incorrect l2 dataset id |
+        Output processing level not on of ["l2", "l2i"]
+    """
+
+    breakpoint()
+
+    # # Collect job settings from pysiral configuration data and
+    # # command line arguments
+    # args = Level2ProcArgParser()
+    #
+    # # Parse and validate the command line arguments
+    # args.parse_command_line_arguments()
+    #
+    # # Get confirmation for critical choices (if necessary)
+    # args.critical_prompt_confirmation()
+    #
+    # # From here on there are two options
+    # # a. Time range given -> Get l1bdata input with datahandler
+    # # b. Predefined set of l1b input files
+    # # Splitting into functions for clarity
+    # if args.is_time_range_request:
+    #     pysiral_l2proc_time_range_job(args)
+    # else:
+    #     pysiral_l2proc_l1b_predef_job(args)
 
 
 def pysiral_l2proc_time_range_job(args):
@@ -75,8 +168,12 @@ def pysiral_l2proc_time_range_job(args):
         period_segments.filter_month(args.exclude_month)
 
     # Prepare DataHandler
-    l1b_data_handler = L1PDataHandler(mission_id, hemisphere, source_version=args.source_version,
-                                      file_version=args.file_version)
+    l1b_data_handler = L1PDataHandler(
+        mission_id,
+        hemisphere,
+        source_version=args.source_version,
+        file_version=args.file_version
+    )
 
     # Processor Initialization
     l2proc = Level2Processor(product_def)
@@ -112,12 +209,17 @@ def pysiral_l2proc_l1b_predef_job(args):
     t0 = time.process_time()
 
     # Get the product definition
-    product_def = Level2ProductDefinition(args.run_tag,
-                                          args.l2_settings_file,
-                                          force_l2def_record_type=args.force_l2def_record_type)
+    product_def = Level2ProductDefinition(
+        args.run_tag,
+        args.l2_settings_file,
+        force_l2def_record_type=args.force_l2def_record_type
+    )
 
     # Specifically add an output handler
-    product_def.add_output_definition(args.l2_output, overwrite_protection=args.overwrite_protection)
+    product_def.add_output_definition(
+        args.l2_output,
+        overwrite_protection=args.overwrite_protection
+    )
 
     # Processor Initialization
     l2proc = Level2Processor(product_def)
@@ -134,19 +236,19 @@ class Level2ProcArgParser(object):
     def __init__(self):
         self.error = ErrorStatus()
         self.pysiral_config = psrlcfg
-        self._args = None
+        self.args = None
 
     def parse_command_line_arguments(self):
         # use python module argparse to parse the command line arguments
         # (first validation of required options and data types)
-        self._args = self.parser.parse_args()
+        self.args = self.parser.parse_args()
 
         # Add additional check to make sure either `l1b-files` or
         # `start ` and `stop` are set
-        l1b_file_preset_is_set = self._args.l1b_files_preset is not None
+        l1b_file_preset_is_set = self.args.l1b_files_preset is not None
         start_and_stop_is_set = (
-                self._args.start_date is not None and
-                self._args.stop_date is not None
+                self.args.start_date is not None and
+                self.args.stop_date is not None
         )
 
         if l1b_file_preset_is_set and start_and_stop_is_set:
@@ -158,11 +260,11 @@ class Level2ProcArgParser(object):
     def critical_prompt_confirmation(self):
 
         # Any confirmation prompts can be overridden by --no-critical-prompt
-        no_prompt = self._args.no_critical_prompt
+        no_prompt = self.args.no_critical_prompt
 
         # if --remove_old is set, all previous l1bdata files will be
         # erased for all month
-        if self._args.remove_old and not no_prompt:
+        if self.args.remove_old and not no_prompt:
             message = "You have selected to remove all previous " + \
                       "l2 files for the requested period\n" + \
                       "(Note: use --no-critical-prompt to skip confirmation)\n" + \
@@ -211,15 +313,15 @@ class Level2ProcArgParser(object):
     @property
     def arg_dict(self):
         """ Return the arguments as dictionary """
-        return self._args.__dict__
+        return self.args.__dict__
 
     @property
     def start(self):
-        return self._args.start_date
+        return self.args.start_date
 
     @property
     def stop(self):
-        return self._args.stop_date
+        return self.args.stop_date
 
     @property
     def run_tag(self):
@@ -237,7 +339,7 @@ class Level2ProcArgParser(object):
         """
 
         # Get from command line arguments (default: None)
-        run_tag = self._args.run_tag
+        run_tag = self.args.run_tag
 
         # split the run-tag on potential path separators
         if run_tag is not None:
@@ -247,15 +349,15 @@ class Level2ProcArgParser(object):
 
     @property
     def exclude_month(self):
-        return self._args.exclude_month
+        return self.args.exclude_month
 
     @property
     def overwrite_protection(self):
-        return self._args.overwrite_protection
+        return self.args.overwrite_protection
 
     @property
     def l2_settings_file(self):
-        l2_settings = self._args.l2_settings
+        l2_settings = self.args.l2_settings
         filename = self.pysiral_config.get_settings_file("proc", "l2", l2_settings)
         if filename is not None:
             return filename
@@ -267,21 +369,13 @@ class Level2ProcArgParser(object):
         self.error.raise_on_error()
 
     @property
-    def source_version(self):
-        return self._args.input_version
-
-    @property
-    def file_version(self):
-        return self._args.l1p_version
-
-    @property
     def l1b_predef_files(self):
-        return glob.glob(self._args.l1b_files_preset)
+        return glob.glob(self.args.l1b_files_preset)
 
     @property
     def l2_output(self):
         filenames = []
-        for l2_output in self._args.l2_output.split(";"):
+        for l2_output in self.args.l2_output.split(";"):
             filename = self.pysiral_config.get_settings_file("output", "l2i", l2_output)
 
             if filename is None:
@@ -297,7 +391,7 @@ class Level2ProcArgParser(object):
 
         if not filenames:
             msg = "No valid output definition file found for argument: %s"
-            msg %= (str(self._args.l3_output))
+            msg %= (str(self.args.l3_output))
             self.error.add_error("invalid-outputdef", msg)
             self.error.raise_on_error()
 
@@ -305,16 +399,16 @@ class Level2ProcArgParser(object):
 
     @property
     def force_l2def_record_type(self):
-        return self._args.force_l2def_record_type
+        return self.args.force_l2def_record_type
 
     @property
     def is_time_range_request(self):
-        return self._args.l1b_files_preset is None
+        return self.args.l1b_files_preset is None
 
     @property
     def remove_old(self):
-        return self._args.remove_old and not self._args.overwrite_protection
+        return self.args.remove_old and not self.args.overwrite_protection
 
 
 if __name__ == "__main__":
-    pysiral_l2proc()
+    pysiral_l2proc_cli_wrapper()
