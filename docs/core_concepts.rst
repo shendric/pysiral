@@ -22,7 +22,7 @@ Level-1 Pre-Processed Data
 
 ID naming convention
 
-``{platform}_{input_version}_{timeliness}_{version}``
+``{platform}_{source_id}_{timeliness}_{version}``
 
 `Example: cryosat2_iceb0E_rep_v1p2`
 
@@ -31,9 +31,9 @@ Pysiral higher level data products
 
 ID naming convention:
 
-``{processing_level}_{product_line}_{timeliness}_{platform}_{hemisphere}_{version}``
+``{processing_level}_{product_line}_{platform}_{hemisphere}_{timeliness}_{version}``
 
-`Example: l2i_awi_rep_cryosat2_nh_v2p6`
+`Example: l2i_awi_cryosat2_nh_rep_v2p6`
 
 Auxiliary Data
 ~~~~~~~~~~~~~~
