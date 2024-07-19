@@ -44,7 +44,6 @@ def pysiral_l2proc_cli_wrapper() -> None:
         cli.args.l2_dataset_id,
         target_period,
         l2i_output_ids=cli.args.l2i_output_ids,
-        output_processing_level=cli.args.output_processing_levels,
         overwrite_protection=cli.args.overwrite_protection
     )
 
@@ -54,7 +53,6 @@ def pysiral_l2proc(
         l2_dataset_id: str,
         period: DatePeriod,
         l2i_output_ids: Optional[Union[str, List[str]]] = None,
-        output_processing_level: Optional[Literal["l2", "l2i"]] = "l2i",
         overwrite_protection: Optional[bool] = False
 ) -> None:
     """
