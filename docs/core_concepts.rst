@@ -22,9 +22,9 @@ Level-1 Pre-Processed Data
 
 ID naming convention
 
-``{platform}_{timeliness}_{version}``
+``{platform}_{input_version}_{timeliness}_{version}``
 
-`Example: cryosat2_rep_v1p0`
+`Example: cryosat2_iceb0E_rep_v1p2`
 
 Pysiral higher level data products
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,5 +58,3 @@ with:
 - ``SNOW``: Data on snow thickness and/or density
 - ``SIC``: Sea Ice Concentration
 - ``SITYPE``: Sea Ice Type
--
-
