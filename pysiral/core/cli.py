@@ -44,6 +44,17 @@ class DefaultCommandLineArguments(object):
             },
 
             # platform (same as mission, but proper name)
+            "l1p-dataset-id": {
+                "action": 'store',
+                "dest": 'l1p_dataset_id',
+                "choices": psrlcfg.procdef.get_ids("l1p"),
+                "required": True,
+                "default": None,
+                "help": "pysiral recognized Level-1 dataset identifier of format" 
+                        "`{platform}_{source_id}_{timeliness}_{version}`"
+            },
+
+            # platform (same as mission, but proper name)
             "l1p_id": {
                 "action": 'store',
                 "dest": 'l1p_id',
@@ -161,6 +172,15 @@ class DefaultCommandLineArguments(object):
             "l2-settings": {
                 "action": "store",
                 "dest": "l2_settings",
+                "default": None,
+                "required": True,
+                "help": 'id or path to Level-2 settings file'
+            },
+
+            # fetch the level-2 settings file
+            "l2-dataset-id": {
+                "action": "store",
+                "dest": "l2_dataset_id",
                 "default": None,
                 "required": True,
                 "help": 'id or path to Level-2 settings file'

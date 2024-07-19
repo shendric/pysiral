@@ -73,7 +73,7 @@ def pysiral_l2proc(
     **L2p dataset id**: Identifier of the Level-2 dataset. Defines the Level-2
     processor algorithm definition and the (default) output format.
 
-    **Processing Period**: A `dateperiod.Dateperiod` instance defining
+    **Processing Period**: A ``dateperiod.Dateperiod`` instance defining
     the processing period.
 
 
@@ -81,32 +81,23 @@ def pysiral_l2proc(
     ---------------------
 
     **L2 Output ID's**: Each l2 dataset is defined with a default output format, but the type
-    of output can be overwritten with one or multiple out files using the `l2i_output_ids`
-    keyword argument. Please note that the content of `l2i_output_ids` overwrites the
-    default output.
-
-    **Output Processing Level**: Defines the output processing level of the Level-2 processor.
-    Default value is `l2i`, but for some algorithms the processing level is defined as `l2`
-    and needs to be set accordingly.
+    of output can be overwritten with one or multiple out files using the ``l2i_output_ids``
+    keyword argument. Please note that the content of ``l2i_output_ids` overwrites the
+    default output.`
 
     :param l1p_dataset_id: Identifier of the l1p input dataset of type
-        `{platform}_{l1p_id}_{version}`. Pysiral will look in
-        `{pysiral_product_dir}/{platform}/{l1p_id}/{version}` for data files.
+        ``{platform}_{l1p_id}_{version}``. Pysiral will look in
+        ``{pysiral_product_dir}/{platform}/{l1p_id}/{version}`` for data files.
     :param l2_dataset_id: Identifier of the l2 output dataset of type
         l2_{product_line}_{timeliness}_{platform}_{hemisphere}_{version}.
     :param period: The processing period definition.
     :param l2i_output_ids: (Optional): Overwrites the default l2 dataset
-        output with (list of) output ids.
-    :param output_processing_level: Defines the output processing level of the
-        Level-2 processor. Default value is `l2i`, but for some algorithms
-        the processing level is defined as `l2`. In the latter case, this
-        parameter must be set.
+        output with (list of) output ids.t.
     :param overwrite_protection: (Optional) Boolean flag that is false be default.
         If set to true, pysiral will add a subdirectory with the processing data
         to the l2 output folder structure to avoid overwriting existing files.
 
-    :raises ValueError: Incorrect l1p dataset id | Incorrect l2 dataset id |
-        Output processing level not on of ["l2", "l2i"]
+    :raises ValueError: Incorrect l1p dataset id | Incorrect l2 dataset id
     """
 
     breakpoint()
@@ -283,20 +274,19 @@ class Level2ProcArgParser(object):
         # List of command line option required for pre-processor
         # (argname, argtype (see config module), destination, required flag)
         options = [
-            ("-l2-settings", "l2-settings", "l2_settings", True),
-            ("-run-tag", "run-tag", "run_tag", False),
-            ("-start", "date", "start_date", False),
-            ("-stop", "date", "stop_date", False),
-            ("-l1b-files", "l1b_files", "l1b_files_preset", False),
-            ("-exclude-month", "exclude-month", "exclude_month", False),
-            ("-input-version", "input-version", "input_version", False),
-            ("-l1p-version", "l1p-version", "l1p_version", False),
+            ("--l1p-dataset-id", "l1p-dataset-id", "l1p_dataset_id", True),
+            ("--l2-dataset-id", "l2-dataset-id", "l2_dataset_id", True),
+            ("--start", "date", "start_date", False),
+            ("--stop", "date", "stop_date", False),
+            # ("-l1b-files", "l1b_files", "l1b_files_preset", False),
+            # ("-exclude-month", "exclude-month", "exclude_month", False),
             ("-l2-output", "l2-output", "l2_output", False),
-            ("--remove-old", "remove-old", "remove_old", False),
-            ("--force-l2def-record-type", "force-l2def-record-type", "force_l2def_record_type", False),
-            ("--no-critical-prompt", "no-critical-prompt", "no_critical_prompt", False),
-            ("--no-overwrite-protection", "no-overwrite-protection", "overwrite_protection", False),
-            ("--overwrite-protection", "overwrite-protection", "overwrite_protection", False)]
+            # ("--remove-old", "remove-old", "remove_old", False),
+            # ("--force-l2def-record-type", "force-l2def-record-type", "force_l2def_record_type", False),
+            # ("--no-critical-prompt", "no-critical-prompt", "no_critical_prompt", False),
+            # ("--no-overwrite-protection", "no-overwrite-protection", "overwrite_protection", False),
+            # ("--overwrite-protection", "overwrite-protection", "overwrite_protection", False)
+        ]
 
         # create the parser
         parser = argparse.ArgumentParser()
