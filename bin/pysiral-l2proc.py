@@ -234,17 +234,17 @@ class Level2ProcArgParser(object):
 
         # Add additional check to make sure either `l1b-files` or
         # `start ` and `stop` are set
-        l1b_file_preset_is_set = self.args.l1b_files_preset is not None
-        start_and_stop_is_set = (
-                self.args.start_date is not None and
-                self.args.stop_date is not None
-        )
+        # l1b_file_preset_is_set = self.args.l1b_files_preset is not None
+        # start_and_stop_is_set = (
+        #         self.args.start_date is not None and
+        #         self.args.stop_date is not None
+        # )
 
-        if l1b_file_preset_is_set and start_and_stop_is_set:
-            self.parser.error("-start & -stop and -l1b-files are exclusive")
-
-        if not l1b_file_preset_is_set and not start_and_stop_is_set:
-            self.parser.error("either -start & -stop or -l1b-files required")
+        # if l1b_file_preset_is_set and start_and_stop_is_set:
+        #     self.parser.error("-start & -stop and -l1b-files are exclusive")
+        #
+        # if not l1b_file_preset_is_set and not start_and_stop_is_set:
+        #     self.parser.error("either -start & -stop or -l1b-files required")
 
     def critical_prompt_confirmation(self):
 
@@ -274,13 +274,13 @@ class Level2ProcArgParser(object):
         # List of command line option required for pre-processor
         # (argname, argtype (see config module), destination, required flag)
         options = [
-            ("--l1p-dataset-id", "l1p-dataset-id", "l1p_dataset_id", True),
-            ("--l2-dataset-id", "l2-dataset-id", "l2_dataset_id", True),
-            ("--start", "date", "start_date", False),
-            ("--stop", "date", "stop_date", False),
+            (("-l1", "--l1p-dataset-id",), "l1p-dataset-id", "l1p_dataset_id", True),
+            (("-l2", "--l2-dataset-id", ), "l2-dataset-id", "l2_dataset_id", True),
+            (("--start", ), "date", "start_date", False),
+            (("--end",), "date", "stop_date", False),
             # ("-l1b-files", "l1b_files", "l1b_files_preset", False),
             # ("-exclude-month", "exclude-month", "exclude_month", False),
-            ("-l2-output", "l2-output", "l2_output", False),
+            (("--l2-output",), "l2-output", "l2_output", False),
             # ("--remove-old", "remove-old", "remove_old", False),
             # ("--force-l2def-record-type", "force-l2def-record-type", "force_l2def_record_type", False),
             # ("--no-critical-prompt", "no-critical-prompt", "no_critical_prompt", False),
