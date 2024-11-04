@@ -65,6 +65,7 @@ class Level3Processor(DefaultLoggingClass):
 
         logger.info("Parsing products (prefilter active: %s)" % (str(self._job.l3def.l2i_prefilter.active)))
 
+        logger.critical("Nasty debug code for ERS-2")
         # Parse all orbit files and add to the stack
         for i, l2i_file in enumerate(l2i_files):
 
@@ -104,6 +105,7 @@ class Level3Processor(DefaultLoggingClass):
             prefilter = self._job.l3def.l2i_prefilter
             if prefilter.active:
                 l2i.transfer_nan_mask(prefilter.nan_source, prefilter.nan_targets)
+                l2i = debug_ers2_sit_outlier_filter(l2i)
             # Add to stack
             stack.add(l2i)
 
@@ -1966,3 +1968,20 @@ class Level3GriddedClassifiers(Level3ProcessorItem):
 
             result = self._stat_functions[statistic](classifier_grid_values[subset])
             self.l3grid.vars[grid_var_name][yj][xi] = result
+
+
+def get_rolling_statistics(arr, window):
+    import pandas as pd
+    rolling_kwargs = dict(window=window, center=True, min_periods=1)
+    rolling_arr = pd.Series(arr).rolling(**rolling_kwargs)
+    return rolling_arr.mean(), rolling_arr.std()
+
+
+def debug_ers2_sit_outlier_filter(l2i):
+    # sdev_factor = 2.0
+    # sit_rolling_mean, sit_rolling_sdev = get_rolling_statistics(l2i.sea_ice_thickness, window=1001)
+    tfrma_threshold_is_lower_limit = l2i.tfmra_threshold < 0.101
+    # sit_higher_two_sdev = l2i.sea_ice_thickness > sit_rolling_mean + sdev_factor * sit_rolling_sdev
+    # filter_flag = np.logical_or(tfrma_threshold_is_lower_limit, sit_higher_two_sdev)
+    l2i.sea_ice_thickness[tfrma_threshold_is_lower_limit] = np.nan
+    return l2i
