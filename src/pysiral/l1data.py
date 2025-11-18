@@ -385,23 +385,18 @@ class Level1bData(object):
         """
 
         # Extract original waveform
-        orig_power, orig_range = self.waveform.power, self.waveform.range
-        n_records, n_bins = orig_power.shape
 
         # Get the bin with the waveform maximum
-        max_index = np.argmax(orig_power, axis=1)
+        max_index = np.argmax(self.waveform.power, axis=1)
+        n_records, n_bins = self.waveform.power.shape
 
         # Compute number of leading and trailing bins
         lead_bins = int(maxloc * target_count)
         trail_bins = target_count - lead_bins
+        rebin_shape = (n_records, target_count)
 
         # Get the start/stop indices for each waveform
         start, stop = max_index - lead_bins, max_index + trail_bins
-
-        # Create new arrays
-        rebin_shape = (n_records, target_count)
-        power = np.ndarray(shape=rebin_shape, dtype=orig_power.dtype)
-        range_ = np.ndarray(shape=rebin_shape, dtype=orig_range.dtype)
 
         # Validity check
         overflow = np.where(stop > n_bins)[0]
@@ -416,13 +411,18 @@ class Level1bData(object):
             stop[underflow] -= offset
             start[underflow] -= offset
 
-        # Extract the waveform with reduced bin count
-        for i in np.arange(n_records):
-            power[i, :] = orig_power[i, start[i]:stop[i]]
-            range_[i, :] = orig_range[i, start[i]:stop[i]]
+        new_values = {}
+        for parameter in ['power', 'range', 'phase_difference', 'coherence']:
+            orig_value = getattr(self.waveform, parameter)
+            new_value = np.ndarray(shape=rebin_shape, dtype=orig_value.dtype)
+            # Extract the waveform with reduced bin count
+            for i in np.arange(n_records):
+                new_value[i, :] = orig_value[i, start[i]:stop[i]]
+            new_values[parameter] = new_value
 
         # Push to waveform container
-        self.waveform.set_waveform_data(power, range_, self.radar_modes)
+        self.waveform.set_waveform_data(new_values["power"], new_values["range"], self.radar_modes)
+        self.waveform.set_interferometric_data(new_values["phase_difference"], new_values["coherence"])
 
     # TODO: Move to waveform class
     def increase_waveform_bin_count(self, target_count: int) -> None:
@@ -1082,7 +1082,10 @@ class L1bWaveforms(object):
     """ Container for Echo Power Waveforms """
 
     _valid_radar_modes = ["lrm", "sar", "sin"]
-    _parameter_list = ["power", "range", "radar_mode", "is_valid", "classification_flag"]
+    _parameter_list = [
+        "power", "range", "radar_mode", "is_valid", "classification_flag",
+        "coherence", "phase_difference"
+    ]
     _attribute_list = ["echo_power_unit"]
 
     def __init__(self, info):
@@ -1096,6 +1099,8 @@ class L1bWaveforms(object):
         self._radar_mode = None
         self._is_valid = None
         self._classification_flag = None
+        self._coherence = None
+        self._phase_difference = None
 
     @property
     def power(self):
@@ -1114,6 +1119,14 @@ class L1bWaveforms(object):
     @property
     def radar_mode(self):
         return np.copy(self._radar_mode)
+
+    @property
+    def coherence(self):
+        return np.copy(self._coherence) if self._coherence is not None else np.full(self.power.shape, np.nan)
+
+    @property
+    def phase_difference(self):
+        return np.copy(self._phase_difference) if self._phase_difference is not None else np.full(self.power.shape, np.nan)
 
     @property
     def is_valid(self):
@@ -1187,6 +1200,23 @@ class L1bWaveforms(object):
         if self._is_valid is None:
             self._is_valid = np.ones(shape=self.n_records, dtype=bool)
 
+    def set_interferometric_data(
+            self,
+            phase_difference: np.ndarray,
+            coherence: np.ndarray
+    ) -> None:
+
+        n_records, n_range_gates = phase_difference.shape
+        if n_records != self.n_records or n_range_gates != self.n_range_bins:
+            raise ValueError(f"Phase difference dims {phase_difference.shape} does not match L1B data {(self.n_records, self.n_range_bins)}")
+        self._phase_difference = phase_difference
+
+        n_records, n_range_gates = coherence.shape
+        if n_records != self.n_records or n_range_gates != self.n_range_bins:
+            raise ValueError(
+                f"Phase coherence dims {coherence.shape} does not match L1B data {(self.n_records, self.n_range_bins)}")
+        self._coherence = coherence
+
     def set_valid_flag(self, valid_flag):
         # Validate number of records
         self._info.check_n_records(len(valid_flag))
@@ -1204,6 +1234,12 @@ class L1bWaveforms(object):
         self._classification_flag = classification_flag
 
     def append(self, annex):
+
+        # NOTE: phase difference and coherence must be appended before power, because
+        #       both interferometric parameters can be None and will then be created as NaN
+        #       arrays with the shape of power
+        self._phase_difference = np.concatenate((self.phase_difference, annex.phase_difference), axis=0)
+        self._coherence = np.concatenate((self.coherence, annex.coherence), axis=0)
         self._power = np.concatenate((self._power, annex.power), axis=0)
         self._range = np.concatenate((self._range, annex.range), axis=0)
         self._radar_mode = np.append(self._radar_mode, annex.radar_mode)

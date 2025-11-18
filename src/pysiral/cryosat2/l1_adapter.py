@@ -396,8 +396,105 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
     def empty(self):
         return None
 
+class ESACryoSat2ICELevel1b(ESACryoSat2PDSBaselineD):
+    """
+    Same as standard ESACryoSat2PDSBaselineD but with interferometric data
+    Example implementation for CLEV2ER science study
+    """
+
+    def __init__(self, cfg, raise_on_error=False):
+        ESACryoSat2PDSBaselineD.__init__(self, cfg, raise_on_error)
+
+    def _set_waveform_data_group(self):
+        """
+        Transfer of the waveform group to the Level-1 object. This includes
+          1. the computation of waveform power in Watts
+          2. the computation of the window delay in meter for each waveform bin
+          3. extraction of the waveform valid flag
+        :return: None
+        """
+
+        # Get the waveform
+        # NOTE: Convert the waveform units to Watts. From the documentation:is applied as follows:
+        #       pwr_waveform_20_ku(time, ns) * echo_scale_factor_20_ku(time, ns) * 2 ^ echo_scale_pwr_20_ku(time)
+        wfm_linear = self.nc.pwr_waveform_20_ku.values
+
+        # Get the shape of the waveform array
+        dim_time, dim_ns = wfm_linear.shape
+
+        # Scaling parameter are 1D -> Replicate to same shape as waveform array
+        echo_scale_factor = self.nc.echo_scale_factor_20_ku.values
+        echo_scale_pwr = self.nc.echo_scale_pwr_20_ku.values
+        echo_scale_factor = np.tile(echo_scale_factor, (dim_ns, 1)).transpose()
+        echo_scale_pwr = np.tile(echo_scale_pwr, (dim_ns, 1)).transpose()
+
+        # Convert the waveform from linear counts to Watts
+        wfm_power = wfm_linear*echo_scale_factor * 2.0**echo_scale_pwr
+
+        # Get the window delay
+        # From the documentation:
+        #   Calibrated 2-way window delay: distance from CoM to middle range window (at sample ns/2 from 0).
+        #   It includes all the range corrections given in the variable instr_cor_range and in the
+        #   variable uso_cor_20_ku. This is a 2-way time and 2-way corrections are applied.
+        window_delay = self.nc.window_del_20_ku.values
+
+        # Convert window delay to range for each waveform range bin
+        wfm_range = self.get_wfm_range(window_delay, dim_ns)
+
+        # Set the waveform
+        op_mode = str(self.nc.attrs["sir_op_mode"].strip().lower())
+        radar_mode = self.translate_opmode2radar_mode(op_mode)
+        self.l1.waveform.set_waveform_data(wfm_power, wfm_range, radar_mode)
+
+        # --- Get the valid flag ---
+        #
+        # From the documentation
+        # :comment = "Measurement confidence flags. Generally the MCD flags indicate problems when set.
+        #             If the whole MCD is 0 then no problems or non-nominal conditions were detected.
+        #             Serious errors are indicated by setting the most significant bit, i.e. block_degraded,
+        #             in which case the block must not be processed. Other error settings can be regarded
+        #             as warnings.";
+        #
+        # :flag_masks = -2147483648, block_degraded        <- most severe error
+        #                1073741824, blank_block
+        #                536870912, datation_degraded
+        #                268435456, orbit_prop_error
+        #                134217728, orbit_file_change
+        #                67108864, orbit_gap
+        #                33554432, echo_saturated
+        #                16777216, other_echo_error
+        #                8388608, sarin_rx1_error
+        #                4194304, sarin_rx2_error
+        #                2097152, window_delay_error
+        #                1048576, agc_error
+        #                524288, cal1_missing
+        #                262144, cal1_default
+        #                131072, doris_uso_missing
+        #                65536, ccal1_default
+        #                32768, trk_echo_error
+        #                16384, echo_rx1_error
+        #                8192, echo_rx2_error
+        #                4096, npm_error                   <- Defined as maximum permissible error level
+        #                2048, cal1_pwr_corr_type
+        #                128, phase_pert_cor_missing       <- Seems to be always set for SARin
+        #                64, cal2_missing
+        #                32, cal2_default
+        #                16, power_scale_error
+        #                8, attitude_cor_missing
+        #                1, phase_pert_cor_default
+        measurement_confident_flag = self.nc.flag_mcd_20_ku.values
+        valid_flag = (measurement_confident_flag >= 0) & (measurement_confident_flag <= 4096)
+        self.l1.waveform.set_valid_flag(valid_flag)
+
+        if radar_mode == "sin":
+            # Get the interferometric phase and coherence
+            interferometric_phase = self.nc.ph_diff_waveform_20_ku.values
+            interferometric_coherence = self.nc.coherence_waveform_20_ku.values
+            self.l1.waveform.set_interferometric_data(interferometric_phase, interferometric_coherence)
+
 
 class ESACryoSat2PDSBaselineDPatchFES(ESACryoSat2PDSBaselineD):
+
     def __init__(self, cfg, raise_on_error=False):
         ESACryoSat2PDSBaselineD.__init__(self, cfg, raise_on_error)
 
