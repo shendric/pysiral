@@ -88,8 +88,13 @@ class BaseRetracker(object):
             return False
 
         # Loop over each waveform of given surface type
+        interferometric_vars = ["phase_difference", "coherence"]
+        kwargs = (
+            {v: getattr(l1b.waveform, v) for v in interferometric_vars}
+            if hasattr(l1b.waveform, interferometric_vars[0]) else {}
+        )
         self.l2_retrack(l1b.waveform.range, l1b.waveform.power, self._indices,
-                        l1b.waveform.radar_mode, l1b.waveform.is_valid)
+                        l1b.waveform.radar_mode, l1b.waveform.is_valid, **kwargs)
         return True
 
     def l2_retrack(self, rng, pwr, indices, radar_mode, is_valid):

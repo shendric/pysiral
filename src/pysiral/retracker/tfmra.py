@@ -88,14 +88,18 @@ class cTFMRA(BaseRetracker):
         """
         pass
 
-    def l2_retrack(self, rng, wfm, indices, radar_mode, is_valid):
+    def l2_retrack(self, rng, wfm, indices, radar_mode, is_valid, phase_difference=None, coherence=None):
         """
          API Calling method for retrackers.
+
         :param rng: (np.array, dim:(n_records, n_bins)
         :param wfm:
         :param indices:
         :param radar_mode:
         :param is_valid:
+        :param phase_difference:
+        :param coherence:
+
         :return:
         """
 
@@ -106,6 +110,9 @@ class cTFMRA(BaseRetracker):
 
         # Auxiliary output: The noise power determined by the TFMRA
         tfmra_noise_power = np.full(tfmra_threshold.shape, np.nan)
+        tfmra_phase_difference = np.full(tfmra_threshold.shape, np.nan)
+        tfmra_coherence = np.full(tfmra_threshold.shape, np.nan)
+        tfmra_epoch = np.full(tfmra_threshold.shape, np.nan)
 
         # Auxiliary output: The index of the first maximum
         tfmra_first_maximum_index = np.full(tfmra_threshold.shape, -1, dtype=int)
@@ -182,11 +189,11 @@ class cTFMRA(BaseRetracker):
                 continue
 
             # Get track point and its power
-            tfmra_range, tfmra_power, _ = self.get_threshold_range(filt_rng,
-                                                                   filt_wfm,
-                                                                   fmi,
-                                                                   tfmra_threshold[i],
-                                                                   fmi_first_valid_idx_filt)
+            tfmra_range, tfmra_power, tfmra_epoch[i], _ = self.get_threshold_range(
+                filt_rng, filt_wfm, fmi, tfmra_threshold[i], fmi_first_valid_idx_filt
+            )
+            tfmra_phase_difference[i] = self._get_value_at_index(phase_difference[i, :], tfmra_epoch[i], oversampling_factor)
+            tfmra_coherence[i] = self._get_value_at_index(coherence[i, :], tfmra_epoch[i], oversampling_factor)
 
             # Set the values
             self._range[i] = tfmra_range + fixed_range_offset
@@ -196,6 +203,9 @@ class cTFMRA(BaseRetracker):
         self.register_auxdata_output("tfmrathr", "tfmra_threshold", tfmra_threshold)
         self.register_auxdata_output("tfmrafmi", "tfmra_first_maximum_index", tfmra_first_maximum_index)
         self.register_auxdata_output("tfmranp", "tfmra_noise_power", tfmra_noise_power)
+        self.register_auxdata_output("tfmraep", "tfmra_epoch", tfmra_epoch/oversampling_factor)
+        self.register_auxdata_output("tfmrapd", "tfmra_phase_difference", tfmra_phase_difference)
+        self.register_auxdata_output("tfmrach", "tfmra_coherence", tfmra_coherence)
 
         # Apply a radar mode dependent range bias if option is in
         # level-2 settings file
@@ -377,9 +387,9 @@ class cTFMRA(BaseRetracker):
             if fmi[i] is None:
                 continue
 
-            r0[i], p0[i], i0 = self.get_threshold_range(
+            r0[i], p0[i], i0, _ = self.get_threshold_range(
                 rng[i, :], wfm[i, :], fmi[i], t0, first_valid_idx=first_valid_idx)
-            r1[i], p1[i], i1 = self.get_threshold_range(
+            r1[i], p1[i], i1, _ = self.get_threshold_range(
                 rng[i, :], wfm[i, :], fmi[i], t1, first_valid_idx=first_valid_idx)
             width[i] = r1[i] - r0[i]
 
@@ -457,7 +467,7 @@ class cTFMRA(BaseRetracker):
             first_maximum_index: int,
             threshold: float,
             first_valid_idx: int = 0
-    ) -> Tuple[float, float, int]:
+    ) -> Tuple[float, float, float, int]:
         """
         Return the range value and the power of the retrack point at
         a given threshold of the firsts maximum power
@@ -466,7 +476,7 @@ class cTFMRA(BaseRetracker):
         :param wfm: (np.array, dim=(n_range_bins) Waveform power in normalized units
         :param first_maximum_index: (int) Index of first maximum
         :param threshold: (float) Power threshold
-        :param first_valid_idx: (int) First valid index for first maximum / leading edge
+        :param epoch: (float) in range gate units
 
         :return: tfmra range (float), tfmra power (float)
         """
@@ -486,9 +496,34 @@ class cTFMRA(BaseRetracker):
 
         i0, i1 = points[0]-1, points[0]
         gradient = (wfm[i1]-wfm[i0])/(rng[i1]-rng[i0])
+        epoch = float(i0) + (tfmra_power - wfm[i0])/float(wfm[i1]-wfm[i0])
         tfmra_range = (tfmra_power - wfm[i0]) / gradient + rng[i0]
 
-        return tfmra_range, tfmra_power, i0
+        return tfmra_range, tfmra_power, i0, epoch
+
+    @staticmethod
+    def _get_value_at_index(
+            arr: np.ndarray,
+            epoch_oversampled_index: int,
+            oversampling_factor: int
+    ) -> float:
+        """
+        Evaulate a value in an oversampled array at the given oversampled index.
+
+        :param arr: (np.array, dim=(n_range_bins)) The array to evaluate
+        :param epoch_oversampled_index: (int) The oversampled index
+        :param oversampling_factor: (int) The oversampling factor
+
+        :return: The value at the given index or NaN if index is out of bounds
+
+        :return: interpolated value
+        """
+        if np.isnan(arr).all():
+            return np.nan
+        index_float = float(epoch_oversampled_index) / float(oversampling_factor)
+        range_gate_start = int(np.floor(index_float))
+        i0, i1 = range_gate_start, range_gate_start + 1
+        return arr[i0] + (index_float - float(i0)) * (arr[i1] - arr[i0]) if i1 < arr.shape[0] else np.nan
 
 
 class TFMRAMultiThresholdFreeboards(Level2ProcessorStep):

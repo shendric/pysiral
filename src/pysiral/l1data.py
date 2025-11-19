@@ -598,9 +598,16 @@ class L1bdataNCFile(Level1bData):
             datagroup.variables["power"][:],
             datagroup.variables["range"][:],
             datagroup.variables["radar_mode"][:])
+
+        self.waveform.set_interferometric_data(
+            datagroup.variables["phase_difference"][:],
+            datagroup.variables["coherence"][:]
+        )
         # Set the valid flag
         is_valid = datagroup.variables["is_valid"][:].astype(bool)
         self.waveform.set_valid_flag(is_valid)
+
+
 
     def _import_corrections(self, nc):
         """

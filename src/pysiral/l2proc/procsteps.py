@@ -619,6 +619,8 @@ class TransferWaveform2L2(Level2ProcessorStep):
                 "add_dims": (("range_gates", np.arange(num_range_gates)),)}
         l2.set_multidim_auxiliary_parameter("wfmp", "waveform_power", l1.waveform.power, dims, update=True)
         l2.set_multidim_auxiliary_parameter("wfmr", "waveform_range", l1.waveform.range, dims, update=True)
+        l2.set_multidim_auxiliary_parameter("wfmd", "waveform_phase_difference", l1.waveform.phase_difference, dims, update=True)
+        l2.set_multidim_auxiliary_parameter("wfmc", "waveform_coherence", l1.waveform.coherence, dims, update=True)
 
         return error_status
 
