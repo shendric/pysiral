@@ -39,6 +39,7 @@ class Level2Data(object):
         "radar_mode": "radar_mode",
         "flag": "flag",
         "elevation": "elev",
+        "range": "range",
         "sea_level_anomaly": "sla",
         "sea_level_anomaly_raw": "sla_raw",
         "dynamic_ocean_topography": "dot",
