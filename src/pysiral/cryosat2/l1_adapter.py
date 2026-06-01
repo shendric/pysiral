@@ -1,4 +1,4 @@
-
+# coding=utf-8
 import re
 from pathlib import Path
 
@@ -259,11 +259,14 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
         # Scaling parameter are 1D -> Replicate to same shape as waveform array
         echo_scale_factor = self.nc.echo_scale_factor_20_ku.values
         echo_scale_pwr = self.nc.echo_scale_pwr_20_ku.values
+        waveform_scale = echo_scale_factor * 2.0**echo_scale_pwr
+        self.l1.classifier.add(waveform_scale, "waveform_scale_factor")
+
         echo_scale_factor = np.tile(echo_scale_factor, (dim_ns, 1)).transpose()
         echo_scale_pwr = np.tile(echo_scale_pwr, (dim_ns, 1)).transpose()
 
         # Convert the waveform from linear counts to Watts
-        wfm_power = wfm_linear*echo_scale_factor * 2.0**echo_scale_pwr
+        wfm_power = wfm_linear * echo_scale_factor * 2.0**echo_scale_pwr
 
         # Get the window delay
         # From the documentation:

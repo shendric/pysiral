@@ -807,7 +807,12 @@ class L1PTrailingEdgeProperties(L1PProcItem):
         timer = StopWatch().start()
 
         # Loop over all waveforms and compute parameters
-        wfm = l1.waveform.power
+        wfm = l1.waveform.power.copy()
+        if l1.info.mission == "cryosat2" and hasattr(l1.classifier, "waveform_scale_factor"):
+            logger.debug("Undo scaling to watts for Cryosat-2")
+            _, dim_ns = wfm.shape
+            wfm /= np.tile(l1.classifier.waveform_scale_factor, (dim_ns, 1)).transpose()
+
         result = WaveFormTrailingEdgeParameter(
             wfm,
             l1.classifier.first_maximum_index,
