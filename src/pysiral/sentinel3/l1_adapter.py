@@ -1,4 +1,4 @@
-
+# coding=utf-8
 import contextlib
 from pathlib import Path
 from typing import Optional
@@ -376,6 +376,9 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
         # Debug variables
         self.timer = None
 
+        # Set target waveform
+        self.target_waveform = self.cfg.target_waveform if self.cfg.target_waveform else "20_ku"
+
     def get_l1(self, filepath, polar_ocean_check=None):
         """
         Create a Level-1 data container from Sentinel-3 CODA L2WAT files
@@ -431,21 +434,21 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
         return self.l1
 
     @staticmethod
-    def interp_01_hz_to_20_hz(variable_01_hz, time_01_hz, time_20_hz, **kwargs):
+    def interp_between_times(variable_time_01, time_01, time_02, **kwargs):
         """
         Computes a simple linear interpolation to transform a 1Hz into a 20Hz variable
-        :param variable_01_hz: an 1Hz variable array
-        :param time_01_hz: 1Hz reference time
-        :param time_20_hz: 20 Hz reference time
+        :param variable_time_01: an 1Hz variable array
+        :param time_01: 1Hz reference time
+        :param time_02: 20 Hz reference time
         :return: the interpolated 20Hz variable
         """
         error_status = False
         try:
-            f = interpolate.interp1d(time_01_hz, variable_01_hz, bounds_error=False, **kwargs)
-            variable_20_hz = f(time_20_hz)
+            f = interpolate.interp1d(time_01, variable_time_01, bounds_error=False, **kwargs)
+            variable_20_hz = f(time_02)
         except ValueError:
             fill_value = np.nan
-            variable_20_hz = np.full(time_20_hz.shape, fill_value)
+            variable_20_hz = np.full(time_02.shape, fill_value)
             error_status = True
         return variable_20_hz, error_status
 
@@ -567,28 +570,46 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
         # NOTE: Here it is critical that the xarray does not automatically decodes time since it is
         #       difficult to work with the numpy datetime64 date format. Better to compute datetimes using
         #       a know num2pydate conversion
-        utc_timestamp = num2pydate(self.nc.time_20_ku.values, units=self.nc.time_20_ku.units)
+        match self.target_waveform:
+            case "20_ku":
+                utc_timestamp = num2pydate(self.nc.time_20_ku.values, units=self.nc.time_20_ku.units)
+            case "20_plrm_ku":
+                utc_timestamp = num2pydate(self.nc.time_20_c.values, units=self.nc.time_20_c.units)
+            case _: raise ValueError(f"Invalid target waveform: {self.target_waveform}")
         self.l1.time_orbit.timestamp = utc_timestamp
 
-        # Set the geolocation
-        self.l1.time_orbit.set_position(
-            self.nc.lon_20_ku.values,
-            self.nc.lat_20_ku.values,
-            self.nc.alt_20_ku.values,
-            self.nc.orb_alt_rate_20_ku.values)
+        # Set position
+        lon_20_ku = self.nc.variables[f"lon_20_ku"].values
+        lat_20_ku = self.nc.variables[f"lat_20_ku"].values
+        alt_20_ku = self.nc.variables[f"alt_20_ku"].values
+
+        match self.target_waveform:
+
+            case "20_ku":
+                alt_rate = self.nc.orb_alt_rate_20_ku.values
+                self.l1.time_orbit.set_position(lon_20_ku, lat_20_ku, alt_20_ku, alt_rate)
+            case "20_plrm_ku":
+                time_plrm = self.nc.time_20_c.values  # Ku PLRM shares time with C-Band
+                time_dd = self.nc.time_20_ku.values
+                lon, _ = self.interp_between_times(lon_20_ku, time_dd, time_plrm)
+                lat, _ = self.interp_between_times(lat_20_ku, time_dd, time_plrm)
+                alt, _ = self.interp_between_times(alt_20_ku, time_dd, time_plrm)
+                self.l1.time_orbit.set_position(lon, lat, alt)
+            case _: raise ValueError(f"Invalid target waveform: {self.target_waveform}")
+        breakpoint()
 
         # Set antenna attitude
         # NOTE: These are only available in 1Hz and need to be interpolated
         time_01, time_20 = self.nc.time_01.values, self.nc.time_20_ku.values
-        pitch_angle_20, stat = self.interp_01_hz_to_20_hz(
+        pitch_angle_20, stat = self.interp_between_times(
             self.nc.off_nadir_pitch_angle_pf_01.values,
             time_01,
             time_20)
-        roll_angle_20, stat = self.interp_01_hz_to_20_hz(
+        roll_angle_20, stat = self.interp_between_times(
             self.nc.off_nadir_roll_angle_pf_01.values,
             time_01,
             time_20)
-        yaw_angle_20, stat = self.interp_01_hz_to_20_hz(
+        yaw_angle_20, stat = self.interp_between_times(
             self.nc.off_nadir_yaw_angle_pf_01.values,
             time_01,
             time_20)
@@ -663,7 +684,7 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
             var_name = self.cfg.range_correction_targets[key]
             variable = getattr(self.nc, var_name)
             if variable.values.size == time_1_hz.size:
-                variable_20_hz, error_status = self.interp_01_hz_to_20_hz(variable.values, time_1_hz, time_20_hz)
+                variable_20_hz, error_status = self.interp_between_times(variable.values, time_1_hz, time_20_hz)
             else:
                 error_status = False
                 variable_20_hz = variable.values
@@ -706,7 +727,7 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
         for key, target in self.cfg.classifier_targets.items():
             if "01" in target:
                 variable_01_hz = getattr(self.nc, target)
-                variable_20_hz, _ = self.interp_01_hz_to_20_hz(variable_01_hz, time_01, time_20)
+                variable_20_hz, _ = self.interp_between_times(variable_01_hz, time_01, time_20)
             else:
                 variable_20_hz = getattr(self.nc, target)
             self.l1.classifier.add(variable_20_hz, key)

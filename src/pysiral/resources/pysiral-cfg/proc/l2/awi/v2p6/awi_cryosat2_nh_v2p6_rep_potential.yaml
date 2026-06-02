@@ -87,7 +87,7 @@ procsteps:
         pyclass: L1BL2TransferVariables
         options:
             classifier:
-                sigma0_ocean: [sig, sigma0]
+                sigma0: [sig, sigma0]
                 ocog_width: [ocogw, ocog_width]
                 peakiness: [pp, pulse_peakiness]
                 leading_edge_width: [lew, leading_edge_width]
@@ -97,16 +97,7 @@ procsteps:
                 stack_skewness: [ssk, stack_skewness]
                 stack_kurtosis: [skt, stack_kurtosis]
                 distance_coast: [dsc, distance_coast]
-                trailing_edge_decay: [ted, trailing_edge_decay]
-                trailing_edge_decay_fit_quality: [tedfq, trailing_edge_decay_fit_quality]
-                trailing_edge_quality: [teq, trailing_edge_quality]
-                trailing_edge_width: [tew, trailing_edge_width]
-                trailing_edge_power_ratio: [tepr, trailing_edge_power_ratio]
                 late_tail_to_peak_power: [lttpp, late_tail_to_peak_power]
-                first_year_ice_class_membership: [fyicm, first_year_ice_class_membership]
-                multi_year_ice_class_membership: [myicm, multi_year_ice_class_membership]
-                open_water_class_membership: [owcm, open_water_class_membership]
-                surface_type_classification: [stc, surface_type_classification]
             correction:
                 dry_troposphere: [rcdt, dry_troposphere]
                 wet_troposphere: [rcwt, wet_troposphere]
