@@ -25,8 +25,13 @@ input_adapter:
 
         name: "IPF SRAL/MWR Level 2 Measurement"
 
-        range_bin_width: 0.2342125  # Number communicated via Sara Fleury
-        nominal_tracking_bin: 88
+        # Select target waveform for the l1p output
+        # Options for Sentinel-3 are:
+        # - "20_ku" (20Hz delay-doppler Ku-band) [default]
+        # - "20_plrm_ku" (20Hz pseudo-low resolution mode Ku-band)
+        target_waveform: "20_plrm_ku"
+        range_bin_width: 0.4684250  # Number communicated via Sara Fleury
+        nominal_tracking_bin: 43
 
         # Settings for the xml manifest
         xml_manifest: xfdumanifest.xml
@@ -40,11 +45,6 @@ input_adapter:
             measurementFrameSet: 6
             sralProductInformation: 7
 
-        # Select target waveform for the l1p output
-        # Options for Sentinel-3 are:
-        # - "20_ku" (20Hz delay-doppler Ku-band) [default]
-        # - "20_plrm_ku" (20Hz pseudo-low resolution mode Ku-band)
-        target_waveform: "20_plrm_ku"
 
         # Translates the timeliness nomenclature to pysiral conventions
         timeliness_dict:
@@ -99,7 +99,7 @@ output_handler:
         local_machine_def_tag: l2_lan_si
         version:
             source_file_tag: l2_lan_si
-            version_file_tag: v1p3
+            version_file_tag: v1p3-plrm
 
 
 # Settings for the pre-processor
@@ -211,26 +211,8 @@ level1_preprocessor:
               options:
                 # Index Window after maximum power for late tail power
                 late_tail_window_idx:
+                  lrm: [25, 35]
                   sar: [50, 70]
-
-
-            # Compute Trailing Edge Properties
-            # This class will several parameter to the l1p classifier data group:
-            #  1. trailing_edge_decay (Müller et al., 2023)
-            #  2. trailing_edge_decay_fit_quality
-            #  3. trailing_edge_decay_median_absolute_diff (Müller et al., 2023)
-            #  4. trailing_edge_width
-            #  5. trailing_edge_quality
-            - label: "Compute Trailing Edge Decay"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PTrailingEdgeProperties
-              options:
-                use_multiprocessing: True
-                valid_first_maximum_index_range: [10, 246]
-                trailing_edge_width:
-                  oversample_factor: 10
-                  trailing_edge_end_power_treshold_normed: 0.05
 
             # Compute the leading edge peakiness
             # This class will add three parameters to the l1p classifier data group:
@@ -240,3 +222,14 @@ level1_preprocessor:
               module_name: pysiral.waveform
               class_name: L1POCOG
               options: {}
+
+            # Compute Trailing Edge Slope
+            # This class will several parameter to the l1p classifier data group:
+            #  1. trailing_edge_slope
+            #  2. trailing_edge_slope_quality (pearson correlation coefficient of linear slope fit)
+            - label: "Compute Trailing Edge Slope"
+              stage: post_ocean_segment_extraction
+              module_name: pysiral.waveform
+              class_name: L1PTrailingEdgeSlope
+              options:
+                noise_floor_power_threshold: 0.15
