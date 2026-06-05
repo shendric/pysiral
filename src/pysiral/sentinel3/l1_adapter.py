@@ -563,6 +563,9 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
     def _set_time_orbit_data_group(self):
         """
         Transfer the time orbit parameter from the netcdf to l1 data object
+        Note: Set the orbit parameters according to the choice of SAR or pLRM modes
+              (pLRM has the same time stamp as C-Band)
+
         :return: None
         """
 
@@ -596,23 +599,23 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
                 alt, _ = self.interp_between_times(alt_20_ku, time_dd, time_plrm)
                 self.l1.time_orbit.set_position(lon, lat, alt)
             case _: raise ValueError(f"Invalid target waveform: {self.target_waveform}")
-        breakpoint()
 
         # Set antenna attitude
         # NOTE: These are only available in 1Hz and need to be interpolated
-        time_01, time_20 = self.nc.time_01.values, self.nc.time_20_ku.values
+        time_01 = self.nc.time_01.values
+        time_ra = self.nc.time_20_ku.values if self.target_waveform == "20_ku" else self.nc.time_20_c.values
         pitch_angle_20, stat = self.interp_between_times(
             self.nc.off_nadir_pitch_angle_pf_01.values,
             time_01,
-            time_20)
+            time_ra)
         roll_angle_20, stat = self.interp_between_times(
             self.nc.off_nadir_roll_angle_pf_01.values,
             time_01,
-            time_20)
+            time_ra)
         yaw_angle_20, stat = self.interp_between_times(
             self.nc.off_nadir_yaw_angle_pf_01.values,
             time_01,
-            time_20)
+            time_ra)
         self.l1.time_orbit.set_antenna_attitude(pitch_angle_20, roll_angle_20, yaw_angle_20)
 
     def _set_waveform_data_group(self):
@@ -626,7 +629,7 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
 
         # Get the waveform
         # NOTE: The waveform is given in counts
-        wfm_counts = self.nc.waveform_20_ku.values
+        wfm_counts = self.nc[f"waveform_{self.target_waveform}"].values
         n_records, n_range_bins = wfm_counts.shape
 
         # -- Waveform to power conversion is not possible --
@@ -639,14 +642,14 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
         # (https://sentinels.copernicus.eu/web/sentinel/technical-guides/sentinel-3-altimetry/appendices/faq)
 
         # NOTE: Make sure type of waveform is double (hard requirement for cythonized retrackers)
-        wfm_power = wfm_counts.astype(np.float64)
+        wfm_power = wfm_counts.astype(np.float32)
 
         # Get the window delay
         # "The tracker_range_20hz is the range measured by the onboard tracker
         #  as the window delay, corrected for instrumental effects and
         #  CoG offset"
-        tracker_range_20hz = self.nc.tracker_range_20_ku.values
-        wfm_range = np.ndarray(shape=wfm_counts.shape, dtype=np.float64)
+        tracker_range_20hz = self.nc[f"tracker_range_{self.target_waveform}"].values
+        wfm_range = np.ndarray(shape=wfm_counts.shape, dtype=np.float32)
         range_bin_index = np.arange(n_range_bins)
         for record in np.arange(n_records):
             wfm_range[record, :] = tracker_range_20hz[record] + \
@@ -654,7 +657,9 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
                 (self.cfg.nominal_tracking_bin * self.cfg.range_bin_width)
 
         # Set the operation mode
-        op_mode = self.nc.instr_op_mode_20_ku.values
+        match self.target_waveform:
+            case "20_ku": op_mode = self.nc.instr_op_mode_20_ku.values
+            case "20_plrm_ku": op_mode = np.full(self.nc.instr_op_mode_20_c.values.shape, 0)
         op_mode_translator = self.cfg.instr_op_mode_list
         radar_mode = np.array([op_mode_translator[int(val)] for val in op_mode]).astype("int8")
 
@@ -676,7 +681,7 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
 
         # Get the reference times for interpolating the range corrections from 1Hz -> 20Hz
         time_1_hz = self.nc.time_01.values
-        time_20_hz = self.nc.time_20_ku.values
+        time_ra = self.nc.time_20_ku.values if self.target_waveform == "20_ku" else self.nc.time_20_c.values
 
         # Loop over all range correction variables defined in the processor definition file
         keys = self.cfg.range_correction_targets.keys()
@@ -684,7 +689,7 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
             var_name = self.cfg.range_correction_targets[key]
             variable = getattr(self.nc, var_name)
             if variable.values.size == time_1_hz.size:
-                variable_20_hz, error_status = self.interp_between_times(variable.values, time_1_hz, time_20_hz)
+                variable_20_hz, error_status = self.interp_between_times(variable.values, time_1_hz, time_ra)
             else:
                 error_status = False
                 variable_20_hz = variable.values
@@ -707,10 +712,9 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
 
         :return: None
         """
-
-        # Set the flag
+        surf_type = self.nc.surf_type_20_ku.values if self.target_waveform == "20_ku" else self.nc.surf_type_20_c.values
         for key in ESA_SURFACE_TYPE_DICT.keys():
-            flag = self.nc.surf_type_20_ku.values == ESA_SURFACE_TYPE_DICT[key]
+            flag = surf_type == ESA_SURFACE_TYPE_DICT[key]
             self.l1.surface_type.add_flag(flag, key)
 
     def _set_classifier_group(self):
@@ -723,11 +727,12 @@ class Sentinel3L2SeaIce(Level1PInputHandlerBase):
         :return: None
         """
         # Loop over all classifier variables defined in the processor definition file
-        time_01, time_20 = self.nc.time_01.values, self.nc.time_20_ku.values
+        time_01 = self.nc.time_01.values
+        time_ra = self.nc.time_20_ku.values if self.target_waveform == "20_ku" else self.nc.time_20_c.values
         for key, target in self.cfg.classifier_targets.items():
             if "01" in target:
                 variable_01_hz = getattr(self.nc, target)
-                variable_20_hz, _ = self.interp_between_times(variable_01_hz, time_01, time_20)
+                variable_20_hz, _ = self.interp_between_times(variable_01_hz, time_01, time_ra)
             else:
                 variable_20_hz = getattr(self.nc, target)
             self.l1.classifier.add(variable_20_hz, key)

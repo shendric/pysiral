@@ -65,7 +65,7 @@ input_adapter:
             wet_troposphere: mod_wet_tropo_cor_meas_altitude_01
             inverse_barometric: inv_bar_cor_01
             dynamic_atmosphere: hf_fluct_cor_01 # "Provided as a correction to the inverted barometer correction (inv_bar_cor_01)";
-            ionosphere: iono_cor_alt_20_ku
+            ionosphere: iono_cor_alt_20_plrm_ku
             ionosphere_gim: iono_cor_gim_01_ku
             ocean_tide_elastic: ocean_tide_non_eq_01
             ocean_tide_long_period: ocean_tide_eq_01
