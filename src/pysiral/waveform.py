@@ -1824,3 +1824,42 @@ def get_trailing_edge_lower_envelope_mask(
     # mask[first_maximum_index:] = mask_le
 
     return mask if return_type == "bool" else np.where(mask)[0]
+
+
+class L1PSentinel3pLRMSigma0(L1PProcItem):
+    """
+    Fill the gaps in pLRM sigma0 (`sig0_water_20_plrm_ku`)
+    """
+
+    def __init__(self, mle4_bias_correction_factor: float = 1.0) -> None:
+        cfg = {"mle4_bias_correction_factor": mle4_bias_correction_factor}
+        super(L1PSentinel3pLRMSigma0, self).__init__(**cfg)
+
+    def apply(self, l1: Level1bData) -> None:
+        """
+        Computes pulse peakiness and adds parameter to classifier data group.
+
+        NOTE: The classifier parameter name depends on the `norm_is_range_bin keyword:
+
+            norm_is_range_bin = True -> parameter name: 'peakiness'
+            norm_is_range_bin = False -> parameter name: 'peakiness_normed'
+
+        :param l1: l1bdata.Level1bData instance
+
+        :raises None:
+
+        :return: None
+        """
+
+        # This is an approximate bias correction factor to minimize
+        # differences between this sigma0 estimate and the one
+        # derived from the MLE4 retracker
+        mle4_bias_correction_factor = self.cfg.get("mle4_bias_correction_factor", 1.0)
+
+        sigma0_scale = l1.classifier.get_parameter("sigma0_scale")
+        sigma0_cal = l1.classifier.get_parameter("sigma0_cal")
+
+        waveform_max = np.nanmax(l1.waveform.power, axis=1)
+        sigma0_reconstructed = mle4_bias_correction_factor * 10. * np.log10(waveform_max/sigma0_cal) + sigma0_scale
+
+        l1.classifier.add(sigma0_reconstructed, "sigma0")

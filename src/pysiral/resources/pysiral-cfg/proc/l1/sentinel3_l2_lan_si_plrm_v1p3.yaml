@@ -76,20 +76,15 @@ input_adapter:
 
         # List of classifiers. The values correspond to netcdf variable names
         classifier_targets:
-            tracking_configuration: cl_gain_20_ku
-            distance_coast: dist_coast_20_ku
-            sigma0_ocean: sig0_water_20_ku
-            surface_type_classification: surf_type_class_20_ku
-            stack_kurtosis: kurt_stack_20_ku
-            stack_skewness: skew_stack_20_ku
-            stack_standard_deviation: stdev_stack_20_ku
-            swh_ocean: swh_water_20_ku
+            sigma0_cal: sig0_cal_20_plrm_ku
+            sigma0_scale: scale_factor_20_plrm_ku
+            sigma0_ocean: sig0_water_20_plrm_ku
+            swh_ocean: swh_water_20_plrm_ku
             brightness_temperature_238: tb_238_01
             brightness_temperature_365: tb_365_01
             first_year_ice_class_membership: first_year_ice_class_01_ku
             multi_year_ice_class_membership: multi_year_ice_class_01_ku
             open_water_class_membership: open_water_class_01_ku
-
 
 
 # Output handler (will always be default handler -> only options)
@@ -233,3 +228,14 @@ level1_preprocessor:
               class_name: L1PTrailingEdgeSlope
               options:
                 noise_floor_power_threshold: 0.15
+
+            # Compute Trailing Edge Slope
+            # This class will several parameter to the l1p classifier data group:
+            #  1. trailing_edge_slope
+            #  2. trailing_edge_slope_quality (pearson correlation coefficient of linear slope fit)
+            - label: "Compute Sentinel-3 pLRM sigma0"
+              stage: post_ocean_segment_extraction
+              module_name: pysiral.waveform
+              class_name: L1PSentinel3pLRMSigma0
+              options:
+                mle4_bias_correction_factor: 0.75
