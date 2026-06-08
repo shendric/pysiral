@@ -241,7 +241,9 @@ class Level2Data(object):
 
         if "_uncertainty" in parameter_name:
             parameter_name = parameter_name.replace("_uncertainty", "")
-            source = catalog[parameter_name]
+            source = catalog.get(parameter_name)
+            if not source:
+                return np.full(self.n_records, np.nan)
             parameter = getattr(self, source)
             return parameter.uncertainty
 

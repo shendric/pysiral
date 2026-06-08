@@ -78,8 +78,7 @@ input_adapter:
         classifier_targets:
             sigma0_cal: sig0_cal_20_plrm_ku
             sigma0_scale: scale_factor_20_plrm_ku
-            sigma0_ocean: sig0_water_20_plrm_ku
-            swh_ocean: swh_water_20_plrm_ku
+            sigma0_mle4: sig0_water_20_plrm_ku
             brightness_temperature_238: tb_238_01
             brightness_temperature_365: tb_365_01
             first_year_ice_class_membership: first_year_ice_class_01_ku
