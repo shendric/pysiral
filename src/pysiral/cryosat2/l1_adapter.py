@@ -266,7 +266,10 @@ class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):
         echo_scale_pwr = np.tile(echo_scale_pwr, (dim_ns, 1)).transpose()
 
         # Convert the waveform from linear counts to Watts
-        wfm_power = wfm_linear * echo_scale_factor * 2.0**echo_scale_pwr
+        match waveform_unit := self.cfg.get("waveform_unit", "watt"):
+            case "counts": wfm_power = wfm_linear
+            case "watt": wfm_power = wfm_linear * echo_scale_factor * 2.0**echo_scale_pwr
+            case _: raise ValueError(f"Unrecognized waveform unit: {waveform_unit} [counts, watt]")
 
         # Get the window delay
         # From the documentation:

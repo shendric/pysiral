@@ -617,7 +617,18 @@ class TransferWaveform2L2(Level2ProcessorStep):
         dims = {"new_dims": (("range_gates", num_range_gates),),
                 "dimensions": ("time", "range_gates"),
                 "add_dims": (("range_gates", np.arange(num_range_gates)),)}
-        l2.set_multidim_auxiliary_parameter("wfmp", "waveform_power", l1.waveform.power, dims, update=True)
+
+        # Check if waveform re-scaling is needed
+        waveform_scale_variable = self.cfg.options.get("waveform_scale_variable")
+        undo_waveform_scaling = self.cfg.options.get("undo_waveform_scaling", False)
+
+        if undo_waveform_scaling:
+            waveform_scale_variable = l1.get_parameter_by_name("classifier", waveform_scale_variable)
+            waveform_power = l1.waveform.power / waveform_scale_variable[:, np.newaxis]
+        else:
+            waveform_power = l1.waveform.power.copy()
+
+        l2.set_multidim_auxiliary_parameter("wfmp", "waveform_power", waveform_power, dims, update=True)
         l2.set_multidim_auxiliary_parameter("wfmr", "waveform_range", l1.waveform.range, dims, update=True)
 
         return error_status
