@@ -528,6 +528,11 @@ variables:
     comment: "From l1p"
     coordinates: time, range_gates
 
+  waveform_scale_factor:
+    long_name: "waveform scale factor"
+    comment: "From l1p (converts waveform counts to watt)"
+    coordinates: time
+
   waveform_range:
     long_name: "waveform range values"
     comment: "From l1p"
