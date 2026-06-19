@@ -71,7 +71,7 @@ output_handler:
         local_machine_def_tag: baseline_e
         version:
             source_file_tag: esa_pds_ipf1e
-            version_file_tag: v1p5
+            version_file_tag: v1p6
 
 
 # Settings for the pre-processor
@@ -80,7 +80,7 @@ level1_preprocessor:
     type: custom_orbit_segment
     
     options:
-        
+
         polar_ocean:
             target_hemisphere: [north, south]
             polar_latitude_threshold: 45.0
