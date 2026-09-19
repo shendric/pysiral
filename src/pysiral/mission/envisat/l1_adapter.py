@@ -19,13 +19,13 @@ from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.iotools import ReadNC
 from pysiral.core.legacy_classes import AttrDict
-from pysiral.envisat.functions import get_envisat_wfm_range
+from pysiral.mission.envisat.functions import get_envisat_wfm_range
 from pysiral.l1data import Level1bData
 from pysiral.l1 import Level1PInputHandlerBase
 
 
 class EnvisatSGDRNC(Level1PInputHandlerBase):
-    """ Converts a Envisat SGDR object into a L1bData object """
+    """ Converts an Envisat SGDR object into a L1bData object """
 
     def __init__(self,
                  cfg: Union[Dict, AttrDict],

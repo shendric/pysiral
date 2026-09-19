@@ -6,15 +6,95 @@
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
-import numpy as np
-import xarray as xr
 
-from loguru import logger
 from pathlib import Path
 
+import numpy as np
+import xarray as xr
+from loguru import logger
+
 from pysiral import psrlcfg
+from pysiral.core.iotools import ReadNC
+from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.l3 import Level3ProcessorItem
-from pysiral.mask import L3Mask
+
+
+class L3Mask(DefaultLoggingClass):
+    """ Container for Level-3 mask compliant netCDF files
+    (see output of pysiral.mask.MaskSourceBase.export_l3_mask) """
+
+    def __init__(self, mask_name, grid_id, flipud=False):
+        """ Mask container for Level3Processor. Arguments are the
+        name (id) of the mask (e.g. warren99_is_valid) and the id of the
+        grid (e.g. nh25kmEASE2) """
+
+        super(L3Mask, self).__init__(self.__class__.__name__)
+        self.error = ErrorStatus()
+
+        # Save input
+        self._mask_name = mask_name
+        self._grid_id = grid_id
+        self._flipud = flipud
+
+        # Read the mask
+        self._read_mask_netcdf()
+
+    def _read_mask_netcdf(self):
+        """ Read the mask """
+        if self.mask_filepath is not None:
+            self._nc = ReadNC(self.mask_filepath)
+
+    @property
+    def mask(self):
+        mask = self._nc.mask
+        if self._flipud:
+            mask = np.flipud(mask)
+        return mask
+
+    @property
+    def lat(self):
+        lat = self._nc.latitude
+        if self._flipud:
+            lat = np.flipud(lat)
+        return lat
+
+    @property
+    def lon(self):
+        lon = self._nc.longitude
+        if self._flipud:
+            lon = np.flipud(lon)
+        return lon
+
+    @property
+    def mask_name(self):
+        return str(self._mask_name)
+
+    @property
+    def grid_id(self):
+        return str(self._grid_id)
+
+    @property
+    def mask_filepath(self):
+
+        # Get the path to the mask file
+        # (needs to be in local_machine_def.yaml)
+        mask_dir = psrlcfg.local_machine.auxdata_repository.mask
+        try:
+            mask_dir = mask_dir[self.mask_name]
+        except KeyError:
+            msg = "cannot find mask entry [%s] in local_machine_def.yaml"
+            self.error.add_error("lmd-error", msg % self.mask_name)
+            return None
+
+        mask_filename = f"{self.mask_name}_{self.grid_id}.nc"
+        filepath = Path(mask_dir) / mask_filename
+
+        if not filepath.is_file():
+            msg = f"cannot find mask file: {filepath}"
+            self.error.add_error("io-error", msg)
+            return None
+
+        return filepath
 
 
 class Level3LoadMasks(Level3ProcessorItem):

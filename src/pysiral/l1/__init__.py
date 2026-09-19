@@ -25,7 +25,7 @@ from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass, ErrorSta
 from pysiral.core.flags import Hemispheres
 from pysiral.core.output import L1bDataNC
 from pysiral.l1data import L1bMetaData, Level1bData
-from pysiral.l1.procitems import L1PProcItemDef
+from pysiral.l1.alg import L1PProcItemDef
 
 # TODO: Remove this functionality
 SHOW_DEBUG_MAP = False
