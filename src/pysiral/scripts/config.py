@@ -163,7 +163,7 @@ def copy_config_files(target_directory: Path, yes: bool) -> None:
             msg = f"Cannot create directory: {target_directory}"
             raise IOError(msg)
 
-    # Copy the configuration files from the pysiral package to the target directory
+    # Copy the configuration files from the pysiral _package to the target directory
     try:
         shutil.copytree(psrlcfg.package_config_path, target_directory, dirs_exist_ok=True)
     except:
@@ -173,7 +173,7 @@ def copy_config_files(target_directory: Path, yes: bool) -> None:
 
 def set_pysiral_cfg_loc(target):
     """
-    Write the location of the pysiral configuration for the current package
+    Write the location of the pysiral configuration for the current _package
     NOTE: If you don't know what this means: Please Don't! An incorrect setting
     can break your pysiral installation!
 

@@ -88,7 +88,7 @@ def pysiral_basic_info() -> None:
     except subprocess.CalledProcessError:
         git_hash = __git_version__
         git_branch = __git_branch__
-        qualifier = "source: package"
+        qualifier = "source: _package"
 
     print(f"Python sea ice radar altimeter toolbox (pysiral, version: {__version__})\n")
     print(f"         repository: {__git_origin__}")
@@ -144,7 +144,7 @@ class InfoScriptArguments(object):
         parser = argparse.ArgumentParser(
             prog="pysiral info",
             description="""
-                        List pysiral package information and allows to 
+                        List pysiral _package information and allows to 
                         query settings information.
                         """,
             epilog="For more information, see: https://pysiral.readthedocs.io",

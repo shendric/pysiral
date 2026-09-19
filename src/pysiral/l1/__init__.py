@@ -46,7 +46,7 @@ class Level1PInputHandlerBase(DefaultLoggingClass):
                  cls_name: str = None
                  ) -> None:
         """
-        Base class for all input handlers implemented in the `l1_adapter` package
+        Base class for all input handlers implemented in the `l1_adapter` _package
         of the individual altimeter platform packages. Not to be called directly.
 
         :param cfg: Config dictionary

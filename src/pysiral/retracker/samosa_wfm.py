@@ -2,7 +2,7 @@
 
 """
 This is the SAMOSA+ retracker variant that uses `samosa-waveform-model`, a
-re-implementation of the SAMPy package. The objective of the re-implementation
+re-implementation of the SAMPy _package. The objective of the re-implementation
 is better performance (code optimization and multiprocessing) and a greater flexibility
 for retracking settings (sub-waveform retracking, limiting parameters of the fit)
 

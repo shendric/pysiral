@@ -70,7 +70,7 @@ class SAMOSAFittingOptions:
 @dataclass
 class SAMOSALookUpTables:
     """
-    Links to the lookup-table filenames in the samosa package
+    Links to the lookup-table filenames in the samosa _package
     """
 
     # filename of the F0 LUT
@@ -374,7 +374,7 @@ class SAMOSAConfiguration(object):
 class SAMOSAPlus(BaseRetracker):
     """
     Interface to the SAMOSA+ retracker by CLS.
-    Retracker must be installed as a package into the environment for this class to be used.
+    Retracker must be installed as a _package into the environment for this class to be used.
 
     """
 
@@ -385,7 +385,7 @@ class SAMOSAPlus(BaseRetracker):
         super(SAMOSAPlus, self).__init__()
 
         # Check imports
-        # NOTE: The samosa package is not installed with pysiral on default.
+        # NOTE: The samosa _package is not installed with pysiral on default.
         if SAMOSA_OK:
             logger.info("SAMOSA retracker loaded from the environment")
             logging.getLogger('samosa.sampy').addHandler(InterceptHandler())
@@ -660,7 +660,7 @@ class SAMOSAPlus(BaseRetracker):
         sampy_conf_kwargs = self._options.get("sampy_conf_kwargs", {})
         conf = SAMOSAConfiguration(cst, rdb, **sampy_conf_kwargs)
 
-        # Lookup table for resources filenames in the samosa package
+        # Lookup table for resources filenames in the samosa _package
         lut = SAMOSALookUpTables()
 
         return cst, opt, rdb, conf, lut
@@ -673,7 +673,7 @@ class SAMOSAPlus(BaseRetracker):
             n_end_noise: int = 6
     ) -> float:
         """
-        Compute thermal noise for all waveforms with samosa/sampy package from the
+        Compute thermal noise for all waveforms with samosa/sampy _package from the
         early range gated in the range window.
 
         :param wfm: waveform power
@@ -681,14 +681,14 @@ class SAMOSAPlus(BaseRetracker):
         :param n_start_noise: noise range gate counting from 1, no oversampling
         :param n_end_noise: noise range gate counting from 1, no oversampling
 
-        :return: Thermal noise as computed by the `sampy` package
+        :return: Thermal noise as computed by the `sampy` _package
         """
         return compute_ThNEcho(wfm, n_start_noise * wf_zp, n_end_noise * wf_zp)
 
     @staticmethod
     def _get_normalized_waveform(wfm: npt.NDArray) -> npt.NDArray:
         """
-        The samosa/SAMPy package expecte waveforms with 16bit scaling. Scale
+        The samosa/SAMPy _package expecte waveforms with 16bit scaling. Scale
         any waveform to this range.
 
         :param wfm:

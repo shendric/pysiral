@@ -125,7 +125,7 @@ def pysiral_settings_action(
             """
             Ensure that the argument is the full file path to the configuration file.
             Valid inputs are either a file path (taken as is) or a settings definition id
-            that will be resolved using pysiral package configuration.
+            that will be resolved using pysiral _package configuration.
 
             The input type is expected to be a string or a list of strings (if nargs='+' is used).
 

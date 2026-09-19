@@ -46,7 +46,7 @@ class TestDefinitionfiles(unittest.TestCase):
 
     def testAuxdataDefinitionContent(self):
         """
-        Test the content of the auxdata definitions (both in the userhome as well as the package,
+        Test the content of the auxdata definitions (both in the userhome as well as the _package,
         since they might be different)
         :return:
         """

@@ -140,7 +140,7 @@ publish/
 csx
 *.build.csdef
 
-# Windows Store app package directory
+# Windows Store app _package directory
 AppPackages/
 
 # Others

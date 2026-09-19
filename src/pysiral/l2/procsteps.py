@@ -315,7 +315,7 @@ class L2ApplyRangeCorrections(Level2ProcessorStep):
 
         preserve_nan = self.cfg.options.get("preserve_nan", False)
 
-        # Apply the range corrections (content of l1 data package)
+        # Apply the range corrections (content of l1 data _package)
         # to the l2 elevation (output of retracker) data
         for correction_name in self.cfg.options.corrections:
 
