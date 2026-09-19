@@ -27,7 +27,7 @@ static_variables:
     sh: ""
 
 
-matrix:
+product_elements:
 
   platform: &platforms ["ers2", "envisat", "cryosat2", "sentinel3a", "sentinel3b"]
 

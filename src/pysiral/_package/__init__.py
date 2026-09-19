@@ -91,6 +91,7 @@ class PysiralPackageConfiguration(object):
         self.local_machine = self._read_local_machine_file()
         self.platforms = self._read_platforms()
         self.auxdata = self._read_auxdata_def()
+        self.product = self._read_product_def()
 
     def _get_pysiral_path_information(self) -> Dict[str, str]:
         """
@@ -158,44 +159,69 @@ class PysiralPackageConfiguration(object):
 
     def _read_platforms(self) -> _MissionDefinitionCatalogue:
         """
-        Read the three main configuration files for
-            1. supported platforms
-            2. supported auxiliary datasets
-            3. path on local machine
-        and create the necessary catalogues
-        :return:
-        """
+        Read the mission_def.yaml file and return a catalogue of the supported missions and platforms
 
-        # --- Get information of supported platforms ---
-        # The general information for supported radar altimeter missions (mission_def.yaml)
-        # provides general metadata for each altimeter missions that can be used to sanity checks
-        # and queries for sensor names etc.
-        #
-        # NOTE: This is just general information on altimeter platform and not to be confused with
-        #       settings for actual primary data files. These are located in each l1p processor
-        #       definition file.
+        The general information for supported radar altimeter missions (mission_def.yaml)
+        provides general metadata for each altimeter missions that can be used to sanity checks
+        and queries for sensor names etc.
+
+        :raise FileNotFoundError: If the mission_def.yaml file cannot be found in the expected location
+
+        :return: Catalogue class of pysiral supported missions and platforms (mission_def.yaml)
+         """
         self.mission_def_filepath = self.config_path / Path(self._DEFINITION_FILES["platforms"])
         if not self.mission_def_filepath.is_file():
-            error_msg = "Cannot load pysiral _package files: \n %s" % self.mission_def_filepath
-            print(error_msg)
-            sys.exit(1)
+            error_msg = f"""
+            pysiral package configuration error: Cannot find mission_def.yaml file.
+            (Expected file location: {self.mission_def_filepath})
+            
+            Additional information:
+            
+            1. The pysiral config path is set in the file `PYSIRAL-CFG-LOC` in the pysiral _package.
+            2. The pysiral config path can be modified from the command line
+               (see `pysiral config --help` for details)
+            """
+            raise FileNotFoundError(error_msg)
         return _MissionDefinitionCatalogue(self.mission_def_filepath)
 
     def _read_auxdata_def(self) -> _AuxdataCatalogue:
+        """
+        Read the auxdata_def.yaml file and return a catalogue of the supported auxiliary data sets.
+
+        Deprecation Warning: The auxdata_def.yaml file is deprecated and will be removed in future versions of
+        pysiral and replaced by configuration data models for each class.
+
+        The auxdata_def.yaml config file contains the central definition of the properties
+        of supported auxiliary data sets. Each auxiliary data set is uniquely defined by
+        the type of auxiliary data set and a name id.
+
+        The central definition allows accessing auxiliary data by its id in processor definition files
+
+        :raise FileNotFoundError: If the auxdata_def.yaml file cannot be found in the expected location
+
+        :return: Catalogue class of pysiral supported auxiliary data sets (auxdata_def.yaml)
+        """
 
         # --- Get information on supported auxiliary data sets ---
-        # The auxdata_def.yaml config file contains the central definition of the properties
-        # of supported auxiliary data sets. Each auxiliary data set is uniquely defined by
-        # the type of auxiliary data set and a name id.
-        # The central definition allows accessing auxiliary data by its id in processor definition files
         self.auxdata_def_filepath = self.config_path / self._DEFINITION_FILES["auxdata"]
         if not self.auxdata_def_filepath.is_file():
-            error_msg = "Cannot load pysiral _package files: \n %s" % self.auxdata_def_filepath
-            print(error_msg)
-            sys.exit(1)
+            error_msg = f"""
+            pysiral package configuration error: Cannot find auxdata_def.yaml file.
+            (Expected file location: {self.auxdata_def_filepath})
+
+            Additional information:
+
+            1. The pysiral config path is set in the file `PYSIRAL-CFG-LOC` in the pysiral _package.
+            2. The pysiral config path can be modified from the command line
+               (see `pysiral config --help` for details)
+            """
+            raise FileNotFoundError(error_msg)
         return _AuxdataCatalogue(self.auxdata_def_filepath)
 
         # read the local machine definition file
+
+    def _read_product_def(self):
+        pass
 
     @staticmethod
     def get_yaml_config(filename) -> Dict:
