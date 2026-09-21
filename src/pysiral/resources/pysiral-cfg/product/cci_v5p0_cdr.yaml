@@ -1,72 +1,65 @@
+config:
+  pysiral_version: ">=0.14"
 
 attributes:
     product_line: "cci"
     record_type: "cdr"
     version: "v5p0"
+    platforms: &platforms ["ers2", "envisat", "cryosat2", "sentinel3a", "sentinel3b"]
 
 
-static_variables:
-
-  mission:  # -> mission[PLATFORM] -> variable MISSION
-    ers2: "ers"
-    envisat: "envisat"
-    cryosat2: "cryosat"
-    sentinel3a: "sentinel3"
-    sentinel3b: "sentinel3"
+dynamic_variables:
 
   l3_grid:  # -> l3_grid[HEMISPHERE] -> variable L3_GRID
     nh: "nh25kmEASE2"
     sh: "sh25kmEASE2"
 
-  doi_l2p: # -> doi_l2p[hemisphere] -> variable DOI_L2P
+  doi_l2p: # -> doi_l2p[HEMISPHERE] -> variable DOI_L2P
     nh: ""
     sh: ""
 
-  doi_l3s: # -> doi_l3s[hemisphere] -> variable DOI_L3S
+  doi_l3s: # -> doi_l3s[HEMISPHERE] -> variable DOI_L3S
     nh: ""
     sh: ""
 
+  l1p_settings:  # -> l1p_settings[PLATFORM] -> variable L1P_SETTINGS
+    ers2: "ers2_fdr4alt_v1p0"
+    envisat: "envisat_fdr4alt_v1p0"
+    cryosat2: "cryosat2_pds_ipf1e_v1p2"
+    sentinel3a: "sentinel3a_l2lan_v1p2"
+    sentinel3b: "sentinel3b_l2lan_v1p2"
 
-product_elements:
-
-  platform: &platforms ["ers2", "envisat", "cryosat2", "sentinel3a", "sentinel3b"]
-
-  dynamic_variables:
-
-    l1p_settings:  # -> l1p_settings[PLATFORM] -> variable L1P_SETTINGS
-      ers2: "ers2_fdr4alt_v1p0"
-      envisat: "envisat_fdr4alt_v1p0"
-      cryosat2: "cryosat2_pds_ipf1e_v1p2"
-      sentinel3a: "sentinel3a_l2lan_v1p2"
-      sentinel3b: "sentinel3b_l2lan_v1p2"
-
-    l1p_version:  # -> l1p_version[PLATFORM] -> variable L1P_VERSION
-      ers2: "fdr4alt_v1p0"
-      envisat: "fdr4alt_v1p0"
-      cryosat2: "pds_ipf1e_v1p2"
-      sentinel3a: "l2lan_v1p2"
-      sentinel3b: "l2lan_v1p2"
+  l1p_version:  # -> l1p_version[PLATFORM] -> variable L1P_VERSION
+    ers2: "fdr4alt_v1p0"
+    envisat: "fdr4alt_v1p0"
+    cryosat2: "pds_ipf1e_v1p2"
+    sentinel3a: "l2lan_v1p2"
+    sentinel3b: "l2lan_v1p2"
 
 
-processors:
+processor:
 
   l1:
-    l1p_settings: "{l1p_settings}"
-    hemispheres: "{hemisphere}"
-    platform: "{platform}"
+    kwargs:
+      l1p_settings: "{l1p_settings[platform]}"
+      hemispheres: "{hemisphere_code}"
+      platform: "{platform}"
 
   l2:
-    l1p_version: "{l1p_version}"
-    l2_settings: "cci_{mission[platform]}_{hemisphere}_v5p0_cdr"
-    l2_output: "l2i_cci_v5p0"
-    platform: "{platform}"
+    kwargs:
+      l1p_version: "{l1p_version[platform]}"
+      l2_settings: "cci_{mission}_{hemisphere_code}_v5p0_cdr"
+      l2_output: "l2i_cci_v5p0"
+      platform: "{platform}"
 
-  l2p: {}
+  l2p:
+    kwargs: {}
 
   l3:
-    l3_settings: "l3_cci_v5p0"
-    platform: *platforms
-    grid_id: "{l3_grid[hemisphere]}"
-    period: "P1M"
-    doi: "{doi_l3s[hemisphere]}"
-    l3_output: ["l3_cci_v5p0, l3_cci_v5p0-internal"]
+    kwargs:
+      l3_settings: "l3_cci_v5p0"
+      platform: *platforms
+      grid_id: "{l3_grid[hemisphere_code]}"
+      period: "P1M"
+      doi: "{doi_l3s[hemisphere_code]}"
+      l3_output: ["l3_cci_v5p0", "l3_cci_v5p0-internal"]
