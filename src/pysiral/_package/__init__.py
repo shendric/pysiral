@@ -15,6 +15,8 @@ import socket
 import sys
 from datetime import timezone
 
+from pysiral._package.product_def import ProductDefinitionCatalogue
+
 try:
     from datetime import UTC
 except ImportError:
@@ -220,8 +222,15 @@ class PysiralPackageConfiguration(object):
 
         # read the local machine definition file
 
-    def _read_product_def(self):
-        pass
+    def _read_product_def(self)  -> ProductDefinitionCatalogue:
+        """
+        Read the all product definition files in the product directory and
+        convert the content to data models. The actual evaluation will
+        only been done when the product definition is used in a processor definition file.
+
+        :return:
+        """
+        return ProductDefinitionCatalogue(self.config_path / "product")
 
     @staticmethod
     def get_yaml_config(filename) -> Dict:

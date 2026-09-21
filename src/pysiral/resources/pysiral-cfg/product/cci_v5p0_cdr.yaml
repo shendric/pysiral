@@ -1,7 +1,10 @@
 config:
+
   pysiral_version: ">=0.14"
 
+
 attributes:
+
     product_line: "cci"
     record_type: "cdr"
     version: "v5p0"
@@ -37,29 +40,25 @@ dynamic_variables:
     sentinel3b: "l2lan_v1p2"
 
 
-processor:
+processors:
 
   l1:
-    kwargs:
-      l1p_settings: "{l1p_settings[platform]}"
-      hemispheres: "{hemisphere_code}"
-      platform: "{platform}"
+    l1p_settings: "{l1p_settings[platform]}"
+    hemisphere: "{hemisphere_code}"
+    platform: "{platform}"
 
   l2:
-    kwargs:
-      l1p_version: "{l1p_version[platform]}"
-      l2_settings: "cci_{mission}_{hemisphere_code}_v5p0_cdr"
-      l2_output: "l2i_cci_v5p0"
-      platform: "{platform}"
+    l1p_version: "{l1p_version[platform]}"
+    l2_settings: "cci_{mission}_{hemisphere_code}_v5p0_cdr"
+    l2_output: "l2i_cci_v5p0"
+    platform: "{platform}"
 
-  l2p:
-    kwargs: {}
+  l2p: {}
 
   l3:
-    kwargs:
-      l3_settings: "l3_cci_v5p0"
-      platform: *platforms
-      grid_id: "{l3_grid[hemisphere_code]}"
-      period: "P1M"
-      doi: "{doi_l3s[hemisphere_code]}"
-      l3_output: ["l3_cci_v5p0", "l3_cci_v5p0-internal"]
+    l3_settings: "l3_cci_v5p0"
+    platform: *platforms
+    grid_id: "{l3_grid[hemisphere_code]}"
+    period: "P1M"
+    doi: "{doi_l3s[hemisphere_code]}"
+    l3_output: ["l3_cci_v5p0", "l3_cci_v5p0-internal"]
