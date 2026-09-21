@@ -8,7 +8,10 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 import yaml
 from datetime import datetime
 from loguru import logger
-from typing import Union, Dict
+from typing import Union, Dict, List
+from functools import cached_property
+
+from pydantic import BaseModel, PositiveFloat
 
 try:
     from datetime import UTC
@@ -17,6 +20,48 @@ except ImportError:
     UTC = timezone.utc
 
 
+class TemporalCoverage(BaseModel):
+    """
+    Data class to manage a temporal coverage definition
+    """
+    start: datetime
+    end: Union[datetime, None]
+
+
+class MissionDefinition(BaseModel):
+    """
+    Data class to manage a temporal coverage definition
+    """
+    id: str
+    name: str
+
+
+class PlatformDefinition(BaseModel):
+    """
+    Data class to manage a platform definition
+    """
+    id: str
+    name: str
+    mission: str
+    sensor: str
+    time_coverage: TemporalCoverage
+    orbit_max_latitude: PositiveFloat
+
+
+class MissionDefinitionFileContent(BaseModel):
+    """
+    pydantic data class to manage the content of the mission_def.yaml definition file
+    """
+    missions: List[MissionDefinition]
+    platforms: List[PlatformDefinition]
+
+    @cached_property
+    def platforms_dict(self) -> Dict:
+        """
+        Return the platforms as a dictionary with the platform id as key and the platform definition as value
+        :return:
+        """
+        return {platform.id: platform for platform in self.platforms}
 
 class _MissionDefinitionCatalogue(object):
     """
@@ -33,9 +78,8 @@ class _MissionDefinitionCatalogue(object):
         self._filepath = filepath
 
         # Read the file and store the content
-        self._content = None
         with open(str(self._filepath)) as fh:
-            self._content = yaml.safe_load(fh)
+            self._content = MissionDefinitionFileContent(**yaml.safe_load(fh))
 
     def get_platform_info(self, platform_id) -> Union[Dict, None]:
         """
@@ -45,8 +89,7 @@ class _MissionDefinitionCatalogue(object):
 
         :return:
         """
-        platform_info = self._content.platforms.get(platform_id, None)
-        return platform_info if platform_info is None else platform_info
+        return self._content.platforms_dict.get(platform_id, None)
 
     def get_platform_id(self, platform_name: str) -> Union[str, None]:
         """
@@ -56,7 +99,7 @@ class _MissionDefinitionCatalogue(object):
         """
 
         # Query the source dictionary
-        platforms = [entry for entry in self._content.platforms.items() if entry[1]["long_name"] == platform_name]
+        platforms = [entry for entry in self._content.platforms if entry.name == platform_name]
 
         # No valid entry found -> Warning and returning None
         if not platforms:
@@ -69,7 +112,7 @@ class _MissionDefinitionCatalogue(object):
             logger.error(msg)
             raise ValueError(msg)
 
-        platform_id, _ = platforms[0]
+        platform_id = platforms[0].id
         return platform_id
 
     def get_name(self, platform_id):
@@ -117,7 +160,7 @@ class _MissionDefinitionCatalogue(object):
         return tcs, tce
 
     @property
-    def content(self) -> Dict:
+    def content(self) -> MissionDefinitionFileContent:
         """
         The content of the definition file as an attribute-enabled dictionary.
         :return:
@@ -131,4 +174,4 @@ class _MissionDefinitionCatalogue(object):
 
         :return: list with platform ids
         """
-        return list(self.content.platforms.keys())
+        return list(self.content.platforms_dict.keys())
