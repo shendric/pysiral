@@ -94,6 +94,7 @@ class PysiralPackageConfiguration(object):
         self.platforms = self._read_platforms()
         self.auxdata = self._read_auxdata_def()
         self.product = self._read_product_def()
+        breakpoint()
 
     def _get_pysiral_path_information(self) -> Dict[str, str]:
         """
@@ -222,7 +223,7 @@ class PysiralPackageConfiguration(object):
 
         # read the local machine definition file
 
-    def _read_product_def(self)  -> ProductDefinitionCatalogue:
+    def _read_product_def(self) -> ProductDefinitionCatalogue:
         """
         Read the all product definition files in the product directory and
         convert the content to data models. The actual evaluation will
