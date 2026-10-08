@@ -13,7 +13,7 @@ from loguru import logger
 from pathlib import Path
 from typing import Any, Dict, Union
 
-from pysiral.l1data import Level1bData
+from pysiral.l1.l1data import Level1bData
 from pysiral.l1.alg import L1PProcItem
 
 

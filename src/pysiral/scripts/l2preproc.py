@@ -9,7 +9,7 @@ from dateperiods import DatePeriod
 from loguru import logger
 
 from pysiral.core.datahandler import L2iDataHandler
-from pysiral.l2preproc import Level2PreProcessor, Level2PreProcProductDefinition
+from pysiral.l2.l2preproc import Level2PreProcessor, Level2PreProcProductDefinition
 from pysiral.scripts.parser_items import (
     ProcessingPeriod, ExcludeMonths, L2POutputs, L2iDirectory,
     DOI

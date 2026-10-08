@@ -40,7 +40,7 @@ from scipy.spatial.distance import cdist
 
 from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
 from pysiral.core.iotools import ReadNC
-from pysiral.l2data import Level2Data
+from pysiral.l2.l2data import Level2Data
 
 __author__ = "Stefan Hendricks"
 

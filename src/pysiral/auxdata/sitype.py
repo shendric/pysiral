@@ -47,7 +47,7 @@ from scipy import interpolate
 
 from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
 from pysiral.core.iotools import ReadNC
-from pysiral.sla import SLABaseFunctionality
+from pysiral.l2.alg.sla import SLABaseFunctionality
 
 
 class OsiSafSIType(AuxdataBaseClass):

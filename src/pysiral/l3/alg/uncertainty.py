@@ -11,7 +11,7 @@ from loguru import logger
 from typing import Dict, List, Tuple
 
 from pysiral.l3 import Level3ProcessorItem
-from pysiral.sit import frb2sit_errprop
+from pysiral.l2.alg.sit import frb2sit_errprop
 
 
 class Level3GridUncertainties(Level3ProcessorItem):

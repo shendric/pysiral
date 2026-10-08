@@ -19,7 +19,7 @@ from loguru import logger
 from pysiral import psrlcfg
 from pysiral.core.iotools import ReadNC
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
-from pysiral.l1data import L1bMetaData, L1bTimeOrbit
+from pysiral.l1.l1data import L1bMetaData, L1bTimeOrbit
 
 
 class Level2Data(object):

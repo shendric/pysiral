@@ -26,8 +26,8 @@ from pysiral import __version__, get_cls, psrlcfg
 from pysiral.core.config import get_yaml_config
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.core.output import Level3Output, OutputHandlerBase
-from pysiral.grid import GridDefinition
-from pysiral.l2data import L2iNCFileImport
+from pysiral.core.grid import GridDefinition
+from pysiral.l2.l2data import L2iNCFileImport
 
 
 class Level3Processor(DefaultLoggingClass):

@@ -24,7 +24,7 @@ from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
 from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass, ErrorStatus)
 from pysiral.core.flags import Hemispheres
 from pysiral.core.output import L1bDataNC
-from pysiral.l1data import L1bMetaData, Level1bData
+from pysiral.l1.l1data import L1bMetaData, Level1bData
 from pysiral.l1.alg import L1PProcItemDef
 
 # TODO: Remove this functionality
