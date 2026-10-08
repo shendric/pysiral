@@ -122,6 +122,17 @@ class Duration(ArgparseArgumentsArgs):
     duration type will be inferred from the processing period definition.
     """
 
+@dataclass(kw_only=True)
+class ProductID(ArgparseArgumentsArgs):
+    name_or_flags: ClassVar[list[str]] = ["product_id"]
+    metavar: str = "<product_id>"
+    choices: List[Any] = field(default_factory=lambda: psrlcfg.product.get_choices())
+    type: Callable = str
+    help: str = """
+    The product identifier for the target product. This will be used to determine the
+    the processing and output definitions for all processing levels
+    """+f" Valid product ID's are: [{', '.join(psrlcfg.product.get_choices())}]"
+
 
 @dataclass(kw_only=True)
 class ProductProcessingLevel(ArgparseArgumentsArgs):

@@ -93,3 +93,10 @@ class ProductDefinitionCatalogue:
                 product_definitions[product_id] = ProductDefinition(**yaml.safe_load(fh))
 
         return product_definitions
+
+    def get_choices(self) -> List[str]:
+        """
+        Get the list of product IDs available in the catalogue
+        :return: List of product IDs
+        """
+        return sorted(list(self._product_definitions.keys()))
