@@ -16,9 +16,9 @@ from dateutil import parser as dtparser
 from loguru import logger
 
 from pysiral.core.legacy_classes import AttrDict
-from pysiral.l1data import Level1bData
+from pysiral.l1.l1data import Level1bData
 from pysiral.l1.alg import L1PProcItem
-from pysiral.waveform import (get_footprint_sar, get_sigma0_sar,
+from pysiral.l1.alg.waveform import (get_footprint_sar, get_sigma0_sar,
                               get_waveforms_peak_power)
 
 

@@ -15,8 +15,8 @@ from loguru import logger
 from pysiral.core.flags import RadarModes
 from pysiral.core.flags import ANDCondition, SurfaceType
 from pysiral.core.legacy_classes import AttrDict
-from pysiral.l1data import L1bdataNCFile
-from pysiral.l2data import Level2Data
+from pysiral.l1.l1data import L1bdataNCFile
+from pysiral.l2.l2data import Level2Data
 from pysiral.l2.procsteps import Level2ProcessorStep
 
 

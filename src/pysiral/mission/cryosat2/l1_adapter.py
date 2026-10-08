@@ -16,9 +16,9 @@ from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.helper import parse_datetime_str
 from pysiral.cryosat2 import cs2_procstage2timeliness
-from pysiral.l1data import Level1bData
+from pysiral.l1.l1data import Level1bData
 from pysiral.l1 import Level1PInputHandlerBase, L1PreProcPolarOceanCheck
-from pysiral.waveform import OCOGParameter
+from pysiral.l1.alg.waveform import OCOGParameter
 
 
 class ESACryoSat2ICEBaselineEL1b(Level1PInputHandlerBase):

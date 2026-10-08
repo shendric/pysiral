@@ -33,7 +33,7 @@ from shapely import LineString, MultiPoint
 from shapely.strtree import STRtree
 
 from pysiral.auxdata import AuxdataBaseClass
-from pysiral.l2data import Level2Data
+from pysiral.l2.l2data import Level2Data
 from pysiral.core.iotools import ReadNC
 from pysiral.auxdata import GridTrackInterpol
 

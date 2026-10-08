@@ -27,8 +27,8 @@ from sklearn import gaussian_process
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 
 from pysiral.core.flags import SurfaceType
-from pysiral.filter import fill_nan, idl_smooth
-from pysiral.l2data import L2DataArray
+from pysiral.l2.alg.filter import fill_nan, idl_smooth
+from pysiral.l2.l2data import L2DataArray
 from pysiral.l2.procsteps import Level2ProcessorStep
 
 
