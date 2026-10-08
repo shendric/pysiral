@@ -47,8 +47,8 @@ import torch.nn.functional as torch_nn_functional
 
 from pysiral import get_cls
 from pysiral.auxdata import AuxdataBaseClass
-from pysiral.l1data import L1bdataNCFile
-from pysiral.l2data import Level2Data
+from pysiral.l1.l1data import L1bdataNCFile
+from pysiral.l2.l2data import Level2Data
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 

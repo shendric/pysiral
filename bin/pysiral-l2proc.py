@@ -17,7 +17,7 @@ from pysiral.core import DefaultLoggingClass
 from pysiral.core.config import DefaultCommandLineArguments
 from pysiral.core.datahandler import L1PDataHandler
 from pysiral.core.errorhandler import ErrorStatus
-from pysiral.l2proc import Level2Processor, Level2ProductDefinition
+from pysiral.l2 import Level2Processor, Level2ProductDefinition
 
 
 def pysiral_l2proc():

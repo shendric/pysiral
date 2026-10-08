@@ -13,10 +13,10 @@ from pysiral import __version__ as pysiral_version
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.helper import parse_datetime_str
-from pysiral.cryosat2 import cs2_procstage2timeliness
-from pysiral.l1data import Level1bData
-from pysiral.l1preproc import Level1PInputHandlerBase
-from pysiral.waveform import OCOGParameter
+from pysiral.mission.cryosat2 import cs2_procstage2timeliness
+from pysiral.l1.l1data import Level1bData
+from pysiral.l1 import Level1PInputHandlerBase
+from pysiral.l1.alg.waveform import OCOGParameter
 
 
 class ESACryoSat2PDSBaselineD(Level1PInputHandlerBase):

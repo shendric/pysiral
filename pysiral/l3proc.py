@@ -24,10 +24,10 @@ from pysiral.core.config import get_yaml_config
 from pysiral.core.errorhandler import ErrorStatus
 from pysiral.core.flags import SURFACE_TYPE_DICT, ORCondition
 from pysiral.core.output import Level3Output, OutputHandlerBase
-from pysiral.grid import GridDefinition
-from pysiral.l2data import L2iNCFileImport
-from pysiral.mask import L3Mask
-from pysiral.sit import frb2sit_errprop
+from pysiral.core.grid import GridDefinition
+from pysiral.l2.l2data import L2iNCFileImport
+from pysiral.l3.alg.mask import L3Mask
+from pysiral.l2.alg.sit import frb2sit_errprop
 
 # %% Level 3 Processor
 

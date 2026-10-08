@@ -13,8 +13,8 @@ from scipy.interpolate import interp1d
 
 from pysiral import get_cls
 from pysiral.core.class_template import DefaultLoggingClass
-from pysiral.l1data import Level1bData
-from pysiral.l2data import Level2Data
+from pysiral.l1.l1data import Level1bData
+from pysiral.l2.l2data import Level2Data
 
 
 class Level2ProcessorStep(DefaultLoggingClass):

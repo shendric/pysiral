@@ -56,7 +56,7 @@ from pysiral.core.legacy_classes import AttrDict
 from schema import And, Schema
 
 from pysiral import get_cls
-from pysiral.l1data import Level1bData
+from pysiral.l1.l1data import Level1bData
 
 
 class L1PProcItem(object):

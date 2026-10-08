@@ -15,9 +15,9 @@ from loguru import logger
 
 from pysiral.core.config import RadarModes
 from pysiral.core.flags import ANDCondition, SurfaceType
-from pysiral.l1data import L1bdataNCFile
-from pysiral.l2data import Level2Data
-from pysiral.l2proc.procsteps import Level2ProcessorStep
+from pysiral.l1.l1data import L1bdataNCFile
+from pysiral.l2.l2data import Level2Data
+from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 class ClassifierContainer(object):

@@ -28,7 +28,7 @@ from shapely import MultiPoint, LineString
 from shapely.strtree import STRtree
 
 from pysiral.auxdata import AuxdataBaseClass
-from pysiral.l2data import Level2Data
+from pysiral.l2.l2data import Level2Data
 
 # Sea Ice Concentration (SIC) code to class conversion lookup table.
 SIC_LOOKUP = {
