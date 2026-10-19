@@ -37,7 +37,9 @@ class ProductDynamicVariables(ConvenientRootModel):
     """
     root: Dict[str, Dict[str, str]]
 
+
 class ProcessorKeywords(ConvenientRootModel):
+    # pyrefly: ignore[bad-override-mutable-attribute]
     root: Dict[str, Union[str, List[str]]]
 
 

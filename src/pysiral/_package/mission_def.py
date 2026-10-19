@@ -16,6 +16,7 @@ from pydantic import BaseModel, PositiveFloat
 try:
     from datetime import UTC
 except ImportError:
+    # pyrefly: ignore[missing-import]
     import timezone
     UTC = timezone.utc
 
