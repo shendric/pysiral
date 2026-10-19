@@ -20,13 +20,13 @@ from pysiral.l1 import (Level1POutputHandler, Level1PreProcJobDef, get_preproc)
 
 
 def l1preproc(
-    l1p_settings: Union[str, Path] = None,
-    processing_period: DatePeriod = None,
+    l1p_settings: Union[str, Path],
+    processing_period: DatePeriod,
     exclude_months: Optional[List[int]] = None,
     hemisphere: str = "global",
-    platform: str = None,
-    output_handler_cfg: dict = None,
-    source_dataset_id: str = None,
+    platform: Optional[str] = None,
+    output_handler_cfg: Optional[dict] = None,
+    source_dataset_id: Optional[str] = None,
     use_multiprocessing: bool = False,
     multiprocessing_num_cores: Optional[int] = None
 ) -> None:
@@ -40,6 +40,8 @@ def l1preproc(
     :param platform: Platform identifier (optional).
     :param output_handler_cfg: Configuration for the output handler (optional).
     :param source_dataset_id: Identifier for the source repository (optional).
+    :param use_multiprocessing: Flag to enable multiprocessing (default is False).
+    :param multiprocessing_num_cores: Number of cores to use for multiprocessing (optional).
 
     :return: None
     """
