@@ -6,7 +6,7 @@ import argparse
 
 from loguru import logger
 from pathlib import Path
-from typing import List, Union, Optional
+from typing import List, Optional
 
 from dateperiods import DatePeriod
 
@@ -14,15 +14,15 @@ from dateperiods import DatePeriod
 from pysiral import get_cls, set_psrl_cpu_count
 from pysiral.scripts.parser_items import (
     ProcessingPeriod, ExcludeMonths, Hemisphere, PlatformID,
-    ProductID, SourceDatasetID, MultiProcesssingNumCores, UseMultiProcesssing
+    ProductID, MultiProcesssingNumCores, UseMultiProcesssing
 )
 from pysiral.l1 import (Level1POutputHandler, Level1PreProcJobDef, get_preproc)
 
 
 def l1preproc_product(
-    product_id: Optional[str] = None,
-    processing_period: DatePeriod = None,
-    platform: Optional[str] = None,
+    product_id: str,
+    processing_period: DatePeriod,
+    platform: str,
     hemisphere: str = "global",
     exclude_months: Optional[List[int]] = None,
     use_multiprocessing: bool = False,
@@ -31,19 +31,27 @@ def l1preproc_product(
     """
     Workflow script of the pysiral l1b preprocessor.
 
-    :param l1p_settings: Level-1 preprocessor settings file or ID.
+    :param product_id: The product ID to process.
     :param processing_period: The processing period to run the preprocessor for.
     :param exclude_months: List of months to exclude from processing (optional).
     :param hemisphere: Hemisphere to process data for, default is "global".
-    :param platform: Platform identifier (optional).
-    :param output_handler_cfg: Configuration for the output handler (optional).
-    :param source_dataset_id: Identifier for the source repository (optional).
+    :param platform: Platform identifier (mandatory for product based processing).
+    :param use_multiprocessing: Flag to enable multiprocessing (default is False).
+    :param multiprocessing_num_cores: Number of cores to use for multiprocessing (optional).
 
     :return: None
     """
     # Set multiprocessing options
     if use_multiprocessing and multiprocessing_num_cores is not None:
         set_psrl_cpu_count(multiprocessing_num_cores)
+
+    context = {
+        "product_id": product_id,
+        "platform": platform,
+        "hemisphere": hemisphere,
+    }
+    l1p_settings =
+    breakpoint()
 
     # # Ensure that the source dataset ID is forwarded to the output handler
     # output_handler_cfg = output_handler_cfg if isinstance(output_handler_cfg, dict) else {}
@@ -110,7 +118,7 @@ class L1PreProcProductScriptArguments(object):
         """
         self.parser = self.get_argument_parser()
 
-    def get(self, args_list: List[str] = None) -> "argparse.Namespace":
+    def get(self, args_list: Optional[List[str]] = None) -> "argparse.Namespace":
         args = self.parser.parse_args() if args_list is None else self.parser.parse_args(args_list)
         if args.multiprocessing_num_cores is not None:
             set_psrl_cpu_count(args.multiprocessing_num_cores)
@@ -141,7 +149,6 @@ class L1PreProcProductScriptArguments(object):
             ExcludeMonths(),
             Hemisphere(help=hemisphere_l1p_help),
             PlatformID(),
-            SourceDatasetID(),
             UseMultiProcesssing(),
             MultiProcesssingNumCores()
         ]

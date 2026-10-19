@@ -8,7 +8,7 @@ __all__ = [
     "auxdata", "mission",
     "l1", "l2", "l3",
     "retracker",
-    "psrlcfg",
+    "PSRLCFG",
     "import_submodules", "get_cls", "set_psrl_cpu_count",
     "__version__", "__git_version__", "__git_branch__", "__git_origin__"
 ]
@@ -41,5 +41,5 @@ __git_version__ = GIT_VERSION
 __git_branch__ = GIT_BRANCH
 __git_origin__ = GIT_ORIGIN
 
-# Create a _package configuration object as global variable
-psrlcfg = PysiralPackageConfiguration()
+# Global pysiral package configuration
+PSRLCFG = PysiralPackageConfiguration()

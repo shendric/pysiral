@@ -9,7 +9,7 @@ from pathlib import Path
 from dateperiods import DatePeriod
 from loguru import logger
 
-from pysiral import psrlcfg, set_psrl_cpu_count
+from pysiral import PSRLCFG, set_psrl_cpu_count
 from pysiral.core.datahandler import L1PDataHandler
 from pysiral.l2 import Level2Processor, Level2ProductDefinition
 
@@ -68,7 +68,7 @@ def l2proc(
         product_def.add_output_definition(l2_output)
 
     # Clip the time range to the valid time range of the target platform
-    period = processing_period.intersect(psrlcfg.get_platform_period(platform))
+    period = processing_period.intersect(PSRLCFG.get_platform_period(platform))
     if period is None:
         msg = f"Invalid period definition ({processing_period.label}) for platform {platform}"
         raise ValueError(msg)

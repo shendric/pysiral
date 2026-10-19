@@ -14,7 +14,7 @@ from dateutil import parser as dtparser
 from loguru import logger
 from netCDF4 import Dataset, date2num
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.config import get_yaml_config
 from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass,
                                          ErrorStatus)
@@ -52,7 +52,7 @@ class OutputHandlerBase(DefaultLoggingClass):
 
         # Init the parent
         super(OutputHandlerBase, self).__init__(self.__class__.__name__)
-        self.pysiral_config = psrlcfg
+        self.pysiral_config = PSRLCFG
         self.error = ErrorStatus()
         self._basedir = "n/a"
 
@@ -331,7 +331,7 @@ class DefaultLevel2OutputHandler(OutputHandlerBase):
         """ Get main product directory from local_machine_def, add mandatory
         runtag subdirectory, optional second subdirectory for overwrite
         protection and product level id subfolder"""
-        basedir = Path(psrlcfg.local_machine.product_repository)
+        basedir = Path(PSRLCFG.local_machine.product_repository)
         basedir = (
             basedir / Path(*self.subdirectory)
             if isinstance(self.subdirectory, list)
@@ -344,7 +344,7 @@ class DefaultLevel2OutputHandler(OutputHandlerBase):
 
     @property
     def default_output_def_filename(self):
-        local_settings_path = psrlcfg.pysiral_local_path
+        local_settings_path = PSRLCFG.pysiral_local_path
         return Path(local_settings_path) / Path(*self.default_file_location)
 
 
@@ -1019,7 +1019,7 @@ class PysiralOutputFolder(object):
         self.year = None
         self.month = None
         self.hemisphere = None
-        self.config = psrlcfg
+        self.config = PSRLCFG
 
     def l1bdata_from_list(self, mission_id, version, hemisphere, year, month):
         self.mission_id = mission_id

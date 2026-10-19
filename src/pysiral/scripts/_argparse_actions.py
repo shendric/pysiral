@@ -12,7 +12,7 @@ from typing import Type, Literal, Union
 
 
 from dateperiods import DatePeriod
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.flags import PysiralProcessingLevels, ProductProcessingLevels
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
@@ -166,9 +166,9 @@ def pysiral_settings_action(
                     f"Invalid processing level: {level} [{PysiralProcessingLevels.__members__}"
                 )
 
-            settings_filepath = psrlcfg.get_settings_file(target, level, string)
+            settings_filepath = PSRLCFG.get_settings_file(target, level, string)
             if settings_filepath is None:
-                proc_ids = psrlcfg.get_setting_ids(target, level)
+                proc_ids = PSRLCFG.get_setting_ids(target, level)
                 closest_match = get_close_matches(string, proc_ids, n=1)
                 msg = f"Invalid {target}:{level} settings filename or id: {string}"
                 if closest_match:
@@ -176,9 +176,9 @@ def pysiral_settings_action(
                 else:
                     msg += "\n"
                 msg += f"Known {level} processor setting ids:\n"
-                for procdef_id in psrlcfg.get_setting_ids(target, level):
+                for procdef_id in PSRLCFG.get_setting_ids(target, level):
                     msg += f"  {procdef_id}\n"
                 raise argparse.ArgumentTypeError(msg)
-            return psrlcfg.get_settings_file(target, level, string)
+            return PSRLCFG.get_settings_file(target, level, string)
 
     return PysiralSettingsLookup

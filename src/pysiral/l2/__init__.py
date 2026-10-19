@@ -12,7 +12,7 @@ from dateperiods import DatePeriod
 from loguru import logger
 from typing import Union
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.config import get_yaml_config
 from pysiral.core.datahandler import DefaultAuxdataClassHandler
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
@@ -63,7 +63,7 @@ class Level2Processor(DefaultLoggingClass):
         self._l1b_files = []
 
         # pysiral config
-        self._config = psrlcfg
+        self._config = PSRLCFG
 
         # Processor Initialization Flag
         self._initialized = False

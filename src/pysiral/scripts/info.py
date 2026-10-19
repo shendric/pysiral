@@ -12,7 +12,7 @@ import subprocess
 from loguru import logger
 from typing import Literal, Union, List
 
-from pysiral import psrlcfg, __version__, __git_version__, __git_branch__, __git_origin__
+from pysiral import PSRLCFG, __version__, __git_version__, __git_branch__, __git_origin__
 from pysiral.core.flags import PysiralProcessingLevels, ProductProcessingLevels
 
 
@@ -94,18 +94,18 @@ def pysiral_basic_info() -> None:
     print(f"         repository: {__git_origin__}")
     print(f"      documentation: https://pysiral.readthedocs.io")
     print(f"        git version: {git_hash} on branch {git_branch} ({qualifier})")
-    print(f"      configuration: {psrlcfg.config_path} ({psrlcfg.current_config_target})")
-    print(f"                     {psrlcfg.local_machine_def_filepath}")
+    print(f"      configuration: {PSRLCFG.config_path} ({PSRLCFG.current_config_target})")
+    print(f"                     {PSRLCFG.local_machine_def_filepath}")
     print(f" python interpreter: {sys.executable}")
 
 
 def get_git_revision_hash(target="HEAD") -> str:
-    return subprocess.check_output(['git', 'rev-parse', target], cwd=psrlcfg.package_path).decode('ascii').strip()
+    return subprocess.check_output(['git', 'rev-parse', target], cwd=PSRLCFG.package_path).decode('ascii').strip()
 
 
 def get_git_branch() -> str:
-    git_root_dir = psrlcfg.package_path
-    return subprocess.check_output(['git', 'branch', '--show-current'], cwd=psrlcfg.package_path).decode('ascii').strip()
+    git_root_dir = PSRLCFG.package_path
+    return subprocess.check_output(['git', 'branch', '--show-current'], cwd=PSRLCFG.package_path).decode('ascii').strip()
 
 
 

@@ -47,7 +47,7 @@ from samosa_waveform_model.dataclasses import WaveformModelOutput
 from scipy.optimize import OptimizeResult, least_squares
 from scipy.signal import argrelmin
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.flags import RadarModes
 from pysiral.l1.l1data import Level1bData
 from pysiral.l2.l2data import Level2Data
@@ -919,7 +919,7 @@ class SAMOSAPlusRetracker(BaseRetracker):
         args = [fit_method, predictor_method]
 
         num_processes = self._options.get("num_processes")
-        num_processes = psrlcfg.CPU_COUNT if num_processes == "pysiral-cfg" else int(num_processes)
+        num_processes = PSRLCFG.CPU_COUNT if num_processes == "pysiral-cfg" else int(num_processes)
         kwargs = {
             "use_multiprocessing": self._options.get("use_multiprocessing", False),
             "num_processes": num_processes,

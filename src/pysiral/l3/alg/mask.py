@@ -13,7 +13,7 @@ import numpy as np
 import xarray as xr
 from loguru import logger
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.iotools import ReadNC
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.l3 import Level3ProcessorItem
@@ -78,7 +78,7 @@ class L3Mask(DefaultLoggingClass):
 
         # Get the path to the mask file
         # (needs to be in local_machine_def.yaml)
-        mask_dir = psrlcfg.local_machine.auxdata_repository.mask
+        mask_dir = PSRLCFG.local_machine.auxdata_repository.mask
         try:
             mask_dir = mask_dir[self.mask_name]
         except KeyError:
@@ -176,7 +176,7 @@ class Level3LoadCCILandMask(Level3ProcessorItem):
 
         # Get mask target path:
         mask_tag = self.cfg["local_machine_def_mask_tag"]
-        lookup_directory = psrlcfg.local_machine.auxdata_repository.mask.get(mask_tag, None)
+        lookup_directory = PSRLCFG.local_machine.auxdata_repository.mask.get(mask_tag, None)
         if lookup_directory is None:
             msg = "Missing local machine def tag: auxdata_repository.mask.{}".format(mask_tag)
             self.error.add_error("invalid-local-machine-def", msg)

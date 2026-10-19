@@ -11,7 +11,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Callable, Union, List, Literal
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.flags import PysiralProcessingLevels
 
 
@@ -159,14 +159,14 @@ def pysiral_settings_type(
                 f"Invalid processing level: {level} [{PysiralProcessingLevels.__members__}"
             )
 
-        settings_filepath = psrlcfg.get_settings_file(target, level, string)
+        settings_filepath = PSRLCFG.get_settings_file(target, level, string)
         if settings_filepath is None:
             msg = f"Invalid {target}:{level} settings filename or id: {string}\n"
             msg += f"Recognized {level} processor setting ids:\n"
-            for procdef_id in psrlcfg.get_setting_ids(target, level):
+            for procdef_id in PSRLCFG.get_setting_ids(target, level):
                 msg += f"  {procdef_id}\n"
             raise argparse.ArgumentTypeError(msg)
-        return psrlcfg.get_settings_file(target, level, string)
+        return PSRLCFG.get_settings_file(target, level, string)
 
     return pysiral_settings_type_func
 
@@ -236,7 +236,7 @@ def pysiral_grid_id_type(value: str) -> str:
 
     :return: Valid grid ID string
     """
-    valid_grid_ids = psrlcfg.get_setting_ids("grid")
+    valid_grid_ids = PSRLCFG.get_setting_ids("grid")
     if value not in valid_grid_ids:
         raise argparse.ArgumentTypeError(f"Invalid grid ID: {value}. Valid IDs are: {', '.join(valid_grid_ids)}")
     return value

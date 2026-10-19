@@ -16,7 +16,7 @@ from dateperiods import DatePeriod, PeriodIterator
 from geopy import distance
 from loguru import logger
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.clocks import StopWatch
 from pysiral.core.config import get_yaml_config
 from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
@@ -83,7 +83,7 @@ class Level1POutputHandler(DefaultLoggingClass):
         self.error = ErrorStatus(caller_id=cls_name)
         self.cfg = cfg
 
-        self.pysiral_cfg = psrlcfg
+        self.pysiral_cfg = PSRLCFG
 
         # Init class properties
         self._path = None
@@ -1239,11 +1239,11 @@ class Level1PreProcJobDef(DefaultLoggingClass):
             return l1p_settings_id_or_file
 
         # B. Not a file, try to resolve filename via pysiral config
-        filename = psrlcfg.get_settings_file("proc", "l1", l1p_settings_id_or_file)
+        filename = PSRLCFG.get_settings_file("proc", "l1", l1p_settings_id_or_file)
         if filename is None:
             msg = "Invalid Level-1 pre-processor definition filename or id: %s\n" % l1p_settings_id_or_file
             msg = msg + " \nRecognized Level-1 pre-processor definitions ids:\n"
-            ids = psrlcfg.get_setting_ids("proc", "l1")
+            ids = PSRLCFG.get_setting_ids("proc", "l1")
             for output_id in ids:
                 msg = f'{msg}    - {output_id}' + "\n"
             self.error.add_error("invalid-l1p-outputdef", msg)
@@ -1257,7 +1257,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         input_handler_cfg = self.l1pprocdef.input_handler.options
         local_machine_def_tag = input_handler_cfg.local_machine_def_tag
-        primary_input_def = psrlcfg.local_machine.l1b_repository
+        primary_input_def = PSRLCFG.local_machine.l1b_repository
         platform, tag = self.platform, local_machine_def_tag
 
         # Overwrite the tag if specifically supplied
@@ -1270,7 +1270,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         try:
             branch = AttrDict(primary_input_def[platform][tag])
         except KeyError:
-            msg = f"Missing definition {expected_branch_name} in {psrlcfg.local_machine_def_filepath}"
+            msg = f"Missing definition {expected_branch_name} in {PSRLCFG.local_machine_def_filepath}"
             self.error.add_error("local-machine-def-missing-tag", msg)
             self.error.raise_on_error()
 

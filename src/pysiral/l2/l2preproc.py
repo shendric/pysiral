@@ -11,7 +11,7 @@ from pathlib import Path
 
 from loguru import logger
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.core.output import Level2Output, OutputHandlerBase
 from pysiral.l2.l2data import L2iNCFileImport, Level2Data, Level2PContainer
@@ -196,5 +196,5 @@ class Level2POutputHandler(OutputHandlerBase):
 
     @property
     def default_output_def_filename(self):
-        local_settings_path = psrlcfg.pysiral_local_path
+        local_settings_path = PSRLCFG.pysiral_local_path
         return Path(local_settings_path) / Path(*self.default_file_location)

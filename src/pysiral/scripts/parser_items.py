@@ -4,6 +4,8 @@
 This module defines default command line arguments for pysiral scripts.
 """
 
+# pyrefly: ignore-errors
+
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 import argparse
@@ -11,7 +13,7 @@ from typing import List, Union, Callable, Any, Tuple, ClassVar, Optional
 from dataclasses import dataclass, asdict, field
 
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.flags import (
     Hemispheres, PysiralProcessingLevels, ProductProcessingLevels,
     DurationType, DataRecordType
@@ -31,11 +33,11 @@ class ArgparseArgumentsArgs:
     const: Union[str, int, None] = field(default=None)
     default: Any = field(default=None)
     type: Optional[Callable] = field(default=None)
-    choices: List[Any] | None = None
+    choices: Optional[List[Any]] = field(default=None)
     required: Optional[bool] = field(default=None)
-    help: str = field(default=None)
+    help: Optional[str] = field(default=None)
     metavar: Optional[str] = field(default=None)
-    dest: str = field(default=None)
+    dest: Optional[str] = field(default=None)
 
     def get(self) -> Tuple[List[str], dict[str, Any]]:
         """
@@ -70,7 +72,7 @@ class PlatformID(ArgparseArgumentsArgs):
     action: str = "store"
     dest: str = "platform"
     type: Callable = str
-    choices: List[Any] = field(default_factory=lambda: psrlcfg.platform_ids)
+    choices: List[Any] = field(default_factory=lambda: PSRLCFG.platform_ids)
     metavar: str = "<platform_id>"
     help: str = """
     Radar altimeter platform id as defined in pysiral (see `pysiral info --platforms`). This option is 
@@ -126,12 +128,12 @@ class Duration(ArgparseArgumentsArgs):
 class ProductID(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["product_id"]
     metavar: str = "<product_id>"
-    choices: List[Any] = field(default_factory=lambda: psrlcfg.product.get_choices())
+    choices: List[Any] = field(default_factory=lambda: PSRLCFG.product.get_choices())
     type: Callable = str
     help: str = """
     The product identifier for the target product. This will be used to determine the
     the processing and output definitions for all processing levels
-    """+f" Valid product ID's are: [{', '.join(psrlcfg.product.get_choices())}]"
+    """+f" Valid product ID's are: [{', '.join(PSRLCFG.product.get_choices())}]"
 
 
 @dataclass(kw_only=True)
@@ -406,7 +408,7 @@ class L3Grid(ArgparseArgumentsArgs):
     metavar: str = "<grid id>"
     help: str = """
     The grid definition id for the Level-3 processor. 
-    """+f" Valid grid ids are: [{', '.join(psrlcfg.get_setting_ids('grid'))}]"
+    """+f" Valid grid ids are: [{', '.join(PSRLCFG.get_setting_ids('grid'))}]"
 
 
 @dataclass(kw_only=True)
@@ -429,7 +431,7 @@ class DefaultCommandLineArguments(object):
             "mission": {
                 "action": 'store',
                 "dest": 'mission_id',
-                "choices": psrlcfg.platform_ids,
+                "choices": PSRLCFG.platform_ids,
                 "required": True,
                 "help": "pysiral recognized mission id"
             },
@@ -438,7 +440,7 @@ class DefaultCommandLineArguments(object):
             "platform": {
                 "action": 'store',
                 "dest": 'platform',
-                "choices": psrlcfg.platform_ids,
+                "choices": PSRLCFG.platform_ids,
                 "required": True,
                 "default": None,
                 "help": "pysiral recognized platform id"

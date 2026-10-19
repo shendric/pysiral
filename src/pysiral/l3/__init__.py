@@ -22,7 +22,7 @@ from pathlib import Path
 import numpy as np
 from loguru import logger
 
-from pysiral import __version__, get_cls, psrlcfg
+from pysiral import __version__, get_cls, PSRLCFG
 from pysiral.core.config import get_yaml_config
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.core.output import Level3Output, OutputHandlerBase
@@ -564,7 +564,7 @@ class L3DataGrid(DefaultLoggingClass):
 
     def _get_attr_source_mission_name(self, *_):
         ids = self.metadata.mission_ids
-        return ",".join([psrlcfg.platforms.get_name(m) for m in ids.split(",")])
+        return ",".join([PSRLCFG.platforms.get_name(m) for m in ids.split(",")])
 
     def _get_attr_source_timeliness(self, *args):
         timeliness = self.metadata.source_timeliness
@@ -774,7 +774,7 @@ class L3MetaData(object):
         (must be a list, since multi-mission grids are supported)
         """
         missions = np.unique(stack.mission)
-        mission_sensor = [psrlcfg.platforms.get_sensor(mission.lower()) for mission in missions]
+        mission_sensor = [PSRLCFG.platforms.get_sensor(mission.lower()) for mission in missions]
 
         try:
             self.set_attribute("mission_ids", ",".join(missions))
@@ -1006,7 +1006,7 @@ class Level3GridDefinition(GridDefinition):
     def from_grid_id(cls, l3_grid_id: str) -> "Level3GridDefinition":
         """ Create a Level3GridDefinition from a grid id """
         # Get the grid definition file from the pysiral config
-        l3_settings_file = psrlcfg.get_settings_file("grid", None, l3_grid_id)
+        l3_settings_file = PSRLCFG.get_settings_file("grid", None, l3_grid_id)
         if not l3_settings_file:
             raise ValueError(f"No grid definition file found for id: {l3_grid_id}")
         return cls(l3_settings_file)

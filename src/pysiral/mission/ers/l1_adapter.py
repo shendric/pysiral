@@ -11,7 +11,7 @@ import numpy as np
 from cftime import num2pydate
 from loguru import logger
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT, ORCondition
 from pysiral.mission.ers.sgdrfile import ERSSGDR
@@ -87,7 +87,7 @@ class ERSReaperSGDR(Level1PInputHandlerBase):
         """ Extract essential metadata information from SGDR file """
         info = self.l1.info
         sgdr = self.sgdr
-        info.set_attribute("pysiral_version", psrlcfg.version)
+        info.set_attribute("pysiral_version", PSRLCFG.version)
         try:
             info.set_attribute("mission", self.cfg.platform_name_dict[str(sgdr.nc.mission)])
         except KeyError:

@@ -12,7 +12,7 @@ import numpy as np
 import numpy.typing as npt
 import xarray as xr
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.flags import SURFACE_TYPE_DICT
 from pysiral.core.grid import GridDefinition, GridTrajectoryExtract
 from pysiral.l1.l1data import Level1bData
@@ -37,7 +37,7 @@ class L1PHighResolutionLandMask(L1PProcItem):
         type_ = self.cfg.get("local_machine_def_auxclass")
         tag = self.cfg.get("local_machine_def_tag")
         filename = self.cfg.get("filename")
-        lookup_directory = psrlcfg.local_machine.auxdata_repository[type_][tag]
+        lookup_directory = PSRLCFG.local_machine.auxdata_repository[type_][tag]
 
         # Set the file for each hemisphere type
         mask_filepath = Path(lookup_directory) / str(filename)

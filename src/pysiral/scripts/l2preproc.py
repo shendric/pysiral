@@ -3,7 +3,7 @@
 
 import argparse
 from pathlib import Path
-from typing import List, Union
+from typing import List, Union, Optional
 
 from dateperiods import DatePeriod
 from loguru import logger
@@ -17,11 +17,11 @@ from pysiral.scripts.parser_items import (
 
 
 def l2preproc(
-    processing_period: DatePeriod = None,
-    l2i_product_dir: Union[str, Path] = None,
-    l2p_outputs: List[Union[str, Path]] = None,
-    doi: str = None,
-    exclude_month: List[int] = None,
+    processing_period: Optional[DatePeriod] = None,
+    l2i_product_dir: Optional[ Union[str, Path]] = None,
+    l2p_outputs: Optional[List[Union[str, Path]]] = None,
+    doi: Optional[str] = None,
+    exclude_month: Optional[List[int]] = None,
 ) -> None:
     """ Caller for converting Level-2 Intermediate (l2i) into
     Level-2 Pre-Processed (l2p) data products.
@@ -80,7 +80,7 @@ class L2PreProcScriptArguments(object):
     def __init__(self) -> None:
         self.parser = self.get_argument_parser()
 
-    def get(self, args_list: List[str] = None) -> "argparse.Namespace":
+    def get(self, args_list: Optional[List[str]] = None) -> "argparse.Namespace":
         return self.parser.parse_args() if args_list is None else self.parser.parse_args(args_list)
 
     @staticmethod

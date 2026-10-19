@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import List, Optional, Union
 from loguru import logger
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.scripts._argparse_types import config_target_type
 
 
@@ -59,19 +59,19 @@ def config_init() -> None:
     logger.info("Initializing pysiral configuration in the default configuration directory.")
 
     # Configuration Directory
-    if psrlcfg.config_path.is_dir():
+    if PSRLCFG.config_path.is_dir():
         qualifier = "exists - no action taken"
     else:
         qualifier = "created"
-    logger.info(f"Configuration directory: {psrlcfg.config_path} [{qualifier}]")
+    logger.info(f"Configuration directory: {PSRLCFG.config_path} [{qualifier}]")
 
     # Local Machine Definition
-    if psrlcfg.local_machine_def_filepath.is_file():
+    if PSRLCFG.local_machine_def_filepath.is_file():
         qualifier = "exists - no action taken"
     else:
-        local_machine_def_copy_template(psrlcfg.local_machine_def_filepath)
+        local_machine_def_copy_template(PSRLCFG.local_machine_def_filepath)
         qualifier = "Template copied"
-    logger.info(f"Local machine def path: {psrlcfg.local_machine_def_filepath} [{qualifier}]")
+    logger.info(f"Local machine def path: {PSRLCFG.local_machine_def_filepath} [{qualifier}]")
 
 
 def config_set(target: Union[Path, str], yes: bool) -> None:
@@ -90,11 +90,11 @@ def config_set(target: Union[Path, str], yes: bool) -> None:
 
         # Set to user home directory (copy needed)
         case "USER_HOME":
-            logger.info(f"Copy configuration files to user home directory. [{psrlcfg.userhome_config_path}]")
-            copy_config_files(psrlcfg.userhome_config_path, yes)
+            logger.info(f"Copy configuration files to user home directory. [{PSRLCFG.userhome_config_path}]")
+            copy_config_files(PSRLCFG.userhome_config_path, yes)
 
         case "PACKAGE":
-            logger.info(f"Package configuration files will be used. [{psrlcfg.package_config_path}]")
+            logger.info(f"Package configuration files will be used. [{PSRLCFG.package_config_path}]")
 
         case Path():
             logger.info(f"Copy configuration files to dedicated directory. [{target}]")
@@ -104,16 +104,16 @@ def config_set(target: Union[Path, str], yes: bool) -> None:
             raise ValueError(f"Unknown target: {target}")
 
     # Update the pysiral configuration
-    psrlcfg.set_config_target(target)
+    PSRLCFG.set_config_target(target)
 
     # Copy the local machine definition template (if needed)
 
-    if not psrlcfg.local_machine_def_filepath.is_file():
+    if not PSRLCFG.local_machine_def_filepath.is_file():
         action = "[missing] -> copy template"
-        local_machine_def_copy_template(psrlcfg.local_machine_def_filepath)
+        local_machine_def_copy_template(PSRLCFG.local_machine_def_filepath)
     else:
         action = "[exists] -> no action taken"
-    logger.info(f"Expect local_machine_def.yaml at {psrlcfg.local_machine_def_filepath} {action}")
+    logger.info(f"Expect local_machine_def.yaml at {PSRLCFG.local_machine_def_filepath} {action}")
 
     # Write the location of the pysiral configuration to file for the next start
     logger.info(f"Write new configuration target to file: ({target})")
@@ -130,7 +130,7 @@ def local_machine_def_copy_template(target_filepath: Path) -> None:
     """
     target_filepath.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(
-        psrlcfg.package_config_path / "templates" / "local_machine_def.yaml",
+        PSRLCFG.package_config_path / "templates" / "local_machine_def.yaml",
         target_filepath
     )
 
@@ -165,7 +165,7 @@ def copy_config_files(target_directory: Path, yes: bool) -> None:
 
     # Copy the configuration files from the pysiral _package to the target directory
     try:
-        shutil.copytree(psrlcfg.package_config_path, target_directory, dirs_exist_ok=True)
+        shutil.copytree(PSRLCFG.package_config_path, target_directory, dirs_exist_ok=True)
     except:
         msg = f"Could not create directory: {target_directory}. Copying configuration files failed."
         raise IOError(msg)
@@ -181,7 +181,7 @@ def set_pysiral_cfg_loc(target):
 
     :return: None
     """
-    cfg_loc_file = psrlcfg.package_path / "PYSIRAL-CFG-LOC"
+    cfg_loc_file = PSRLCFG.package_path / "PYSIRAL-CFG-LOC"
     with open(str(cfg_loc_file), 'w') as fh:
         fh.write(str(target))
 

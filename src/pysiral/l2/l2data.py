@@ -16,7 +16,7 @@ import numpy as np
 from geopy.distance import great_circle
 from loguru import logger
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.iotools import ReadNC
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.l1.l1data import L1bMetaData, L1bTimeOrbit
@@ -341,7 +341,7 @@ class Level2Data(object):
     # TODO: All this needs to go to the metadata class with standardized attributes
     @staticmethod
     def _get_attr_pysiral_version(*args):
-        return psrlcfg.version
+        return PSRLCFG.version
 
     def _get_attr_mission_id(self, *args):
         return self.info.mission
@@ -359,13 +359,13 @@ class Level2Data(object):
         return mission_id
 
     def _get_attr_source_mission_name(self, *args):
-        mission_name = psrlcfg.platforms.get_name(self.info.mission)
+        mission_name = PSRLCFG.platforms.get_name(self.info.mission)
         if args[0] == "uppercase":
             mission_name = mission_name.upper()
         return mission_name
 
     def _get_attr_source_mission_sensor(self, *args):
-        mission_sensor = psrlcfg.platforms.get_sensor(self.info.mission)
+        mission_sensor = PSRLCFG.platforms.get_sensor(self.info.mission)
         if args[0] == "uppercase":
             mission_sensor = mission_sensor.upper()
         elif args[0] == "lower":
@@ -374,7 +374,7 @@ class Level2Data(object):
 
     def _get_attr_source_mission_sensor_fn(self, *args):
         """ Same as source mission sensor, only a sanitized version for filenames """
-        mission_sensor = psrlcfg.platforms.get_sensor(self.info.mission)
+        mission_sensor = PSRLCFG.platforms.get_sensor(self.info.mission)
         for character in ["-"]:
             mission_sensor = mission_sensor.replace(character, "")
         if args[0] == "uppercase":
@@ -901,7 +901,7 @@ class Level2PContainer(DefaultLoggingClass):
 
         # Conversion of l2i to CF/ACDD conventions (Fall 2021)
         if hasattr(info, "platform"):
-            mission_id = psrlcfg.platforms.get_platform_id(info.platform)
+            mission_id = PSRLCFG.platforms.get_platform_id(info.platform)
 
         if mission_id is None:
             self.error.add_error("unknown-platform", "Cannot determine platform name from source l2i stack")
@@ -914,7 +914,7 @@ class Level2PContainer(DefaultLoggingClass):
             metadata.timeliness = l2i.info.data_record_type
 
         metadata.set_attribute("mission", mission_id)
-        mission_sensor = psrlcfg.platforms.get_sensor(mission_id)
+        mission_sensor = PSRLCFG.platforms.get_sensor(mission_id)
         metadata.set_attribute("mission_sensor", mission_sensor)
 
         # Construct level-2 object
@@ -1091,7 +1091,7 @@ class L2iNCFileImport(object):
 
         if hasattr(self.info, "platform"):
             platform_name = self.info.platform
-            return psrlcfg.platforms.get_platform_id(platform_name)
+            return PSRLCFG.platforms.get_platform_id(platform_name)
 
         return None
 

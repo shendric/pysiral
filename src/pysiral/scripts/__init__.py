@@ -7,7 +7,7 @@ Main entry point for pysiral console scripts.
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 import sys
-from typing import List
+from typing import List, Optional
 
 # Ensure that the logger is initialized
 import pysiral._logger  # isort:skip
@@ -84,7 +84,7 @@ def main() -> None:
     func(args)
 
 
-def info_cli(args_list: List = None) -> None:
+def info_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral info` script.
 
@@ -95,7 +95,7 @@ def info_cli(args_list: List = None) -> None:
     info(**vars(InfoScriptArguments().get(args_list)))
 
 
-def config_cli(args_list: List = None) -> None:
+def config_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral info` script.
 
@@ -106,7 +106,7 @@ def config_cli(args_list: List = None) -> None:
     config(**vars(ConfigScriptArguments().get(args_list)))
 
 
-def l1p_cli(args_list: List = None) -> None:
+def l1p_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l1` script.
 
@@ -117,7 +117,7 @@ def l1p_cli(args_list: List = None) -> None:
     l1preproc(**vars(L1PreProcScriptArguments().get(args_list)))
 
 
-def l1p_product_cli(args_list: List = None) -> None:
+def l1p_product_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l1` script.
 
@@ -128,7 +128,7 @@ def l1p_product_cli(args_list: List = None) -> None:
     l1preproc_product(**vars(L1PreProcProductScriptArguments().get(args_list)))
 
 
-def l2_cli(args_list: List = None) -> None:
+def l2_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l2` script.
 
@@ -139,7 +139,7 @@ def l2_cli(args_list: List = None) -> None:
     l2proc(**vars(L2ProcScriptArguments().get(args_list)))
 
 
-def l2_files_cli(args_list: List = None) -> None:
+def l2_files_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l2_files` script.
 
@@ -150,7 +150,7 @@ def l2_files_cli(args_list: List = None) -> None:
     l2procfiles(**vars(L2ProcFilesScriptArguments().get(args_list)))
 
 
-def l2p_cli(args_list: List = None) -> None:
+def l2p_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l2p` script.
 
@@ -161,7 +161,7 @@ def l2p_cli(args_list: List = None) -> None:
     l2preproc(**vars(L2PreProcScriptArguments().get(args_list)))
 
 
-def l3proc_cli(args_list: List = None) -> None:
+def l3proc_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l3` script.
 

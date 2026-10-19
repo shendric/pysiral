@@ -16,7 +16,7 @@ import numpy as np
 from cftime import num2pydate
 from netCDF4 import Dataset
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.legacy_classes import ErrorStatus
 from pysiral.core.output import NCDateNumDef, PysiralOutputFilenaming
 
@@ -161,7 +161,7 @@ def get_temp_png_filename():
 
 def get_l1bdata_files(mission_id, hemisphere, year, month, config=None, version="default"):
     if config is None:
-        config = psrlcfg
+        config = PSRLCFG
     l1b_repo = config.local_machine.l1b_repository[mission_id][version].l1bdata
     directory = Path(l1b_repo) / hemisphere / "%04g" % year / "%02g" % month
     l1bdata_files = sorted(directory.glob("*.nc"))

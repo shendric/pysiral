@@ -21,7 +21,7 @@ from scipy.optimize import curve_fit
 from scipy.signal import argrelmin
 from scipy.stats import linregress
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import RadarModes
 from pysiral.core.functions import inverse_power
@@ -1052,7 +1052,7 @@ class WaveFormTrailingEdgeParameter(object):
         #     results.append(popt)
 
         # multiprocessing fit
-        pool = multiprocessing.Pool(psrlcfg.CPU_COUNT)
+        pool = multiprocessing.Pool(PSRLCFG.CPU_COUNT)
         results = pool.imap(fit_class.fit, waveform_data_stack)
         pool.close()
         pool.join()
@@ -1385,7 +1385,7 @@ class L1PTrailingEdgeSlope(L1PProcItem):
         :return:
         """
         fit_inputs = zip(np.vsplit(waveforms, waveforms.shape[0]), first_maximum_indices)
-        pool = multiprocessing.Pool(psrlcfg.CPU_COUNT)
+        pool = multiprocessing.Pool(PSRLCFG.CPU_COUNT)
         results = pool.starmap(
             partial(
                 trailing_edge_slope,

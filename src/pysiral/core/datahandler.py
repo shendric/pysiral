@@ -15,7 +15,7 @@ from dateperiods import DatePeriod
 from dateutil.relativedelta import relativedelta
 from loguru import logger
 
-from pysiral import get_cls, psrlcfg
+from pysiral import get_cls, PSRLCFG
 from pysiral.auxdata import AuxClassConfig
 from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass,
                                          ErrorStatus)
@@ -68,7 +68,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
             if local_repo is None and local_repository_id is not None:
                 error_id = "auxdata_missing_localrepo_def"
                 error_message = f"Missing entry `auxdata_repository.{auxdata_class}.{auxdata_id}` in " + \
-                                f"local_machine_def ({psrlcfg.local_machine_def_filepath})"
+                                f"local_machine_def ({PSRLCFG.local_machine_def_filepath})"
                 self.error.add_error(error_id, error_message)
                 self.error.raise_on_error()
             empty_str = len(local_repo) == 0 if local_repo is not None else False
@@ -121,7 +121,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
         """ Get the local repository for the the auxdata type and id """
         if auxdata_id is None:
             return None
-        aux_repo_defs = psrlcfg.local_machine.auxdata_repository
+        aux_repo_defs = PSRLCFG.local_machine.auxdata_repository
         try:
             local_repo_auxclass = aux_repo_defs[auxdata_class]
         except KeyError:
@@ -140,7 +140,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
         :return: The configuration dictionary
         """
 
-        auxdata_def = psrlcfg.auxdef.get_definition(auxdata_class, auxdata_id)
+        auxdata_def = PSRLCFG.auxdef.get_definition(auxdata_class, auxdata_id)
         if auxdata_def is None:
             msg = f"Cannot find entry for auxiliary data set {auxdata_class}:{auxdata_id} in auxdata_def.yaml"
             self.error.add_error("invalid-auxdata-class", msg)
@@ -258,10 +258,10 @@ class L1PDataHandler(DefaultLoggingClass):
         """
         l1p_base_dir = None
         try:
-            l1p_base_dir = psrlcfg.local_machine.l1b_repository[self._platform][self._source_version]["l1p"]
+            l1p_base_dir = PSRLCFG.local_machine.l1b_repository[self._platform][self._source_version]["l1p"]
         except (AttributeError, KeyError):
             msg = f"missing entry `l1bdata.{self._platform}.{self._source_version}.l1p` in local_machine_def.yaml"
-            msg = f"{msg} ({psrlcfg.local_machine_def_filepath})"
+            msg = f"{msg} ({PSRLCFG.local_machine_def_filepath})"
             error_id = "l1bdata_missing_localrepo_def"
             self.error.add_error(error_id, msg)
             self.error.raise_on_error()

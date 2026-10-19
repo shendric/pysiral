@@ -9,7 +9,7 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 import numpy as np
 from scipy.ndimage import maximum_filter
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 from pysiral.l3 import Level3ProcessorItem
 
 
@@ -60,7 +60,7 @@ class Level3StatusFlag(Level3ProcessorItem):
 
         # Get the pole hole information
         mission_ids = self.l3grid.metadata.mission_ids.split(",")
-        orbit_inclinations = [psrlcfg.platforms.get_orbit_inclination(mission_id) for mission_id in mission_ids]
+        orbit_inclinations = [PSRLCFG.platforms.get_orbit_inclination(mission_id) for mission_id in mission_ids]
 
         # NOTE: due to varying grid cell size, it is no sufficient to just check which grid cell coordinate
         #       is outside the orbit coverage
