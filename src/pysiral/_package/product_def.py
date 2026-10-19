@@ -94,6 +94,25 @@ class ProductDefinitionCatalogue:
 
         return product_definitions
 
+    def get_product_definition(
+            self,
+            product_id: str,
+            processor_level: str
+    ) -> Tuple[Dict[str, str], Dict[str, Dict[str, Any]]]:
+        """
+        Get the product definition for a given product ID and processor level#
+
+        :param product_id: Product ID
+        :param processor_level: Processor level (l1, l2, l2p, l3)
+
+        :return: Tuple with the processor keywords for the product definition and the dynamic variables
+            for the product definition
+        """
+        product_def = self._product_definitions[product_id]
+        processor_keywords = getattr(product_def.processors, processor_level).model_dump()
+        dynamic_variables = product_def.dynamic_variables.model_dump()
+        return processor_keywords, dynamic_variables
+
     def get_choices(self) -> List[str]:
         """
         Get the list of product IDs available in the catalogue

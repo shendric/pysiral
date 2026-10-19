@@ -44,12 +44,12 @@ processors:
 
   l1:
     l1p_settings: "{l1p_settings[platform]}"
-    hemisphere: "{hemisphere_code}"
+    hemisphere: "{hemisphere}"
     platform: "{platform}"
 
   l2:
     l1p_version: "{l1p_version[platform]}"
-    l2_settings: "cci_{mission}_{hemisphere_code}_v5p0_cdr"
+    l2_settings: "cci_{mission}_{hemisphere}_v5p0_cdr"
     l2_output: "l2i_cci_v5p0"
     platform: "{platform}"
 
@@ -58,7 +58,7 @@ processors:
   l3:
     l3_settings: "l3_cci_v5p0"
     platform: *platforms
-    grid_id: "{l3_grid[hemisphere_code]}"
+    grid_id: "{l3_grid[hemisphere]}"
     period: "P1M"
-    doi: "{doi_l3s[hemisphere_code]}"
+    doi: "{doi_l3s[hemisphere]}"
     l3_output: ["l3_cci_v5p0", "l3_cci_v5p0-internal"]

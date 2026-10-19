@@ -28,6 +28,8 @@ from typing import Iterable, Dict
 import yaml
 from dateperiods import DatePeriod
 
+from cf_data_struct import TemplateEngine
+
 import pysiral
 from pysiral._package.auxdata_def import _AuxdataCatalogue
 from pysiral._package.mission_def import _MissionDefinitionCatalogue
@@ -75,7 +77,7 @@ class PysiralPackageConfiguration(object):
         Collect _package configuration data from the various definition files and provide an interface
         to pysiral processor, output and grid definition files.
         This class is intended to be only called inside the init module of pysiral and to store the
-        pysiral _package configuration in the global variable `psrlcfg`
+        pysiral _package configuration in the global variable `PSRLCFG`
         """
 
         # --- Establish the path information ---
@@ -94,7 +96,6 @@ class PysiralPackageConfiguration(object):
         self.platforms = self._read_platforms()
         self.auxdata = self._read_auxdata_def()
         self.product = self._read_product_def()
-        breakpoint()
 
     def _get_pysiral_path_information(self) -> Dict[str, str]:
         """
@@ -360,6 +361,31 @@ class PysiralPackageConfiguration(object):
             return Path(self.config_path) / Path(*args)
         else:
             return None
+
+    def get_product_settings(
+            self,
+            processor_level: str,
+            product_id: str,
+            context_attributes: Optional[Dict] = None
+    ) -> Dict[str, Any]:
+        """
+        Get the processor settings for a given product ID and processor level.
+        :param processor_level: Processor level (l1, l2, l2p, l3)
+        :param product_id: Product ID (as defined in the product_def.yaml file)
+        :param context_attributes: Optional context dictionary to be passed to the product definition
+        :return: Processor settings as a dictionary
+        """
+        if processor_level not in self.VALID_PROCESSOR_LEVELS:
+            raise ValueError(f"Invalid processor level: {processor_level}")
+
+        product_definition, dynamic_variables = self.product.get_product_definition(product_id, processor_level)
+        if product_definition is None:
+            raise ValueError(f"Product ID '{product_id}' not found in product definitions")
+
+        templ = TemplateEngine(context_attributes=context_attributes, dynamic_variables=dynamic_variables)
+        processor_settings = {key: templ.render(value) for key, value in product_definition.items()}
+
+        return processor_settings
 
     def reload(self):
         """
