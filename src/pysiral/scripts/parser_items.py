@@ -33,16 +33,16 @@ class ArgparseArgumentsArgs:
     type: Optional[Callable] = field(default=None)
     choices: List[Any] | None = None
     required: Optional[bool] = field(default=None)
-    help: Optional[str] = field(default=None)
+    help: str = field(default=None)
     metavar: Optional[str] = field(default=None)
-    dest: Optional[str] = field(default=None)
+    dest: str = field(default=None)
 
     def get(self) -> Tuple[List[str], dict[str, Any]]:
         """
         Returns the input arguments and keyword arguments to `parser.add_argument()`
 
         :return: A tuple containing a list of argument names or flags and a
-            dictionary of keyword arguments
+            ictionary of keyword arguments
         """
         # Convert the `args` property to a dictionary and remove empty values`
         args_dict = asdict(self)
@@ -67,12 +67,12 @@ class ArgparseArgumentsArgs:
 @dataclass(kw_only=True)
 class PlatformID(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-p", "--platform"]
-    action = "store"
-    dest = "platform"
-    type = str
-    choices: Optional[List[Any]] = field(default_factory=lambda: psrlcfg.platform_ids)
-    metavar = "<platform_id>"
-    help = """
+    action: str = "store"
+    dest: str = "platform"
+    type: Callable = str
+    choices: List[Any] = field(default_factory=lambda: psrlcfg.platform_ids)
+    metavar: str = "<platform_id>"
+    help: str = """
     Radar altimeter platform id as defined in pysiral (see `pysiral info --platforms`). This option is 
     required only if the processor configuration file is applicable to multiple platforms 
     (e.g. sentinel3a, sentinel3b, etc.). If the processor configuration file is platform-specific, 
@@ -83,9 +83,9 @@ class PlatformID(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class ProcessingPeriod(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["processing_period"]
-    action = period_conversion()
-    metavar = "<processing period>"
-    help = """
+    action: Callable = period_conversion()
+    metavar: str = "<processing period>"
+    help: str = """
     Period definition for processing, given as a string in the format "YYYY-MM[-DD][:YYYY-MM[-DD]]".
     If only one date is given, it will be interpreted as a period (e.g., "2023-01" for January 2023 and
     ("2023-01-01" for one day). If two colon-separated dates are given, they will be interpreted 
@@ -96,13 +96,13 @@ class ProcessingPeriod(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class Hemisphere(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-H", "--hemisphere"]
-    action = "store"
-    dest = "hemisphere"
-    default = Hemispheres.GLOBAL
-    metavar = "|".join(Hemispheres.get_choices())
-    choices: Optional[List[Any]] = field(default_factory=lambda: Hemispheres.get_choices())
-    type = str
-    help = """
+    action: str = "store"
+    dest: str = "hemisphere"
+    default: Any = Hemispheres.GLOBAL
+    metavar: str = "|".join(Hemispheres.get_choices())
+    choices: List[Any] = field(default_factory=lambda: Hemispheres.get_choices())
+    type: Callable = str
+    help: str = """
     Target hemisphere for processing. Options are 'global', 'nh', or 'sh'. 
     """
 
@@ -110,12 +110,12 @@ class Hemisphere(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class Duration(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-d", "--duration"]
-    action = "store"
-    dest = "duration"
-    metavar = "<duration>"
-    choices: Optional[List[Any]] = field(default_factory=lambda: DurationType.get_choices())
-    type = str
-    help = """
+    action: str = "store"
+    dest: str = "duration"
+    metavar: str = "<duration>"
+    choices: List[Any] = field(default_factory=lambda: DurationType.get_choices())
+    type: Callable = str
+    help: str = """
     Duration type for splitting the processing period into segments. 
     Options are 'daily', 'isoweekly', or 'monthly' and will be passed
     `dateperiod.Dateperiod().get_segments()`. If left empty, the 
@@ -125,10 +125,10 @@ class Duration(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class ProductID(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["product_id"]
-    metavar = "<product_id>"
-    choices: Optional[List[Any]] = field(default_factory=lambda: psrlcfg.product.get_choices())
-    type = str
-    help = """
+    metavar: str = "<product_id>"
+    choices: List[Any] = field(default_factory=lambda: psrlcfg.product.get_choices())
+    type: Callable = str
+    help: str = """
     The product identifier for the target product. This will be used to determine the
     the processing and output definitions for all processing levels
     """+f" Valid product ID's are: [{', '.join(psrlcfg.product.get_choices())}]"
@@ -137,11 +137,11 @@ class ProductID(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class ProductProcessingLevel(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-p", "--processing-level"]
-    dest = "processing_level"
-    metavar = "<processing_level>"
-    choices: Optional[List[Any]] = field(default_factory=lambda: ProductProcessingLevels.get_choices())
-    type = str
-    help = """
+    dest: str = "processing_level"
+    metavar: str = "<processing_level>"
+    choices: List[Any] = field(default_factory=lambda: ProductProcessingLevels.get_choices())
+    type: Callable = str
+    help: str = """
     Target processing level. Setting this argument will overwrite any processing
     levels defined in the input data or processor definition.
     """+f" Valid processing levels are: [{', '.join(ProductProcessingLevels.get_choices())}]"
@@ -150,11 +150,11 @@ class ProductProcessingLevel(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class DataRecord(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-D", "--data-record"]
-    dest = "data_record"
-    metavar = f"<data record>"
-    choices: Optional[List[Any]] = field(default_factory=lambda: DataRecordType.get_choices())
-    type = str
-    help = """
+    dest: str = "data_record"
+    metavar: str = f"<data record>"
+    choices: List[Any] = field(default_factory=lambda: DataRecordType.get_choices())
+    type: Callable = str
+    help: str = """
     Target data record. Setting this argument will overwrite any value
     defined in the input data or processor definition.
     """+f" Valid data records are: [{', '.join(DataRecordType.get_choices())}]"
@@ -163,22 +163,22 @@ class DataRecord(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class ExcludeMonths(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-E", "--exclude-months"]
-    nargs = "+"
-    type = month_number_type
-    dest = "exclude_months"
-    metavar = "<month number>"
-    help = "List of months to be excluded from processing, given as integers (1-12)."
+    nargs: str = "+"
+    type: Callable = month_number_type
+    dest: str = "exclude_months"
+    metavar: str = "<month number>"
+    help: str = "List of months to be excluded from processing, given as integers (1-12)."
 
 
 @dataclass(kw_only=True)
 class InputVersion(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-v", "--input-version"]
-    action = "store"
-    dest = "input_version"
-    default = "default"
-    metavar = "v{minor}p{major}|default"
-    type = str
-    help = """
+    action: str = "store"
+    dest: str = "input_version"
+    default: Any = "default"
+    metavar: str = "v{minor}p{major}|default"
+    type: Callable = str
+    help: str = """
     Input version name (e.g., v1p0, v2p1, or 'default'). 
     This is used to identify the version of the input data.
     """
@@ -187,11 +187,11 @@ class InputVersion(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class SourceDatasetID(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-s", "--source-dataset-id"]
-    action = "store"
-    dest = "source_dataset_id"
-    metavar = "<source_dataset_id>"
-    type = str
-    help = """
+    action: str = "store"
+    dest: str = "source_dataset_id"
+    metavar: str = "<source_dataset_id>"
+    type: Callable = str
+    help: str = """
     Identifier of the source dataset to be used for processing, summarizing the platform, version, 
     and timeliness information. The source dataset ID must be specified in the local machine definition file
     ({pysiral-cfg-location}/local_machine_def.yaml, e.g. `root.l1b_repository.<platform>.<source_dataset_id>`)
@@ -201,8 +201,8 @@ class SourceDatasetID(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L1PFile(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["l1p_file"]
-    type = file_type(suffix=".nc")
-    help = """
+    type: Callable = file_type(suffix=".nc")
+    help: str = """
     Path to Level-1 Pre-Processed (l1p) input file for the Level-2 processor.
     """
 
@@ -210,13 +210,13 @@ class L1PFile(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L1PSettings(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["l1p_settings"]
-    type = str
-    action = pysiral_settings_action(
+    type: Callable = str
+    action: Callable = pysiral_settings_action(
         target="proc",
         level=PysiralProcessingLevels.LEVEL1
     )
-    metavar = "<id|filepath>"
-    help = """
+    metavar: str = "<id|filepath>"
+    help: str = """
     Identifier or file path to the Level-1 Pre-Processor definition file.
     This file contains the settings for the Level-1 processor. The default location
     for these files is `{pysiral-cfg-location}/proc/l1/`. The identifier is the filename without 
@@ -228,13 +228,13 @@ class L1PSettings(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L2Settings(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["l2_settings"]
-    type = str
-    action = pysiral_settings_action(
+    type: Callable = str
+    action: Callable = pysiral_settings_action(
         target="proc",
         level=PysiralProcessingLevels.LEVEL2
     )
-    metavar = "<l2 settings id|filepath>"
-    help = """
+    metavar: str = "<l2 settings id|filepath>"
+    help: str = """
     Identifier or file path to the Level-2 Processor definition file.
     This file contains the settings for the Level-2 processor. The default location
     for these files is `{pysiral-cfg-location}/proc/l2/`. The identifier is the filename without 
@@ -246,13 +246,13 @@ class L2Settings(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L3Settings(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["l3_settings"]
-    action = pysiral_settings_action(
+    action: Callable = pysiral_settings_action(
         target="proc",
         level=PysiralProcessingLevels.LEVEL3
     )
-    type = str
-    metavar = "<l3 settings id|filepath>"
-    help = """
+    type: Callable = str
+    metavar: str = "<l3 settings id|filepath>"
+    help: str = """
     Identifier or file path to the Level-3 Processor definition file.
     This file contains the settings for the Level-2 processor. The default location
     for these files is `{pysiral-cfg-location}/proc/l3/`. The identifier is the filename without 
@@ -264,11 +264,11 @@ class L3Settings(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L2Outputs(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-o", "--l2-output"]
-    nargs = "+"
-    dest = "l2_outputs"
-    action = pysiral_settings_action(target="output", level=ProductProcessingLevels.LEVEL2_INTERMEDIATE)
-    metavar = "<l2 output id|filepath>"
-    help = """
+    nargs: str = "+"
+    dest: str = "l2_outputs"
+    action: Callable = pysiral_settings_action(target="output", level=ProductProcessingLevels.LEVEL2_INTERMEDIATE)
+    metavar: str = "<l2 output id|filepath>"
+    help: str = """
     Identifier or file path of one ore several Level-2 output definition files.
     Each file contains the output definition for the l2/l2i dataformat. The default location
     for these files is `{pysiral-cfg-location}/output/l2/`. The identifier is the filename without 
@@ -280,12 +280,12 @@ class L2Outputs(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L2POutputs(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-o", "--l2p-output"]
-    action = pysiral_settings_action(
+    action: Callable = pysiral_settings_action(
         target="output",
         level=ProductProcessingLevels.LEVEL2_PREPROCESSED
     )
-    metavar = "<l2p output id|filepath>"
-    help = """
+    metavar: str = "<l2p output id|filepath>"
+    help: str = """
     Identifier or file path of one Level-2 output definition file.
     Each file contains the output definition for the l2/l2i dataformat. The default location
     for these files is `{pysiral-cfg-location}/output/l2/`. The identifier is the filename without 
@@ -297,14 +297,14 @@ class L2POutputs(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L3Outputs(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-o", "--l3-output"]
-    nargs = "+"
-    type = str
-    action = pysiral_settings_action(
+    nargs: str = "+"
+    type: Callable = str
+    action: Callable = pysiral_settings_action(
         level=PysiralProcessingLevels.LEVEL3,
         target="output"
     )
-    metavar = "<l3 output id|filepath>"
-    help = """
+    metavar: str = "<l3 output id|filepath>"
+    help: str = """
     Identifier or file path of one or several Level-3 output definition files.
     Each file contains the output definition for the l3 dataformat. The default location
     for these files is `{pysiral-cfg-location}/output/l3/`. The identifier is the filename without 
@@ -316,11 +316,11 @@ class L3Outputs(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class MultiProcesssingNumCores(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-m", "--multiprocessing-num-cores"]
-    dest = "multiprocessing_num_cores"
-    type = positive_int_type
-    metavar = "<num_cores>"
-    default = None
-    help = """
+    dest: str = "multiprocessing_num_cores"
+    type: Callable = positive_int_type
+    metavar: str = "<num_cores>"
+    default: Any = None
+    help: str = """
     Set the number of CPU cores to be used for multiprocessing. If not set, the 
     default value (derived from `multiprocessing.cpu_count()`) will be used. 
     NOTE: In some managed environments, the default value is not reliable, which 
@@ -332,10 +332,10 @@ class MultiProcesssingNumCores(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class UseMultiProcesssing(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["--multiprocessing"]
-    dest = "use_multiprocessing"
-    action = argparse.BooleanOptionalAction
-    default = True
-    help = """
+    dest: str = "use_multiprocessing"
+    action: Any = argparse.BooleanOptionalAction
+    default: Any = True
+    help: str = """
     Flag to allow disabling multiprocessing. If set, the processor will run in single-threaded mode.
     Default is True, meaning multiprocessing is enabled. 
     (also see option -m/--multiprocessing-num-cores)
@@ -345,9 +345,9 @@ class UseMultiProcesssing(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class ForceL2DefRecordType(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["--force-l2def-record-type"]
-    dest = "force_l2def_record_type"
-    default = False
-    help = """
+    dest: str = "force_l2def_record_type"
+    default: Any = False
+    help: str = """
     By default, the Level-2 processor will use the record_type defined in the l1p input files. 
     If this flag is set, the processor will use the record_type defined in the Level-2 definition file
     (l2def) instead. This is useful if the l1p input files are not consistent with the l2def record_type, 
@@ -359,10 +359,10 @@ class ForceL2DefRecordType(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L1PFiles(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["l1p_files"]
-    nargs = "+"
-    type = file_type(".nc")
-    metavar = "<l1p filepath>"
-    help = """
+    nargs: str = "+"
+    type: Callable = file_type(".nc")
+    metavar: str = "<l1p filepath>"
+    help: str = """
     Target Level-1P (l1p) file(s) to be processed by the Level-2 processor.
     """
 
@@ -370,11 +370,11 @@ class L1PFiles(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L2iDirectory(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-i", "--l2i-product-dir", "--l2-product-dir"]
-    nargs = "+"
-    dest = "l2_product_directory"
-    type = dir_type()
-    metavar = "<l2 directory>"
-    help = """
+    nargs: Optional[str] = "+"
+    dest: str = "l2_product_directory"
+    type: Callable = dir_type()
+    metavar: str = "<l2 directory>"
+    help: str = """
     Target Level-2i (l2i) product directory where the Level-2 output files will be written.
     The l2i files need to be organized in `yyyy/mm/` subdirectory structure. 
     """
@@ -383,16 +383,16 @@ class L2iDirectory(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L3Directory(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["-O", "--l3-product-directory"]
-    dest = "l3_product_directory"
-    type = dir_type(
+    dest: str = "l3_product_directory"
+    type: Callable = dir_type(
         must_exist=False,
         ends_with=[
             ProductProcessingLevels.LEVEL3_COLLATED,
             ProductProcessingLevels.LEVEL3_SUPERCOLLATED
         ]
     )
-    metavar = "<l3 directory>"
-    help = """
+    metavar: str = "<l3 directory>"
+    help: str = """
     Target Level-3 product directory where the Level-3 output files will be written. 
     The last sub-directory must be a valid Level-3 processing level code [l3c|l3s]. 
     If not given, the directory will be inferred from the l2 input directory. 
@@ -402,9 +402,9 @@ class L3Directory(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class L3Grid(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["l3_grid_id"]
-    type = pysiral_grid_id_type
-    metavar = "<grid id>"
-    help = """
+    type: Callable = pysiral_grid_id_type
+    metavar: str = "<grid id>"
+    help: str = """
     The grid definition id for the Level-3 processor. 
     """+f" Valid grid ids are: [{', '.join(psrlcfg.get_setting_ids('grid'))}]"
 
@@ -412,9 +412,9 @@ class L3Grid(ArgparseArgumentsArgs):
 @dataclass(kw_only=True)
 class DOI(ArgparseArgumentsArgs):
     name_or_flags: ClassVar[list[str]] = ["--doi"]
-    type = doi_type
-    metavar = "<product doi>"
-    help = """
+    type: Callable = doi_type
+    metavar: str = "<product doi>"
+    help: str = """
     The DOI (Digital Object Identifier) to be written in the global attributes of the product files.
     """
 
@@ -503,7 +503,7 @@ class DefaultCommandLineArguments(object):
                 "help": 'specific tag in local_machine_def.yaml (root.l1b_repository.<platform>.<source_repo_od>'
             },
 
-            # override any critical prompts for cronjob etc
+            # override any critical prompts for cronjobs etc
             "no-critical-prompt": {
                 "action": "store_true",
                 "dest": "no_critical_prompt",
@@ -512,7 +512,7 @@ class DefaultCommandLineArguments(object):
                 "help": 'set to skip any required command line inputs'
             },
 
-            # preset for l1b files (e.g. path/*.nc)
+            # preset for level-1b (l1bdata) fiels
             "l1b_files": {
                 "action": "store",
                 "dest": "l1b_files_preset",
