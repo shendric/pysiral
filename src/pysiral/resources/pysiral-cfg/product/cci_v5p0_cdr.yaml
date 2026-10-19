@@ -39,7 +39,6 @@ dynamic_variables:
     sentinel3a: "l2lan_v1p2"
     sentinel3b: "l2lan_v1p2"
 
-
 processors:
 
   l1:
