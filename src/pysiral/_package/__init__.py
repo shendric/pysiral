@@ -10,6 +10,8 @@ __all__ = ["PysiralPackageConfiguration", "get_cls", "import_submodules", "set_p
 
 import multiprocessing
 
+from typing import Optional, Any
+
 import shutil
 import socket
 import sys

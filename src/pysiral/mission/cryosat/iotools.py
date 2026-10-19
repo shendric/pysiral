@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import re
 from collections import deque
 from pathlib import Path
 

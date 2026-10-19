@@ -19,10 +19,55 @@ from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.iotools import ReadNC
 from pysiral.core.legacy_classes import AttrDict
+from pysiral.mission import SourceDataLoader
 from pysiral.mission.envisat.functions import get_envisat_wfm_range
 from pysiral.l1.l1data import Level1bData
 from pysiral.l1 import Level1PInputHandlerBase
 
+
+class EnvisatFDR4ALT(SourceDataLoader):
+
+    def __init__(self, cfg: Union[Dict, AttrDict], raise_on_error: bool = False) -> None:
+        """
+        Input handler for Envisat FDR4ALT netCDF files combining the altimeter data from
+        Fundamental Data Record (FDR) and the range correction (tides & atmospheric corrections)
+        from the thematic sea ice product.
+
+        :param cfg: Options from the corresponding Level-1 pre-processor config file
+        :param raise_on_error: Boolean value if the class should raise an exception upon an error (default: False)
+        """
+
+        # Properties
+        self.fdr = None
+        self.filepath = None
+
+
+    def get_l1(self, filepath: Path, **kwargs) -> Optional[Level1bData]:
+        """
+        Read the Envisat FDR4ALT file and transfers its content to a Level1Data instance
+
+        :param filepath: The full file path to the netCDF file
+        :return: The parsed (or empty) Level-1 data container
+        """
+
+        # Store arguments
+        self.filepath = filepath
+
+        breakpoint()
+
+        # Create an empty Level-1 data object
+        l1 = Level1bData()
+
+        # Read the file
+        self.fdr = ReadNC(self.filepath, nan_fill_value=True)
+
+        # Get metadata
+        self._set_input_file_metadata(l1)
+
+        # Transfer data to l1 object
+        self._transfer_data_groups(l1)
+
+        return l1
 
 class EnvisatSGDRNC(Level1PInputHandlerBase):
     """ Converts an Envisat SGDR object into a L1bData object """

@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+
+__all__ = ["ESACryoSat2ICEL1bProducts", "ESACryoSat2PDSBaselineD"]
 
 import re
 from pathlib import Path
@@ -15,17 +18,17 @@ from pysiral.core.config import AttrDict
 from pysiral.core.clocks import StopWatch
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
 from pysiral.core.helper import parse_datetime_str
-from pysiral.cryosat2 import cs2_procstage2timeliness
+from pysiral.mission import SourceDataLoader
+from pysiral.mission.cryosat import cs2_procstage2timeliness
 from pysiral.l1.l1data import Level1bData
 from pysiral.l1 import Level1PInputHandlerBase, L1PreProcPolarOceanCheck
 from pysiral.l1.alg.waveform import OCOGParameter
 
 
-class ESACryoSat2ICEL1bProducts(Level1PInputHandlerBase):
+class ESACryoSat2ICEL1bProducts(SourceDataLoader):
 
     def __init__(self, cfg: AttrDict, raise_on_error: bool = False) -> None:
-        cls_name = self.__class__.__name__
-        super(ESACryoSat2ICEL1bProducts, self).__init__(cfg, raise_on_error, cls_name)
+        super(ESACryoSat2ICEL1bProducts, self).__init__(cfg, raise_on_error)
         self.filepath = None
 
     @staticmethod

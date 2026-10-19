@@ -1260,7 +1260,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         input_handler_cfg = self.l1pprocdef.input_handler.options
         local_machine_def_tag = input_handler_cfg.local_machine_def_tag
-        primary_input_def = PSRLCFG.local_machine.l1b_repository
+        primary_input_def = PSRLCFG.local_machine.get("l1b_repository")
         platform, tag = self.platform, local_machine_def_tag
 
         # Overwrite the tag if specifically supplied
