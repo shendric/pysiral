@@ -16,7 +16,6 @@ __all__ = [
 
 from datetime import timezone
 
-
 try:
     from datetime import UTC
 except ImportError:
