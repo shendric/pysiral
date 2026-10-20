@@ -10,7 +10,7 @@ __all__ = ["PysiralPackageConfiguration", "get_cls", "import_submodules", "set_p
 
 import multiprocessing
 
-from typing import Optional, Any
+from typing import Optional, Any, TypeVar, Type
 
 import shutil
 import socket
@@ -37,6 +37,8 @@ from pysiral._package.auxdata_def import _AuxdataCatalogue
 from pysiral._package.mission_def import _MissionDefinitionCatalogue
 from pysiral._package.helper import get_cls, import_submodules, set_psrl_cpu_count
 
+
+T = TypeVar('T')
 PACKAGE_ROOT_DIR = Path(pysiral.__file__).parent.resolve()
 
 
@@ -245,6 +247,19 @@ class PysiralPackageConfiguration(object):
         return ProductDefinitionCatalogue(self.config_path / "product")
 
     @staticmethod
+    def load_class_registry():
+        """
+        Load the class registry from the pysiral _package configuration. This method will scan the
+        pysiral _package for classes that are registered in the class registry and store them in
+        the CLASS_REGISTRY attribute.
+        :return: None
+        """
+        import_submodules("pysiral.mission")
+        import_submodules("pysiral.l1")
+        import_submodules("pysiral.l2")
+        import_submodules("pysiral.l3")
+
+    @staticmethod
     def get_yaml_config(filename) -> Dict:
         """
         Read a yaml file and return it content as an attribute-enabled dictionary
@@ -396,6 +411,22 @@ class PysiralPackageConfiguration(object):
         processor_settings = {key: templ.render(value) for key, value in product_definition.items()}
 
         return processor_settings
+
+    def get_class_from_registry(self, class_type: str, class_name: str) -> Type[T]:
+        """
+        Get a class from the class registry based on the class type and class name.
+
+        :param class_type: Type of the class (e.g., FILE_DISCOVERY, DATA_LOADER, L1_ALGORITHM, etc.)
+        :param class_name: Name of the class to retrieve
+
+        :return: The class object if found, otherwise None
+        """
+        if class_type not in self.CLASS_REGISTRY:
+            raise ValueError(f"Invalid class type: {class_type}. Valid types are: {list(self.CLASS_REGISTRY.keys())}")
+
+        cls = self.CLASS_REGISTRY[class_type].get(class_name, None)
+        assert cls is not None, f"{class_name=} not found in registry for type '{class_type}' Available classes: {list(self.CLASS_REGISTRY[class_type].keys())}"
+        return cls
 
     def reload(self):
         """

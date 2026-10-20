@@ -42,3 +42,4 @@ __git_origin__ = GIT_ORIGIN
 
 # Global pysiral package configuration
 PSRLCFG = PysiralPackageConfiguration()
+PSRLCFG.load_class_registry()

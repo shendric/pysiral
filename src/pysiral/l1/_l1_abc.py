@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from pysiral import PSRLCFG
 
 
-class SourceDataLoader(ABC):
+class L1Algorithm(ABC):
     """
     Abstract base class for Level-1 PreProcessor Algorithms.
     """

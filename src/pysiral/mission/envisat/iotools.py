@@ -7,6 +7,7 @@ from typing import List
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 
 
+
 class EnvisatSGDRNC(DefaultLoggingClass):
 
     def __init__(self, cfg) -> None:

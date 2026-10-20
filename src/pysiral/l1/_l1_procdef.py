@@ -62,7 +62,7 @@ class L1PreProcessorDefinition(BaseModel):
     """
     Data model for the content of a Level-1 processor definition file (pysiral-cfg/proc-l1/**/*.yaml)
     """
-    platforms: Union[List[str], str]
+    platforms: List[str]
     file_discovery: FileDiscoveryConfig
     data_loader: DataLoaderConfig
     output_handler: OutputHandlerConfig

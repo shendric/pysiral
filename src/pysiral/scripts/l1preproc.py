@@ -11,7 +11,7 @@ from typing import List, Union, Optional
 from dateperiods import DatePeriod
 
 
-from pysiral import get_cls, set_psrl_cpu_count
+from pysiral import get_cls, set_psrl_cpu_count, PSRLCFG
 from pysiral.scripts.parser_items import (
     ProcessingPeriod, ExcludeMonths, Hemisphere, PlatformID,
     L1PSettings, SourceDatasetID, MultiProcesssingNumCores, UseMultiProcesssing
@@ -68,29 +68,29 @@ def l1preproc(
     job.stopwatch.start()
 
     # 1. Get the input handler
-    input_handler_def = job.l1pprocdef.input_handler
-    input_handler_cls, err = get_cls(input_handler_def.module_name, input_handler_def.class_name, relaxed=False)
-    input_handler = input_handler_cls(input_handler_def.options)
+    file_discovery_def = job.l1pprocdef.file_discovery
+    file_discovery_cls = PSRLCFG.get_class_from_registry("FILE_DISCOVERY", file_discovery_def.class_name)
+    file_discovery = file_discovery_cls(**file_discovery_def.options)
 
     # 2. Get the adapter class that transfers
-    adapter_def = job.l1pprocdef.input_adapter
-    input_adapter_cls, err = get_cls(adapter_def.module_name, adapter_def.class_name, relaxed=False)
-    input_adapter = input_adapter_cls(adapter_def.options)
+    data_loader_def = job.l1pprocdef.data_loader
+    input_adapter_cls = PSRLCFG.get_class_from_registry("DATA_LOADER", data_loader_def.class_name)
+    input_adapter = input_adapter_cls(**data_loader_def.options)
 
     # 3. Get the output handler
     output_handler_def = job.l1pprocdef.output_handler
     output_handler = Level1POutputHandler(output_handler_def.options)
-    output_handler.cfg.update(**job.output_handler_cfg)
+    output_handler.cfg.update(**job.output_handler_cfg)   # WTF
 
     # 4. Get the pre-processor
-    preproc_def = job.l1pprocdef.level1_preprocessor
-    pre_processor = get_preproc(preproc_def.type, input_adapter, output_handler, preproc_def.options)
+    preproc_def = job.l1pprocdef.processor
+    pre_processor = get_preproc(preproc_def.type, input_adapter, output_handler, preproc_def.options, preproc_def.algorithms)
 
     # 5. Loop over monthly periods
     for period in job.period_segments:
 
         # 5.1 Get input files
-        file_list = input_handler.get_file_for_period(period)
+        file_list = file_discovery.query_period(period)
         if len(file_list) == 0:
             logger.warning(f"No input files found for period: {period.date_label}, skipping")
 

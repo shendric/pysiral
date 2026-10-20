@@ -7,11 +7,12 @@ __author__ = "Stefan Hendricks"
 
 import re
 from pathlib import Path
-from typing import Any, Dict, Union
+from typing import Any, Dict, Union, Optional
 
 import numpy as np
 from cftime import num2pydate
 from loguru import logger
+from pydantic import BaseModel
 from scipy import interpolate
 
 from pysiral import PSRLCFG
@@ -25,9 +26,24 @@ from pysiral.l1.l1_data import Level1bData
 from pysiral.l1 import Level1PInputHandlerBase
 
 
+class EnvisatFDR4ALTConfig(BaseModel):
+    """
+    Configuration for Envisat FDR4ALT data loader.
+    """
+    name: str
+    classifier_targets: Dict[str, str]
+    range_correction_targets: Dict[str, Optional[str]] = {}
+    bin_width_meter: float = 0.4686
+    radar_mode: str = "lrm"
+    sgdr_timestamp_units: str = "seconds since 2000-01-01 00:00:00.0"
+    sgdr_timestamp_calendar: str = "gregorian"
+    timeliness: str = "rep"
+    raise_on_error: bool = True
+
+
 class EnvisatFDR4ALT(SourceDataLoader):
 
-    def __init__(self, cfg: Union[Dict, AttrDict], raise_on_error: bool = False) -> None:
+    def __init__(self, **kwargs) -> None:
         """
         Input handler for Envisat FDR4ALT netCDF files combining the altimeter data from
         Fundamental Data Record (FDR) and the range correction (tides & atmospheric corrections)
@@ -39,8 +55,8 @@ class EnvisatFDR4ALT(SourceDataLoader):
 
         # Properties
         self.fdr = None
+        self.cfg = EnvisatFDR4ALTConfig(**kwargs)
         self.filepath = None
-
 
     def get_l1(self, filepath: Path, **kwargs) -> Optional[Level1bData]:
         """

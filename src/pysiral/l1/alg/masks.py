@@ -14,7 +14,7 @@ from typing import Tuple, Union, Optional, Literal
 
 from pydantic import BaseModel, computed_field
 
-from pysiral import psrlcfg
+from pysiral import PSRLCFG
 
 from pysiral.core.legacy_classes import AttrDict
 from pysiral.core.flags import SURFACE_TYPE_DICT
@@ -152,7 +152,7 @@ class SurfaceClassificationMaskConfig(BaseModel):
     @computed_field
     def lookup_directory(self) -> Optional[Path]:
         try:
-            directory = psrlcfg.local_machine.auxdata_repository[self.local_machine_def_auxclass][self.local_machine_def_tag]
+            directory = PSRLCFG.local_machine.auxdata_repository[self.local_machine_def_auxclass][self.local_machine_def_tag]
         except KeyError:
             logger.error(
                 f"Could not find lookup directory for auxclass '{self.local_machine_def_auxclass}' and tag "
@@ -163,6 +163,7 @@ class SurfaceClassificationMaskConfig(BaseModel):
             logger.error(f"Lookup directory '{directory}' does not exist.")
             return None
         return directory
+
 
 class SurfaceClassificationData(object):
 

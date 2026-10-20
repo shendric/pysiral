@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 """
-plib A collection of python libraries
+This module contains data loaders and file discovery classes for the Envisat mission.
 """
 
-__all__ = ["functions", "iotools", "l1_adapter"]
+__all__ = ["functions", "iotools", "l1_adapter", "file_discovery"]

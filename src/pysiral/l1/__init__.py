@@ -11,7 +11,7 @@ import sys
 from datetime import timedelta
 from operator import attrgetter
 from pathlib import Path
-from typing import Dict, List, Tuple, TypeVar, Union, Optional
+from typing import Dict, List, Tuple, TypeVar, Union, Optional, Any
 
 import numpy as np
 from dateperiods import DatePeriod, PeriodIterator
@@ -28,6 +28,7 @@ from pysiral.core.flags import Hemispheres
 from pysiral.l1._l1_procdef import L1PreProcessorDefinition
 from pysiral.l1.l1_data import L1bMetaData, Level1bData
 from pysiral.l1.l1_nc import Level1POutputHandler
+from pysiral.l1._l1_abc import L1Algorithm
 
 # TODO: Remove this functionality
 SHOW_DEBUG_MAP = False
@@ -82,7 +83,8 @@ class L1PreProcBase(DefaultLoggingClass):
                  cls_name: str,
                  input_adapter: L1PInputCLS,
                  output_handler: Level1POutputHandler,
-                 cfg: AttrDict
+                 cfg: Dict[str, Any],
+                 algorithms: List[Any]
                  ) -> None:
 
         # Make sure the logger/error handler has the name of the parent class
@@ -97,6 +99,9 @@ class L1PreProcBase(DefaultLoggingClass):
 
         # The configuration for the pre-processor
         self.cfg = cfg
+
+        # The list of algorithms to apply in the pre-processor
+        self.algorithms = algorithms
 
         # Initialize the L1 processor items
         self.processor_item_dict = {}
@@ -118,14 +123,13 @@ class L1PreProcBase(DefaultLoggingClass):
 
         :return:
         """
-
-        for processing_item_definition_dict in self.cfg.processing_items:
-            def_ = L1PProcItemDef.from_l1procdef_dict(processing_item_definition_dict)
-            cls = def_.get_initialized_processing_item_instance()
-            if def_.stage in self.processor_item_dict:
-                self.processor_item_dict[def_.stage].append((cls, def_.label,))
+        for algorithm_def in self.algorithms:
+            cls = PSRLCFG.get_class_from_registry("L1_ALGORITHM", algorithm_def.class_name)
+            obj = cls(**algorithm_def.options)
+            if algorithm_def.stage in self.processor_item_dict:
+                self.processor_item_dict[algorithm_def.stage].append((obj, algorithm_def.label,))
             else:
-                self.processor_item_dict[def_.stage] = [(cls, def_.label)]
+                self.processor_item_dict[algorithm_def.stage] = [(obj, algorithm_def.label)]
 
     def process_input_files(self, input_file_list: List[Union[Path, str]]) -> None:
         """
@@ -1017,6 +1021,7 @@ class L1PreProcPolarOceanCheck(DefaultLoggingClass):
         return True
 
 
+# TODO: Split into sub-configs
 class Level1PreProcJobDef(DefaultLoggingClass):
     """
     A class that contains all information necessary for the Level-1 pre-processor.
@@ -1053,19 +1058,19 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         super(Level1PreProcJobDef, self).__init__(self.__class__.__name__)
         self.error = ErrorStatus()
 
-        # Get pysiral configuration
-        self._l1pprocdef = self._set_l1p_processor_def(l1p_settings_id_or_file)
-
-        self._check_if_unambiguous_platform()
-
-        # 3. Expand info (input data lookup directories)
-        self._get_local_input_directory()
-
         # Store command line options
         self._hemisphere = hemisphere
         self._platform = platform
         self._source_repo_id = source_repo_id
         self._exclude_month = exclude_month
+
+        # Get pysiral configuration
+        self.l1pprocdef = self._set_l1p_processor_def(l1p_settings_id_or_file)
+
+        self._check_if_unambiguous_platform()
+
+        # 3. Expand info (input data lookup directories)
+        self._get_local_input_directory()
 
         # Get full requested time range
         self._time_range = processing_period
@@ -1116,12 +1121,15 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         # 1. Resolve the absolute file path
         procdef_file_path = self._get_l1p_proc_def_filename(l1p_settings_id_or_file)
 
-        # 2. Read the content
+        # 2. Read the content of the processor definition file
         logger.info(f"Parsing L1P processor definition file: {procdef_file_path}")
-        l1pprocdef = L1PreProcessorDefinition(**get_yaml_config(procdef_file_path))
+        config_dict = get_yaml_config(procdef_file_path)
 
-        # 4. update hemisphere for input adapter
-        self._l1pprocdef["level1_preprocessor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
+        # Update the target hemisphere if specified in the command line arguments
+        config_dict["processor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
+
+        return L1PreProcessorDefinition(**config_dict)
+
 
     def _get_l1p_proc_def_filename(self, l1p_settings_id_or_file: Union[str, Path]) -> Union[str, Path]:
         """
@@ -1153,8 +1161,8 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         Replace the tag for local machine def with the actual path info
         """
 
-        input_handler_cfg = self.l1pprocdef.input_handler.options
-        local_machine_def_tag = input_handler_cfg.local_machine_def_tag
+        input_handler_cfg = self.l1pprocdef.file_discovery.options
+        local_machine_def_tag = input_handler_cfg.get("local_machine_def_tag")
         primary_input_def = PSRLCFG.local_machine.get("l1b_repository")
         platform, tag = self.platform, local_machine_def_tag
 
@@ -1205,7 +1213,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
                     Path(directory).mkdir(parents=True)
 
         # Update the lookup dir parameter
-        self.l1pprocdef.input_handler["options"]["lookup_dir"] = branch.source
+        self.l1pprocdef.file_discovery.options["lookup_dir"] = branch.source
 
     def _check_if_unambiguous_platform(self) -> None:
         """
@@ -1220,14 +1228,14 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         """
 
-        settings_is_ambigous = "," in self._l1pprocdef.platform
+        settings_is_ambigous = len(self.l1pprocdef.platforms) > 1
         platform_is_known = self.platform is not None
 
         if settings_is_ambigous:
 
             if not platform_is_known:
                 msg = "Error: platform in l1p settings is ambiguous (%s), but no platform has been given (-platform)"
-                msg %= self._l1pprocdef.platform
+                msg %= self.l1pprocdef.platforms
                 raise ValueError(msg)
 
             if platform_is_known and self.platform not in str(self._l1pprocdef.platform):
@@ -1285,7 +1293,8 @@ L1PPROC_CLS_TYPE = TypeVar("L1PPROC_CLS_TYPE", bound=L1PreProcBase)
 def get_preproc(preproc_type: str,
                 input_adapter: L1PInputCLS,
                 output_handler: Level1POutputHandler,
-                cfg: AttrDict
+                cfg: Dict[str, Any],
+                algorithms: List[Any],
                 ) -> L1PPROC_CLS_TYPE:
     """
     A function returning the pre-processor class corresponding the type definition.
@@ -1294,6 +1303,8 @@ def get_preproc(preproc_type: str,
     :param input_adapter: A class that return a L1bData object for a given input product file
     :param output_handler: A class that creates a pysiral l1p product from the merged L1bData object
     :param cfg: options for the pre-processor
+    :param algorithms: list of algorithms to apply in the pre-processor
+
     :return: Initialized pre-processor class
     """
 
@@ -1316,7 +1327,7 @@ def get_preproc(preproc_type: str,
         error.raise_on_error()
 
     # Return the initialized class
-    return cls(input_adapter, output_handler, cfg)
+    return cls(input_adapter, output_handler, cfg, algorithms)
 
 
 def l1p_debug_map(l1p_list: List["Level1bData"],

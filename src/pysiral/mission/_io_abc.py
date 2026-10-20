@@ -8,12 +8,11 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from dateperiods import DatePeriod
 
 from pysiral import PSRLCFG
-from pysiral.l1 import L1PreProcPolarOceanCheck
 from pysiral.l1.l1_data import Level1bData
 
 
@@ -42,10 +41,7 @@ class FileDiscovery(ABC):
         PSRLCFG.CLASS_REGISTRY["FILE_DISCOVERY"][cls.__name__] = cls
 
     @abstractmethod
-    def get_for_period(
-            self,
-            period: DatePeriod,
-    ) -> Optional[List[Path]]:
+    def query_period(self, period: DatePeriod) -> Optional[List[Path]]:
         """
         Abstract method to load source data into Level 1 data object from a given file path.
         """
