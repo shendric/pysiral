@@ -76,7 +76,10 @@ class PysiralPackageConfiguration(object):
 
     CLASS_REGISTRY = {
         "FILE_DISCOVERY": {},
-        "DATA_LOADER": {}
+        "DATA_LOADER": {},
+        "L1_ALGORITHM": {},
+        "L2_ALGORITHM": {},
+        "L3_ALGORITHM": {}
     }
 
     def __init__(self):

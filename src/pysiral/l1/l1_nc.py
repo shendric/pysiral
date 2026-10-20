@@ -11,7 +11,7 @@ from dateperiods import DatePeriod
 from pysiral import PSRLCFG
 from pysiral.core.legacy_classes import DefaultLoggingClass, AttrDict, ErrorStatus
 from pysiral.core.output import NCDateNumDef
-from pysiral.l1 import Level1bData
+from pysiral.l1.l1_data import Level1bData
 
 
 class Level1POutputHandler(DefaultLoggingClass):

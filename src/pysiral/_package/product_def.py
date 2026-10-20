@@ -6,7 +6,7 @@
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 from pathlib import Path
-from typing import Union, List, Dict, Optional
+from typing import Union, List, Dict, Optional, Tuple, Any
 
 import yaml
 from pydantic import BaseModel

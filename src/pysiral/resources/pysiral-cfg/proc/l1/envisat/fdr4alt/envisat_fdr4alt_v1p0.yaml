@@ -1,22 +1,19 @@
 # NOTE: A separate config file is necessary for ERS-2, since the Level-1 pre-processor
 #       expects one config file per platform (at least for now)
-platform: envisat
+platforms: ["envisat"]
 
 # Information of getting an input file list
 file_discovery:
-    class_name: EnvisatFDR4ALTDualFileDiscovery
+    class_name: EnvisatFDR4ALTFileDiscovery
     options:
         local_machine_def_tag: &lmd_tag fdr4alt
+        subtag: "fdr"  # FDR4ALT Fundamental Data Record subtag
 
 # Class that will generate the initial l1p data object from the input data
 data_loader:
-
     class_name: EnvisatFDR4ALT
-
     options:
-        
-        name: "Envisat FDR4ALT & Thematic Sea Ice Product"
-
+        name: "Envisat FDR4ALT Fundamental & Thematic Sea Ice Data Record"
         classifier_targets:
             chirp_band: main/Ku/chirp_band
             dist_coast: main/dist_coast
@@ -26,7 +23,6 @@ data_loader:
 
 # Output handler (will always be default handler -> only options)
 output_handler:
-   
     options:
         local_machine_def_tag: *lmd_tag
         minimum_file_record_size: 10
@@ -34,112 +30,75 @@ output_handler:
             source_file_tag: *lmd_tag
             version_file_tag: v1p0
 
-
 # Settings for the pre-processor
 processor:
     
     type: half_orbit
-    
+
     options:
+
+      # Initial subsetting of source data files
+      polar_ocean:
+          target_hemisphere: [north, south]   # May be overwritten by command line argument
+          polar_latitude_threshold: 45.0
+          allow_nonocean_segment_nrecords: 540
+          ocean_minimum_size_nrecords: 5
+
+      # Check for gaps in the input files and split at a certain gap size (in seconds)
+      discontinuities:
+          split_at_time_gap_seconds: 10
+
+      # The maximum separation in seconds for two orbits so that they count as connected
+      connectivity:
+          max_connected_segment_timedelta_seconds: 30
         
-        polar_ocean:
-            target_hemisphere: [north, south]
-            polar_latitude_threshold: 45.0
-            allow_nonocean_segment_nrecords: 540
-            ocean_mininum_size_nrecords: 5
+    # NOTE: if no options are required use an empty mapping {} instead of null!
+    algorithms:
 
-        # Check for gaps in the input files and split at a certain gap size (in seconds)
-        timestamp_discontinuities:
-            split_at_time_gap_seconds: 10
+        # Fill in range corrections from Thematic Sea Ice Product (TSIP) for sea ice and ocean segments
+        - label: "Fill in Range Corrections from TSIP"
+          stage: post_ocean_segment_extraction
+          class_name: FillInRangeCorrectionsFromTSIP
+          options:
+            local_machine_def_tag: *lmd_tag
+            subtag: "tp"  # FDR4ALT Thematic Sea Ice Product subtag
 
-        # The maximum separation in seconds for two orbits so that they count as connected
-        orbit_segment_connectivity:
-            max_connected_segment_timedelta_seconds: 30
-        
-        # NOTE: if no options are required use an empty mapping {} instead of null!
-        processing_items:
+        # Compute the leading edge width parameters (full, first half & second half)
+        - label: "Compute Leading Edge Width"
+          stage: post_ocean_segment_extraction
+          class_name: L1PLeadingEdgeWidth
+          options:
+              tfmra_leading_edge_start: 0.05
+              tfmra_leading_edge_end: 0.95
+              tfmra_options:
+                  noise_level_range_bin_idx: [10, 20]
+                  first_maximum_ignore_leading_bins: 10
 
-            # Fill in range corrections from Thematic Sea Ice Product (TSIP) for sea ice and ocean segments
-            - label: "Fill in Range Corrections from TSIP"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.mission.envisat.io_tools
-              class_name: FillInRangeCorrectionsFromTSIP
-              options: {}
+        # Compute waveform peakiness CCI style
+        - label: "Compute Waveform Peakiness"
+          stage: post_ocean_segment_extraction
+          class_name: L1PWaveformPeakiness
+          options:
+              skip_first_range_bins: 10
+              norm_is_range_bin: True
 
-            # Compute the leading edge width parameters (full, first half & second half)
-            - label: "Compute Leading Edge Width"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PLeadingEdgeWidth
-              options:
-                  tfmra_leading_edge_start: 0.05
-                  tfmra_leading_edge_end: 0.95
-                  tfmra_options:
-                      noise_level_range_bin_idx: [10, 20]
-                      first_maximum_ignore_leading_bins: 10
-
-            # Compute waveform peakiness CCI style
-            - label: "Compute Waveform Peakiness"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PWaveformPeakiness
-              options:
-                  skip_first_range_bins: 10
-                  norm_is_range_bin: True
-        
-            # Compute the leading edge quality indicator
-            # This class will add three parameters to the l1p classifier data group: 
-            #  1. Leading edge quality
-            #  2. first maximum index
-            #  3. first maximum power (in units of peak power)
-            - label: "Compute Leading Edge Quality"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PLeadingEdgeQuality
-              options:
-                # Power threshold for the normalized waveform
-                # that the first maximum has to exceed 
-                first_maximum_normalized_power_threshold:
-                    lrm: 0.5
-                # Number of range bins prior to the first maximum
-                # that are to compute the quality factor
-                leading_edge_lookup_window:
-                    lrm: 20
-                # Minimum valid first maximum index
-                minimum_valid_first_maximum_index:
-                    lrm: 10
-
-            # Compute the leading edge peakiness
-            # This class will add three parameters to the l1p classifier data group: 
-            #  1. Leading edge peakiness
-            - label: "Compute Leading Edge Peakiness"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PLeadingEdgePeakiness
-              options:
-                # Power threshold for the normalized waveform
-                # that the first maximum has to exceed
-                window_size: 3
-
-            # Compute the Late Tail to Peak Power Parameter
-            # This class will one parameter to the l1p classifier data group:
-            #  1. late tail to peak power
-            - label: "Compute Late Tail to Peak Power (LTPP)"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PLateTail2PeakPower
-              options:
-                # Index Window after maximum power for late tail power
-                late_tail_window_idx:
-                  lrm: [20, 40]
-
-            # Compute Trailing Edge Slope
-            # This class will several parameter to the l1p classifier data group:
-            #  1. trailing_edge_slope
-            #  2. trailing_edge_slope_quality (pearson correlation coefficient of linear slope fit)
-            - label: "Compute Trailing Edge Slope"
-              stage: post_ocean_segment_extraction
-              module_name: pysiral.waveform
-              class_name: L1PTrailingEdgeSlope
-              options:
-                noise_floor_power_threshold: 0.15
+        # Compute the leading edge quality indicator
+        # This class will add three parameters to the l1p classifier data group:
+        #  1. Leading edge quality
+        #  2. first maximum index
+        #  3. first maximum power (in units of peak power)
+        - label: "Compute Leading Edge Quality"
+          stage: post_ocean_segment_extraction
+          class_name: L1PLeadingEdgeQuality
+          options:
+            # Power threshold for the normalized waveform
+            # that the first maximum has to exceed
+            first_maximum_normalized_power_threshold:
+                lrm: 0.5
+            # Number of range bins prior to the first maximum
+            # that are to compute the quality factor
+            leading_edge_lookup_window:
+                lrm: 20
+            # Minimum valid first maximum index
+            minimum_valid_first_maximum_index:
+                lrm: 10

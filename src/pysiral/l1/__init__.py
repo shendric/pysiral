@@ -4,6 +4,8 @@
 
 """
 
+__all__ = ["L1PreProcCustomOrbitSegment", "L1PreProcFullOrbit", "L1PreProcHalfOrbit", "L1PreProcessorDefinition"]
+
 import copy
 import sys
 from datetime import timedelta
@@ -23,9 +25,8 @@ from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
                                  get_last_array_index, rle)
 from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass, ErrorStatus)
 from pysiral.core.flags import Hemispheres
-from pysiral.l1 import Level1POutputHandler
+from pysiral.l1._l1_procdef import L1PreProcessorDefinition
 from pysiral.l1.l1_data import L1bMetaData, Level1bData
-from pysiral.l1.alg import L1PProcItemDef
 from pysiral.l1.l1_nc import Level1POutputHandler
 
 # TODO: Remove this functionality
@@ -1053,16 +1054,18 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         self.error = ErrorStatus()
 
         # Get pysiral configuration
-        self._l1pprocdef = None
+        self._l1pprocdef = self._set_l1p_processor_def(l1p_settings_id_or_file)
+
+        self._check_if_unambiguous_platform()
+
+        # 3. Expand info (input data lookup directories)
+        self._get_local_input_directory()
 
         # Store command line options
         self._hemisphere = hemisphere
         self._platform = platform
         self._source_repo_id = source_repo_id
         self._exclude_month = exclude_month
-
-        # Parse the l1p settings file
-        self._set_l1p_processor_def(l1p_settings_id_or_file)
 
         # Get full requested time range
         self._time_range = processing_period
@@ -1101,7 +1104,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         # Return the initialized class
         return cls(args.l1p_settings, args.start_date, args.stop_date, **kwargs)
 
-    def _set_l1p_processor_def(self, l1p_settings_id_or_file: Union[str, Path]) -> None:
+    def _set_l1p_processor_def(self, l1p_settings_id_or_file: Union[str, Path]) -> L1PreProcessorDefinition:
         """
         Parse the content of the processor definition file
 
@@ -1115,11 +1118,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         # 2. Read the content
         logger.info(f"Parsing L1P processor definition file: {procdef_file_path}")
-        self._l1pprocdef = get_yaml_config(procdef_file_path)
-        self._check_if_unambiguous_platform()
-
-        # 3. Expand info (input data lookup directories)
-        self._get_local_input_directory()
+        l1pprocdef = L1PreProcessorDefinition(**get_yaml_config(procdef_file_path))
 
         # 4. update hemisphere for input adapter
         self._l1pprocdef["level1_preprocessor"]["options"]["polar_ocean"]["target_hemisphere"] = self.target_hemisphere
@@ -1260,10 +1259,6 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         #       Therefore the translation dictionary is used for now until the l1p processor
         #       refactoring is complete.
         return values[L1P_HEMISPHERE_NAMING_DICT[self.hemisphere]]
-
-    @property
-    def l1pprocdef(self) -> AttrDict:
-        return self._l1pprocdef
 
     @property
     def time_range(self) -> DatePeriod:
