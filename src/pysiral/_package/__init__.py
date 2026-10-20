@@ -74,6 +74,11 @@ class PysiralPackageConfiguration(object):
     #       limited due to other concerns.
     CPU_COUNT = multiprocessing.cpu_count()
 
+    CLASS_REGISTRY = {
+        "FILE_DISCOVERY": {},
+        "DATA_LOADER": {}
+    }
+
     def __init__(self):
         """
         Collect _package configuration data from the various definition files and provide an interface
