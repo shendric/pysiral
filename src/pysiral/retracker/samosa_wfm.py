@@ -50,7 +50,7 @@ from scipy.signal import argrelmin
 
 from pysiral import PSRLCFG
 from pysiral.core.flags import RadarModes
-from pysiral.l1.l1data import Level1bData
+from pysiral.l1.l1_data import Level1bData
 from pysiral.l2.l2data import Level2Data
 from pysiral.retracker import BaseRetracker
 

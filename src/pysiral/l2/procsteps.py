@@ -13,7 +13,7 @@ from scipy.interpolate import interp1d
 
 from pysiral import get_cls
 from pysiral.core.legacy_classes import DefaultLoggingClass
-from pysiral.l1.l1data import Level1bData
+from pysiral.l1.l1_data import Level1bData
 from pysiral.l2.l2data import Level2Data
 
 

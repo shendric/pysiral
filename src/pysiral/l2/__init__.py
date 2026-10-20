@@ -18,7 +18,7 @@ from pysiral.core.config import get_yaml_config
 from pysiral.core.datahandler import DefaultAuxdataClassHandler
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.core.output import DefaultLevel2OutputHandler, Level2Output
-from pysiral.l1.l1data import L1bdataNCFile
+from pysiral.l1.l1_data import L1bdataNCFile
 from pysiral.l2.l2data import Level2Data
 from pysiral.l2.procsteps import Level2ProcessorStepOrder
 

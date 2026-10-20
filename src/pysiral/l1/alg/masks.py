@@ -18,10 +18,10 @@ from pysiral import psrlcfg
 
 from pysiral.core.legacy_classes import AttrDict
 from pysiral.core.flags import SURFACE_TYPE_DICT
-from pysiral.grid import GridTrajectoryExtract
+from pysiral.core.grid import GridTrajectoryExtract
 
-from pysiral.l1data import Level1bData
-from pysiral.l1preproc.procitems import L1PProcItem
+from pysiral.l1.l1_data import Level1bData
+from pysiral.l1.alg.procitems import L1PProcItem
 
 
 class L1PHighResolutionLandMask(L1PProcItem):

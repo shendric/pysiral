@@ -23,9 +23,10 @@ from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
                                  get_last_array_index, rle)
 from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass, ErrorStatus)
 from pysiral.core.flags import Hemispheres
-from pysiral.core.output import L1bDataNC
-from pysiral.l1.l1data import L1bMetaData, Level1bData
+from pysiral.l1 import Level1POutputHandler
+from pysiral.l1.l1_data import L1bMetaData, Level1bData
 from pysiral.l1.alg import L1PProcItemDef
+from pysiral.l1.l1_nc import Level1POutputHandler
 
 # TODO: Remove this functionality
 SHOW_DEBUG_MAP = False
@@ -69,111 +70,6 @@ class Level1PInputHandlerBase(DefaultLoggingClass):
         :return:
         """
         raise NotImplementedError("Level1PInputHandlerBase is to be inherited only")
-
-
-class Level1POutputHandler(DefaultLoggingClass):
-    """
-    The output handler for l1p product files
-    NOTE: This is not a subclass of OutputHandlerbase due to the special nature of pysiral l1p products
-    TODO: Refactoring needed. Path needs to be function and not a property that must be set before export.
-    """
-
-    def __init__(self, cfg: AttrDict) -> None:
-        cls_name = self.__class__.__name__
-        super(Level1POutputHandler, self).__init__(cls_name)
-        self.error = ErrorStatus(caller_id=cls_name)
-        self.cfg = cfg
-
-        self.pysiral_cfg = PSRLCFG
-        self._file_log = []
-
-    @staticmethod
-    def remove_old_if_applicable(perid: DatePeriod) -> None:
-        logger.warning("Not implemented: self.remove_old_if_applicable")
-        return
-
-    def export_to_netcdf(self, l1: "Level1bData") -> None:
-        """
-        Workflow to export a Level-1 object to l1p netCDF product. The workflow includes the generation of the
-        output path (if applicable).
-
-        :param l1: The Level-1 object to be exported
-
-        :return: None
-        """
-
-        # Check file length before exporting
-        # NOTE: This has been added
-        minimum_file_record_size = self.cfg.get("minimum_file_record_size", 0)
-        if l1.n_records < minimum_file_record_size:
-            logger.warning(f"- Orbit segment too short: {l1.n_records} < {minimum_file_record_size} (min), "
-                           "skipping export to file")
-            return
-
-        # Get filename and path
-        output_filepath = self.get_output_filepath(l1)
-
-        # Check if path exists
-        Path(output_filepath).parent.mkdir(exist_ok=True, parents=True)
-
-        # Export the data object
-        ncfile = L1bDataNC()
-        ncfile.l1b = l1
-        ncfile.output_folder = output_filepath.parent
-        ncfile.filename = output_filepath.name
-        ncfile.export()
-
-        self._file_log.append(output_filepath)
-
-    def get_output_filepath(self, l1: "Level1bData") -> Path:
-        """
-        Sets the class properties required for the file export
-
-        :param l1: The Level-1 object
-
-        :return: None
-        """
-
-        local_machine_def_tag = self.cfg.get("local_machine_def_tag", None)
-        if local_machine_def_tag is None:
-            msg = "Missing mandatory option %s in l1p processor definition file -> aborting"
-            msg %= "root.output_handler.options.local_machine_def_tag"
-            msg = msg + "\nOptions: \n" + self.cfg.makeReport()
-            self.error.add_error("missing-option", msg)
-            self.error.raise_on_error()
-
-        # TODO: Move to config file
-        filename_template = "pysiral-l1p-{platform}-{source}-{timeliness}-{hemisphere}-{tcs}-{tce}-{file_version}.nc"
-        time_fmt = "%Y%m%dT%H%M%S"
-        values = {"platform": l1.info.mission,
-                  "source": self.cfg.version.source_file_tag,
-                  "timeliness": l1.info.timeliness,
-                  "hemisphere": l1.info.hemisphere,
-                  "tcs": l1.time_orbit.timestamp[0].strftime(time_fmt),
-                  "tce": l1.time_orbit.timestamp[-1].strftime(time_fmt),
-                  "file_version": self.cfg.version.version_file_tag}
-        filename = filename_template.format(**values)
-
-        local_repository = PSRLCFG.local_machine.l1b_repository
-        export_folder = Path(local_repository[l1.info.mission][local_machine_def_tag]["l1p"])
-        yyyy = "%04g" % l1.time_orbit.timestamp[0].year
-        mm = "%02g" % l1.time_orbit.timestamp[0].month
-        return (
-            export_folder /
-            self.cfg.version.get("source_file_tag", "unknown_source") /
-            self.cfg.version.get("version_file_tag", "unknown_version") /
-            l1.info.hemisphere /
-            yyyy /
-            mm /
-            filename
-        )
-
-    @property
-    def last_written_file(self) -> Optional[Path]:
-        try:
-            return self._file_log[-1]
-        except IndexError:
-            return None
 
 
 L1PInputCLS = TypeVar("L1PInputCLS", bound=Level1PInputHandlerBase)

@@ -14,7 +14,7 @@ from dateperiods import DatePeriod
 
 from pysiral import PSRLCFG
 from pysiral.l1 import L1PreProcPolarOceanCheck
-from pysiral.l1.l1data import Level1bData
+from pysiral.l1.l1_data import Level1bData
 
 
 class SourceDataLoader(ABC):

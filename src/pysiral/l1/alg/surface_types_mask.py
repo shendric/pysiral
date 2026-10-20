@@ -15,7 +15,7 @@ import xarray as xr
 from pysiral import PSRLCFG
 from pysiral.core.flags import SURFACE_TYPE_DICT
 from pysiral.core.grid import GridDefinition, GridTrajectoryExtract
-from pysiral.l1.l1data import Level1bData
+from pysiral.l1.l1_data import Level1bData
 from pysiral.l1.alg import L1PProcItem
 
 
