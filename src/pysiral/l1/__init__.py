@@ -25,7 +25,7 @@ from pysiral.core.helper import (ProgressIndicator, get_first_array_index,
                                  get_last_array_index, rle)
 from pysiral.core.legacy_classes import (AttrDict, DefaultLoggingClass, ErrorStatus)
 from pysiral.core.flags import Hemispheres
-from pysiral.l1._l1_procdef import L1PreProcessorDefinition
+from pysiral.l1._l1_procdef import L1PreProcessorDefinition, ProcessorOptions
 from pysiral.l1.l1_data import L1bMetaData, Level1bData
 from pysiral.l1.l1_nc import Level1POutputHandler
 from pysiral.l1._l1_abc import L1Algorithm
@@ -83,7 +83,7 @@ class L1PreProcBase(DefaultLoggingClass):
                  cls_name: str,
                  input_adapter: L1PInputCLS,
                  output_handler: Level1POutputHandler,
-                 cfg: Dict[str, Any],
+                 cfg: ProcessorOptions,
                  algorithms: List[Any]
                  ) -> None:
 
@@ -165,7 +165,10 @@ class L1PreProcBase(DefaultLoggingClass):
 
         # A class that is passed to the input adapter to check if the pre-processor wants the
         # content of the current file
-        polar_ocean_check = L1PreProcPolarOceanCheck(self.__class__.__name__, self.polar_ocean_props)
+        polar_ocean_check = L1PreProcPolarOceanCheck(
+            self.__class__.__name__,
+            self.cfg.polar_ocean
+        )
 
         # The stack of connected l1 segments is a list of l1 objects that together form a
         # continuous trajectory over polar oceans. This stack will be emptied and its content
@@ -753,14 +756,6 @@ class L1PreProcBase(DefaultLoggingClass):
         return l1_segments
 
     @property
-    def polar_ocean_props(self) -> Union[Dict, AttrDict]:
-        if "polar_ocean" not in self.cfg:
-            msg = "Missing configuration key `polar_ocean` in Level-1 Pre-Processor Options"
-            self.error.add_error("l1-missing-option", msg)
-            self.error.raise_on_error()
-        return self.cfg.polar_ocean
-
-    @property
     def orbit_segment_connectivity_props(self) -> Union[Dict, AttrDict]:
         if "orbit_segment_connectivity" not in self.cfg:
             msg = "Missing configuration key `orbit_segment_connectivity` in Level-1 Pre-Processor Options"
@@ -979,7 +974,7 @@ class L1PreProcPolarOceanCheck(DefaultLoggingClass):
 
     def __init__(self,
                  log_name: str,
-                 cfg: AttrDict
+                 cfg: Dict[str, Any]
                  ) -> None:
         cls_name = self.__class__.__name__
         super(L1PreProcPolarOceanCheck, self).__init__(log_name)
