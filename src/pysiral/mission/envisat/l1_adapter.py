@@ -6,6 +6,7 @@
 __author__ = "Stefan Hendricks"
 
 import re
+import xarray as xr
 from pathlib import Path
 from typing import Any, Dict, Union, Optional
 
@@ -35,8 +36,6 @@ class EnvisatFDR4ALTConfig(BaseModel):
     range_correction_targets: Dict[str, Optional[str]] = {}
     bin_width_meter: float = 0.4686
     radar_mode: str = "lrm"
-    sgdr_timestamp_units: str = "seconds since 2000-01-01 00:00:00.0"
-    sgdr_timestamp_calendar: str = "gregorian"
     timeliness: str = "rep"
     raise_on_error: bool = True
 
@@ -52,11 +51,8 @@ class EnvisatFDR4ALT(SourceDataLoader):
         :param cfg: Options from the corresponding Level-1 pre-processor config file
         :param raise_on_error: Boolean value if the class should raise an exception upon an error (default: False)
         """
-
         # Properties
-        self.fdr = None
         self.cfg = EnvisatFDR4ALTConfig(**kwargs)
-        self.filepath = None
 
     def get_l1(self, filepath: Path, **kwargs) -> Optional[Level1bData]:
         """
@@ -65,25 +61,147 @@ class EnvisatFDR4ALT(SourceDataLoader):
         :param filepath: The full file path to the netCDF file
         :return: The parsed (or empty) Level-1 data container
         """
-
-        # Store arguments
-        self.filepath = filepath
-
-        breakpoint()
-
-        # Create an empty Level-1 data object
         l1 = Level1bData()
-
-        # Read the file
-        self.fdr = ReadNC(self.filepath, nan_fill_value=True)
-
-        # Get metadata
-        self._set_input_file_metadata(l1)
-
-        # Transfer data to l1 object
-        self._transfer_data_groups(l1)
-
+        # NOTE: `decode_times=False` prevents a pandas.errors.OutOfBoundsTimedelta exception
+        with xr.open_datatree(filepath, decode_times=False) as fdr_ds:
+            self._set_input_file_metadata(l1, fdr_ds)
+            self._transfer_data_groups(l1, fdr_ds)
         return l1
+
+    def _set_input_file_metadata(self, l1: Level1bData, fdr_ds: xr.DataTree) -> None:
+        """
+        Extract dataset attributes from FDR dataset and store them
+        in the Level-1 data object.
+
+        :param l1: Level-1 data object to store the metadata
+        :param fdr_ds: xarray DataTree object containing the FDR4ALT data
+
+        :return: None (l1 is change in place)
+        """
+        l1.info.set_attribute("pysiral_version", PSRLCFG.version)
+        l1.info.set_attribute("mission", "envisat")
+        l1.info.set_attribute("mission_data_version", fdr_ds.attrs.get("source"))
+        l1.info.set_attribute("orbit", fdr_ds.attrs.get("pass_number"))
+        l1.info.set_attribute("cycle", fdr_ds.attrs.get("cycle_number"))
+        l1.info.set_attribute("mission_data_source", fdr_ds.attrs.get("title"))
+        l1.info.set_attribute("timeliness", self.cfg.timeliness)
+
+    def _transfer_data_groups(self, *args) -> None:
+        """
+        Transfer data from the necessary data groups in the FDR dataset to the Level-1 data object.
+
+        :param l1: Level-1 data object to store the transferred data
+        :param fdr_ds: xarray DataTree object containing the FDR4ALT data
+
+        :return: None (l1 is changed in place)
+        """
+        self._transfer_timeorbit(*args)
+        self._transfer_waveform_collection(*args)
+        # self._transfer_range_corrections(*args)
+        self._transfer_surface_type_data(*args)
+        # self._transfer_classifiers(*args)
+
+    @staticmethod
+    def _transfer_timeorbit(l1: Level1bData, fdr_ds: xr.DataTree) -> None:
+        """
+        Extracts the time/orbit data group from the FDR4ALT FDR data
+
+        :param l1: Level-1 data object to store the transferred data
+        :param fdr_ds: xarray DataTree object containing the FDR4ALT data
+
+        :return: None (l1 is changed in place)
+        """
+        # and ensure longitude is -180:180 degrees east
+        longitude_degrees_east = (fdr_ds.main.longitude.values + 180) % 360 - 180
+        l1.time_orbit.set_position(
+            longitude_degrees_east,
+            fdr_ds.main.latitude.values,
+            fdr_ds.main.altitude.values,
+            fdr_ds.main.altitude_rate.values,
+        )
+        # Transfer the time
+        fdr_time_var = fdr_ds.main.time
+        timestamp = num2pydate(
+            fdr_time_var.values,
+            fdr_time_var.attrs["units"],
+            fdr_time_var.attrs.get("calendar", "standard")
+        )
+        l1.time_orbit.timestamp = timestamp
+
+        # Mandatory antenna pointing parameter (but not available for Envisat)
+        dummy_angle = np.full(timestamp.shape, 0.0)
+        l1.time_orbit.set_antenna_attitude(dummy_angle, dummy_angle, dummy_angle)
+
+        # Update meta data container
+        l1.update_data_limit_attributes()
+
+    def _transfer_waveform_collection(self, l1: Level1bData, fdr_ds: xr.DataTree) -> None:
+
+        # Transfer the reformed 18Hz waveforms
+        # "waveform samples (I2+Q2, 1/2048 FFT power unit): 18 Hz Ku band";
+        # "the echo is corrected for the intermediate frequency filter effect";
+        wfm_power = fdr_ds.main.Ku.power_waveform.values
+        n_records, n_range_bins = wfm_power.shape
+
+        # From the FDR4ALT product handbook
+        # 6.2.8 Offset tracking flag and reference Abscissa (ENVISAT)
+        chirp_band_width_dict = {
+            0: 320_000_000.,  # Ku band Ocean Mode
+            1:  82_500_000,   # Lu band Ice Mode
+            2:  20_000_000,   # ?
+        }
+        bandwidth = np.vectorize(chirp_band_width_dict.get)(fdr_ds.main.Ku.chirp_band.values)
+        nominal_tracking_bin = 63 + fdr_ds.main.offset_tracking.values/256 * bandwidth / 320_000_000.0
+
+        # Window delay is defined as the range to the start of the range window
+        window_delay_m = fdr_ds.main.Ku.tracker_range.values - nominal_tracking_bin * self.cfg.bin_width_meter
+
+        # Compute the range value for each range bin of the 18hz waveform
+        wfm_range = get_envisat_wfm_range(
+            window_delay_m,
+            n_range_bins,
+            bin_width_meter=self.cfg.bin_width_meter
+        )
+        # Transfer data to the waveform group
+        l1.waveform.set_waveform_data(wfm_power, wfm_range, self.cfg.radar_mode)
+
+        # Set valid flag to exclude calibration data
+        all_flags = np.stack(
+            (
+                fdr_ds.main.mcd_flag_agc_fault_id.astype(bool),
+                fdr_ds.main.mcd_flag_rx_delay_fault_id.astype(bool),
+                fdr_ds.main.mcd_flag_proc_error.astype(bool),
+                fdr_ds.main.mcd_flag_uso.values.astype(bool),
+                fdr_ds.main.mcd_flag_waveform_fault_id.values.astype(bool),
+            )
+        )
+        valid_flag = np.logical_not(np.max(all_flags, axis=0))
+        l1.waveform.set_valid_flag(valid_flag)
+
+    @staticmethod
+    def _transfer_surface_type_data(l1: Level1bData, fdr_ds: xr.DataTree):
+
+        # byte surface_type(time=54000);
+        #   :_FillValue = 127B; // byte
+        #   :units = 1L; // long
+        #   :long_name = "surface type from GSHHG";
+        #   :flag_values = "0b, 1b, 2b, 3b, 4b";
+        #   :flag_meanings = "ocean land lake island_in_lake pond_in_island";
+        #   :coordinates = "longitude latitude";
+        #   :comment = "GSHHG data version 2.3.7";
+        #   :valid_min = "0b";
+        #   :valid_max = "4b";
+
+        surface_type = fdr_ds.main.surface_type.values
+        flag_map_dict = {
+            "ocean": 0,
+            "land": 1,
+            "closed_sea": 2,
+        }
+        for key in ESA_SURFACE_TYPE_DICT.keys():
+            flag = surface_type == flag_map_dict[key]
+            l1.surface_type.add_flag(flag, key)
+
 
 class EnvisatSGDRNC(Level1PInputHandlerBase):
     """ Converts an Envisat SGDR object into a L1bData object """
