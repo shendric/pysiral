@@ -209,7 +209,7 @@ class L1PreProcBase(DefaultLoggingClass):
             # Optional Step 4 (needs to be specifically activated in l1 processor config file)
             # NOTE: This is here because there are files in the Sentinel-3AB thematic sea ice product
             #       that contain both lrm and sar data.
-            detect_radar_mode_change = self.cfg.get("detect_radar_mode_change", False)
+            detect_radar_mode_change = getattr(self.cfg, "detect_radar_mode_change", False)
             if detect_radar_mode_change:
                 l1_po_segments = self.l1_split_radar_mode_segments(l1_po_segments)
 
@@ -482,11 +482,12 @@ class L1PreProcBase(DefaultLoggingClass):
         :return: List of Trimmed Input Level-1 objects
         """
 
-        polar_threshold = self.cfg.polar_ocean.polar_latitude_threshold
+        polar_threshold = self.cfg.polar_ocean.get("polar_latitude_threshold")
+        assert polar_threshold is not None, "polar_latitude_threshold must be defined in the configuration"
         l1_list = []
 
         # Loop over the two hemispheres
-        for hemisphere in self.cfg.polar_ocean.target_hemisphere:
+        for hemisphere in self.cfg.polar_ocean.get("target_hemisphere"):
 
             if hemisphere == "north":
                 is_polar = l1.time_orbit.latitude >= polar_threshold
@@ -689,7 +690,7 @@ class L1PreProcBase(DefaultLoggingClass):
         # Test if non-ocean segments above the size threshold that will require a split of the segment.
         # The motivation behind this step to keep l1p data files as small as possible, while tolerating
         # smaller non-ocean sections
-        treshold = self.cfg.polar_ocean.allow_nonocean_segment_nrecords
+        treshold = self.cfg.polar_ocean.get("allow_nonocean_segment_nrecords")
         large_landsegs_index = np.where(segments_len[landseg_index] > treshold)[0]
         large_landsegs_index = landseg_index[large_landsegs_index]
 

@@ -71,6 +71,7 @@ class EnvisatFDR4ALTFileDiscoveryConfig(BaseModel):
         """
         Get the lookup directory for a given year.
         """
+
         directory = Path(self.lookup_dir[self.subtag]) / f"{year}"
         return directory if directory.is_dir() else None
 

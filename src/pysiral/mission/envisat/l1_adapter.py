@@ -97,9 +97,9 @@ class EnvisatFDR4ALT(SourceDataLoader):
         """
         self._transfer_timeorbit(*args)
         self._transfer_waveform_collection(*args)
-        # self._transfer_range_corrections(*args)
+        self._transfer_range_corrections(*args)  # NOTE: Not included in the FDR4ALT product
         self._transfer_surface_type_data(*args)
-        # self._transfer_classifiers(*args)
+        self._transfer_classifiers(*args)
 
     @staticmethod
     def _transfer_timeorbit(l1: Level1bData, fdr_ds: xr.DataTree) -> None:
@@ -197,10 +197,39 @@ class EnvisatFDR4ALT(SourceDataLoader):
             "ocean": 0,
             "land": 1,
             "closed_sea": 2,
+            "land_ice": -1,   # Does not exist
         }
         for key in ESA_SURFACE_TYPE_DICT.keys():
             flag = surface_type == flag_map_dict[key]
             l1.surface_type.add_flag(flag, key)
+
+    def _transfer_range_corrections(self, l1: Level1bData, fdr_ds: xr.DataTree) -> None:
+        """
+        Transfer range correction data from the FDR netCDF to the l1bdata object.
+
+        :param l1: Level-1 data object to store the transferred data
+        :param fdr_ds: xarray DataTree object containing the FDR4ALT data
+
+        return: None (l1 is changed in place)
+        """
+        target_dict = self.cfg.range_correction_targets
+        for parameter_name in target_dict.keys():
+            l1.correction.set_parameter(parameter_name, np.full(l1.time_orbit.timestamp.shape, 0.0))
+
+    def _transfer_classifiers(self, l1: Level1bData, fdr_ds: xr.DataTree) -> None:
+        """
+        Transfer classifier parameter from the FDR netCDF to the l1bdata object.
+
+        :param l1: Level-1 data object to store the transferred data
+        :param fdr_ds: xarray DataTree object containing the FDR4ALT data
+
+        return: None (l1 is changed in place)
+        """
+        target_dict = self.cfg.classifier_targets
+        for parameter_name in target_dict.keys():
+            nc_parameter_name = target_dict[parameter_name]
+            nc_parameter = fdr_ds[nc_parameter_name].values
+            l1.classifier.add(nc_parameter, parameter_name)
 
 
 class EnvisatSGDRNC(Level1PInputHandlerBase):

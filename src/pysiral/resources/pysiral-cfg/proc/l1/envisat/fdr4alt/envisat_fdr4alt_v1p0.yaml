@@ -14,12 +14,26 @@ data_loader:
     class_name: EnvisatFDR4ALT
     options:
         name: "Envisat FDR4ALT Fundamental & Thematic Sea Ice Data Record"
+        # Dummies, will be filled by Thematic Sea Ice Product (TSIP)
+        range_corrections_targets:
+            dry_tropospheric: ""
+            inverse_barometric_total: ""
+            ionospheric: ""
+            ocean_tide: ""
+            ocean_tide_non_equilibrium: ""
+            pole_tide: ""
+            solid_earth_tide: ""
+            wet_tropospheric: ""
         classifier_targets:
             chirp_band: main/Ku/chirp_band
-            dist_coast: main/dist_coast
-            noise_power: main/noise_power_20
-            offset_tracking: offset_tracking_20
-            orb_alt_rate: main/altitude_rate
+            distance_to_coast: main/distance_to_coast
+            noise_power: main/noise_power
+            scaling_factor: main/Ku/scaling_factor
+            waveform_main_class: main/Ku/waveform_main_class
+            waveform_main_class_score: main/Ku/waveform_main_class_score
+            waveform_second_class: main/Ku/waveform_second_class
+            waveform_second_class_score: main/Ku/waveform_second_class_score
+            sea_ice_flag: main/Ku/open_sea_ice_flag
 
 # Output handler (will always be default handler -> only options)
 output_handler:
@@ -55,9 +69,11 @@ processor:
     # NOTE: if no options are required use an empty mapping {} instead of null!
     algorithms:
 
-        # Fill in range corrections from Thematic Sea Ice Product (TSIP) for sea ice and ocean segments
+        # Fill in range corrections from Thematic Sea Ice Product (TSIP)
+        # for sea ice and ocean segments.
+        # NOTE: This must happen for the fill FDR file segment
         - label: "Fill in Range Corrections from TSIP"
-          stage: post_ocean_segment_extraction
+          stage: post_source_file
           class_name: FillInRangeCorrectionsFromTSIP
           options:
             local_machine_def_tag: *lmd_tag
