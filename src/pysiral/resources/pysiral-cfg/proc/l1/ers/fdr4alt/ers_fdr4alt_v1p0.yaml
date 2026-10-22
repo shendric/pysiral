@@ -1,0 +1,134 @@
+# NOTE: A separate config file is necessary for ERS-2, since the Level-1 pre-processor
+#       expects one config file per platform (at least for now)
+platforms: ["ers1", "ers2"]
+
+# Information of getting an input file list
+file_discovery:
+    class_name: FDR4ALTFileDiscovery
+    options:
+        local_machine_def_tag: &lmd_tag fdr4alt
+        subtag: "fdr"  # FDR4ALT Fundamental Data Record subtag
+
+# Class that will generate the initial l1p data object from the input data
+data_loader:
+    class_name: ERSFDR4ALTDataLoader
+    options:
+        name: "ERS-1/2 FDR4ALT Fundamental & Thematic Sea Ice Data Record"
+        # Dummies, will be filled by Thematic Sea Ice Product (TSIP)
+        range_correction_targets:
+            dry_tropospheric: ""
+            inverse_barometric_total: ""
+            ionospheric: ""
+            ocean_tide: ""
+            ocean_tide_non_equilibrium: ""
+            pole_tide: ""
+            solid_earth_tide: ""
+            wet_tropospheric: ""
+        classifier_targets:
+            distance_to_coast: main/distance_to_coast
+            noise_power: main/noise_floor
+            a_htl_coeff: main/a_htl_coeff
+            b_htl_coeff: main/b_htl_coeff
+            htl_disc_out: main/htl_disc_out
+            a_stl_coeff: main/a_stl_coeff
+            b_stl_coeff: main/b_stl_coeff
+            stl_disc_out: main/stl_disc_out
+            scaling_factor: main/scaling_factor
+            alt_state_flag_tracking_type: main/alt_state_flag_tracking_type
+            waveform_main_class: main/waveform_main_class
+            waveform_main_class_score: main/waveform_main_class_score
+            waveform_second_class: main/waveform_second_class
+            waveform_second_class_score: main/waveform_second_class_score
+
+# Output handler (will always be default handler -> only options)
+output_handler:
+    options:
+        local_machine_def_tag: *lmd_tag
+        minimum_file_record_size: 10
+        version:
+            source_file_tag: *lmd_tag
+            version_file_tag: v1p0
+
+# Settings for the pre-processor
+processor:
+    
+    type: half_orbit
+
+    options:
+
+      # Initial subsetting of source data files
+      polar_ocean:
+          target_hemisphere: [north, south]   # May be overwritten by command line argument
+          polar_latitude_threshold: 45.0
+          allow_nonocean_segment_nrecords: 540
+          ocean_minimum_size_nrecords: 5
+
+      # Check for gaps in the input files and split at a certain gap size (in seconds)
+      discontinuities:
+          split_at_time_gap_seconds: 10
+
+      # The maximum separation in seconds for two orbits so that they count as connected
+      connectivity:
+          max_connected_segment_timedelta_seconds: 30
+        
+    # NOTE: if no options are required use an empty mapping {} instead of null!
+    algorithms:
+
+        # Fill in range corrections from Thematic Sea Ice Product (TSIP)
+        # for sea ice and ocean segments.
+        # NOTE: This must happen for the fill FDR file segment
+        - label: "Fill in Range Corrections from TSIP"
+          stage: post_source_file
+          class_name: FillInRangeCorrectionsFromTSIP
+          options:
+              local_machine_def_tag: *lmd_tag
+              subtag: "tp"  # FDR4ALT Thematic Sea Ice Product subtag
+              target_variables:
+                  dry_tropospheric: expert/dry_tropospheric_correction
+                  inverse_barometric_total: expert/inverse_barometric_total_correction
+                  ionospheric: expert/ionospheric_correction
+                  ocean_tide: expert/ocean_tide_correction
+                  ocean_tide_non_equilibrium: expert/ocean_tide_non_equilibrium_correction
+                  pole_tide: expert/pole_tide_correction
+                  solid_earth_tide: expert/solid_earth_tide_correction
+                  wet_tropospheric: expert/wet_tropospheric_correction
+
+        # Compute the leading edge width parameters (full, first half & second half)
+        - label: "Compute Leading Edge Width"
+          stage: post_ocean_segment_extraction
+          class_name: L1PLeadingEdgeWidth
+          options:
+              tfmra_leading_edge_start: 0.05
+              tfmra_leading_edge_end: 0.95
+              tfmra_options:
+                  noise_level_range_bin_idx: [10, 20]
+                  first_maximum_ignore_leading_bins: 10
+
+        # Compute waveform peakiness CCI style
+        - label: "Compute Waveform Peakiness"
+          stage: post_ocean_segment_extraction
+          class_name: L1PWaveformPeakiness
+          options:
+              skip_first_range_bins: 10
+              norm_is_range_bin: True
+
+        # Compute the leading edge quality indicator
+        # This class will add three parameters to the l1p classifier data group:
+        #  1. Leading edge quality
+        #  2. first maximum index
+        #  3. first maximum power (in units of peak power)
+        - label: "Compute Leading Edge Quality"
+          stage: post_ocean_segment_extraction
+          class_name: L1PLeadingEdgeQuality
+          options:
+            # Power threshold for the normalized waveform
+            # that the first maximum has to exceed
+            first_maximum_normalized_power_threshold:
+                lrm: 0.5
+            # Number of range bins prior to the first maximum
+            # that are to compute the quality factor
+            leading_edge_lookup_window:
+                lrm: 20
+            # Minimum valid first maximum index
+            minimum_valid_first_maximum_index:
+                lrm: 10
