@@ -5,7 +5,7 @@ This module implements the Envisat FDR4ALT file discovery class.
 """
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
-__all__ = ["EnvisatFDR4ALTFileDiscovery"]
+__all__ = ["FDR4ALTFileDiscovery"]
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -17,11 +17,11 @@ from pathlib import Path
 
 import pandas as pd
 
-from pysiral.mission._io_abc import FileDiscovery
+from pysiral.sources._io_abc import FileDiscovery
 
 
 @dataclass
-class FDR4ALTFileNamingFDR:
+class FDR4ALTFileNaming:
     """
     Deciphering the Envisat FDR4ALT filenaming convention
     (source: Envisat FDR4ALT File Naming Convention)
@@ -62,7 +62,7 @@ class FDR4ALTFileNamingFDR:
             setattr(self, key, elements.named[key])
 
 
-class EnvisatFDR4ALTFileDiscoveryConfig(BaseModel):
+class FDR4ALTFileDiscoveryConfig(BaseModel):
     local_machine_def_tag: str
     subtag: str
     lookup_dir: Dict[str, Path]
@@ -76,10 +76,10 @@ class EnvisatFDR4ALTFileDiscoveryConfig(BaseModel):
         return directory if directory.is_dir() else None
 
 
-class EnvisatFDR4ALTFileDiscovery(FileDiscovery):
+class FDR4ALTFileDiscovery(FileDiscovery):
 
     def __init__(self, **kwargs):
-        self.cfg = EnvisatFDR4ALTFileDiscoveryConfig(**kwargs)
+        self.cfg = FDR4ALTFileDiscoveryConfig(**kwargs)
 
     def query_period(self, period) -> Optional[List[Path]]:
         """
@@ -108,5 +108,5 @@ class EnvisatFDR4ALTFileDiscovery(FileDiscovery):
             if lookup_directory is None:
                 continue
             files.extend(sorted(lookup_directory.rglob(f"*{year}*.nc")))
-        file_entries = [FDR4ALTFileNamingFDR(f) for f in files]
+        file_entries = [FDR4ALTFileNaming(f) for f in files]
         return pd.DataFrame(file_entries)

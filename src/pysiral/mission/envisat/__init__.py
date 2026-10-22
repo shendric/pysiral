@@ -4,4 +4,4 @@
 This module contains data loaders and file discovery classes for the Envisat mission.
 """
 
-__all__ = ["functions", "iotools", "l1_adapter", "file_discovery"]
+__all__ = ["functions", "iotools", "l1_adapter"]

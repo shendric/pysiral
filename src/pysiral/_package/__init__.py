@@ -254,10 +254,11 @@ class PysiralPackageConfiguration(object):
         the CLASS_REGISTRY attribute.
         :return: None
         """
-        import_submodules("pysiral.mission")
-        import_submodules("pysiral.l1")
-        import_submodules("pysiral.l2")
-        import_submodules("pysiral.l3")
+        import_submodules("pysiral.l1.alg")
+        import_submodules("pysiral.l2.alg")
+        import_submodules("pysiral.l3.alg")
+        import_submodules("pysiral.mission")  # TODO: To be phased out (and moved to pysiral.sources)
+        import_submodules("pysiral.sources")
 
     @staticmethod
     def get_yaml_config(filename) -> Dict:

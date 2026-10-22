@@ -4,14 +4,14 @@ platforms: ["envisat"]
 
 # Information of getting an input file list
 file_discovery:
-    class_name: EnvisatFDR4ALTFileDiscovery
+    class_name: FDR4ALTFileDiscovery
     options:
         local_machine_def_tag: &lmd_tag fdr4alt
         subtag: "fdr"  # FDR4ALT Fundamental Data Record subtag
 
 # Class that will generate the initial l1p data object from the input data
 data_loader:
-    class_name: EnvisatFDR4ALT
+    class_name: EnvisatFDR4ALTDataLoader
     options:
         name: "Envisat FDR4ALT Fundamental & Thematic Sea Ice Data Record"
         # Dummies, will be filled by Thematic Sea Ice Product (TSIP)

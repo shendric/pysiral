@@ -6,4 +6,4 @@
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 __all__ = ["SourceDataLoader", "FileDiscovery", "cryosat", "envisat", "ers", "sentinel3"]
 
-from pysiral.mission._io_abc import SourceDataLoader, FileDiscovery
+from pysiral.sources._io_abc import SourceDataLoader, FileDiscovery

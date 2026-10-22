@@ -20,7 +20,7 @@ import xarray as xr
 
 from pysiral import PSRLCFG
 from pysiral.l1 import L1Algorithm, Level1bData
-from pysiral.mission.envisat.file_discovery import FDR4ALTFileNamingFDR
+from pysiral.sources.fdr4alt.file_discovery import FDR4ALTFileNaming
 
 
 class FillInRangeCorrectionsFromTSIPConfig(BaseModel):
@@ -193,4 +193,4 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
         file_list = []
         for cycle_directory in cycle_directories:
             file_list.extend(cycle_directory.rglob("*.nc"))
-        return pd.DataFrame([FDR4ALTFileNamingFDR(f) for f in sorted(file_list)])
+        return pd.DataFrame([FDR4ALTFileNaming(f) for f in sorted(file_list)])
