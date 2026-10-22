@@ -439,7 +439,8 @@ class L1PreProcBase(DefaultLoggingClass):
 
         # Test if segments are adjacent based on time gap between them
         tdelta = l1_1.info.start_time - l1_0.info.stop_time
-        threshold = self.cfg.orbit_segment_connectivity.max_connected_segment_timedelta_seconds
+        threshold = self.cfg.connectivity.get("max_connected_segment_timedelta_seconds")
+        assert threshold is not None, "max_connected_segment_timedelta_seconds must be defined in the configuration"
         return tdelta.total_seconds() <= threshold
 
     def l1_export_to_netcdf(self, l1: "Level1bData") -> None:
@@ -450,8 +451,7 @@ class L1PreProcBase(DefaultLoggingClass):
 
         :return:
         """
-        minimum_n_records = self.cfg.get("export_minimum_n_records", 0)
-        if l1.n_records >= minimum_n_records:
+        if l1.n_records >= self.cfg.export_minimum_n_records:
             self.output_handler.export_to_netcdf(l1)
             logger.info(f"- Written l1p product: {self.output_handler.last_written_file}")
         else:
@@ -472,8 +472,9 @@ class L1PreProcBase(DefaultLoggingClass):
             l1.trim_to_subset(polar_subset)
         return l1
 
-    def trim_two_hemisphere_segment_to_polar_regions(self, l1: "Level1bData"
-                                                     ) -> Union[None, List["Level1bData"]]:
+    def trim_two_hemisphere_segment_to_polar_regions(
+            self, l1: "Level1bData"
+    ) -> Optional[List["Level1bData"]]:
         """
         Extract polar regions of interest from a segment that is either north, south or both. The method will
         preserve the order of the hemispheres

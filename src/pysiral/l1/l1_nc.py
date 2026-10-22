@@ -89,22 +89,22 @@ class Level1POutputHandler(DefaultLoggingClass):
         filename_template = "pysiral-l1p-{platform}-{source}-{timeliness}-{hemisphere}-{tcs}-{tce}-{file_version}.nc"
         time_fmt = "%Y%m%dT%H%M%S"
         values = {"platform": l1.info.mission,
-                  "source": self.cfg.version.source_file_tag,
+                  "source": self.cfg["version"]["source_file_tag"],
                   "timeliness": l1.info.timeliness,
                   "hemisphere": l1.info.hemisphere,
                   "tcs": l1.time_orbit.timestamp[0].strftime(time_fmt),
                   "tce": l1.time_orbit.timestamp[-1].strftime(time_fmt),
-                  "file_version": self.cfg.version.version_file_tag}
+                  "file_version": self.cfg["version"]["version_file_tag"]}
         filename = filename_template.format(**values)
 
-        local_repository = PSRLCFG.local_machine.l1b_repository
+        local_repository = PSRLCFG.local_machine["l1b_repository"]
         export_folder = Path(local_repository[l1.info.mission][local_machine_def_tag]["l1p"])
         yyyy = "%04g" % l1.time_orbit.timestamp[0].year
         mm = "%02g" % l1.time_orbit.timestamp[0].month
         return (
             export_folder /
-            self.cfg.version.get("source_file_tag", "unknown_source") /
-            self.cfg.version.get("version_file_tag", "unknown_version") /
+            self.cfg["version"].get("source_file_tag", "unknown_source") /
+            self.cfg["version"].get("version_file_tag", "unknown_version") /
             l1.info.hemisphere /
             yyyy /
             mm /

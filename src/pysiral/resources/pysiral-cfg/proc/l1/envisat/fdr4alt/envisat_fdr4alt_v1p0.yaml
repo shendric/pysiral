@@ -15,7 +15,7 @@ data_loader:
     options:
         name: "Envisat FDR4ALT Fundamental & Thematic Sea Ice Data Record"
         # Dummies, will be filled by Thematic Sea Ice Product (TSIP)
-        range_corrections_targets:
+        range_correction_targets:
             dry_tropospheric: ""
             inverse_barometric_total: ""
             ionospheric: ""
@@ -76,8 +76,17 @@ processor:
           stage: post_source_file
           class_name: FillInRangeCorrectionsFromTSIP
           options:
-            local_machine_def_tag: *lmd_tag
-            subtag: "tp"  # FDR4ALT Thematic Sea Ice Product subtag
+              local_machine_def_tag: *lmd_tag
+              subtag: "tp"  # FDR4ALT Thematic Sea Ice Product subtag
+              target_variables:
+                  dry_tropospheric: expert/dry_tropospheric_correction
+                  inverse_barometric_total: expert/inverse_barometric_total_correction
+                  ionospheric: expert/ionospheric_correction
+                  ocean_tide: expert/ocean_tide_correction
+                  ocean_tide_non_equilibrium: expert/ocean_tide_non_equilibrium_correction
+                  pole_tide: expert/pole_tide_correction
+                  solid_earth_tide: expert/solid_earth_tide_correction
+                  wet_tropospheric: expert/wet_tropospheric_correction
 
         # Compute the leading edge width parameters (full, first half & second half)
         - label: "Compute Leading Edge Width"

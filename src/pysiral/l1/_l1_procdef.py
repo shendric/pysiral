@@ -50,6 +50,7 @@ class ProcessorOptions(BaseModel):
     polar_ocean: Dict[str, Any]
     discontinuities: Dict[str, Any]
     connectivity: Dict[str, Any]
+    export_minimum_n_records: int = 10
 
 
 class ProcessorConfig(BaseModel):

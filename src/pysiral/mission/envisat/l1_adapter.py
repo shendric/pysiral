@@ -33,7 +33,7 @@ class EnvisatFDR4ALTConfig(BaseModel):
     """
     name: str
     classifier_targets: Dict[str, str]
-    range_correction_targets: Dict[str, Optional[str]] = {}
+    range_correction_targets: Dict[str, str]
     bin_width_meter: float = 0.4686
     radar_mode: str = "lrm"
     timeliness: str = "rep"
@@ -131,6 +131,7 @@ class EnvisatFDR4ALT(SourceDataLoader):
         # Mandatory antenna pointing parameter (but not available for Envisat)
         dummy_angle = np.full(timestamp.shape, 0.0)
         l1.time_orbit.set_antenna_attitude(dummy_angle, dummy_angle, dummy_angle)
+        l1.classifier.add(fdr_ds.main.time, "time_num")
 
         # Update meta data container
         l1.update_data_limit_attributes()
@@ -214,7 +215,7 @@ class EnvisatFDR4ALT(SourceDataLoader):
         """
         target_dict = self.cfg.range_correction_targets
         for parameter_name in target_dict.keys():
-            l1.correction.set_parameter(parameter_name, np.full(l1.time_orbit.timestamp.shape, 0.0))
+            l1.correction.set_parameter(parameter_name, np.full(l1.time_orbit.timestamp.shape, np.nan))
 
     def _transfer_classifiers(self, l1: Level1bData, fdr_ds: xr.DataTree) -> None:
         """
