@@ -12,8 +12,9 @@ from pydantic import BaseModel
 from datetime import datetime
 from loguru import logger
 from pathlib import Path
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
+import numpy as np
 import pandas as pd
 import xarray as xr
 import cftime
@@ -80,6 +81,8 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
     def _fill_in_range_corrections(self, l1: Level1bData, tp_file: Path) -> None:
 
         with xr.open_datatree(tp_file, decode_times=False) as ds:
+
+            index_map_fdr, index_map_tp = self._get_index_map(l1.time_orbit.timestamp, ds.main.time)
             import matplotlib.pyplot as plt
             plt.figure()
             plt.scatter(ds.main.time.values, ds.main.time.values, s=64, label="TSIP")
@@ -88,6 +91,39 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
             plt.show()
             breakpoint()
 
+    def _get_index_map(
+            self,
+            l1_time_dt: np.ndarray,
+            tp_time_num: xr.Variable
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Get the indices arrays that map the L1 data coverage with the
+        files from the FDR4ALT thematic in the sense of
+
+            l1_time[l1_index_map] = tp_time[tp_index_map]
+
+        Implementation from https://stackoverflow.com/questions/57873670/index-mapping-between-two-sorted-partially-overlapping-numpy-arrays
+
+        :param l1_time_dt: The Level-1 timestamp as datetime object
+        :param tp_time_num: The time num from the thematic products
+
+        :return: (l1_index_map, tp_index_map)
+        """
+
+        # First, convert the L1 time stamp to the same date numbers
+        l1_time_num = cftime.date2num(l1_time_dt, units=tp_time_num.attrs["units"])
+
+        # Convert to integer for safe comparison
+
+        l1_time_int = (l1_time_num * 10_000).astype(int)
+        tp_time_int = (tp_time_num.values * 10_000).astype(int)
+
+        over_lap_mask = np.isin(tp_time_int, l1_time_int)
+        tp_index_map = np.where(over_lap_mask)
+
+        mapping = np.searchsorted(l1_time_int, tp_time_int)
+        l1_index_map = np.where(mapping >= len(l1_time_int))
+        breakpoint()
 
     def query_tp_files(self, platform: str, cycle_number: int, tcs: datetime, tce: datetime) -> Optional[List[Path]]:
         """
