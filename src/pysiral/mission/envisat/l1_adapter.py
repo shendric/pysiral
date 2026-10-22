@@ -147,11 +147,14 @@ class EnvisatFDR4ALT(SourceDataLoader):
         # From the FDR4ALT product handbook
         # 6.2.8 Offset tracking flag and reference Abscissa (ENVISAT)
         chirp_band_width_dict = {
-            0: 320_000_000.,  # Ku band Ocean Mode
-            1:  82_500_000,   # Lu band Ice Mode
-            2:  20_000_000,   # ?
+            0: 320_000_000.,   # Ku band Ocean Mode
+            1:  82_500_000,    # Lu band Ice Mode
+            2:  20_000_000,    # ?
         }
-        bandwidth = np.vectorize(chirp_band_width_dict.get)(fdr_ds.main.Ku.chirp_band.values)
+
+        # NOTE: There may be NaN's values in chirp band, which will be replaced by the default value of 320 MHz
+        #       lacking a better solution at this point (and assuming it won't have practical consequences)
+        bandwidth = np.vectorize(chirp_band_width_dict.get)(fdr_ds.main.Ku.chirp_band.values, 320_000_000.0)
         nominal_tracking_bin = 63 + fdr_ds.main.offset_tracking.values/256 * bandwidth / 320_000_000.0
 
         # Window delay is defined as the range to the start of the range window
