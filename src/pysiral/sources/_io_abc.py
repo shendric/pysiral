@@ -9,8 +9,9 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, List
-
 from dateperiods import DatePeriod
+
+import pandas as pd
 
 from pysiral import PSRLCFG
 from pysiral.l1.l1_data import Level1bData
@@ -25,7 +26,7 @@ class SourceDataLoader(ABC):
         PSRLCFG.CLASS_REGISTRY["DATA_LOADER"][cls.__name__] = cls
 
     @abstractmethod
-    def get_l1(self, filepath: Path, **kwargs) -> Optional[Level1bData]:
+    def get_l1(self, source_file: pd.Series, **kwargs) -> Optional[Level1bData]:
         """
         Abstract method to load source data into Level 1 data object from a given file path.
         """

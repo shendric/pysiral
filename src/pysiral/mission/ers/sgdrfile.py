@@ -66,8 +66,7 @@ class ERSSGDR(object):
         n_records = records_per_block*n_blocks
         self.n_records = n_records
         target_shape = (n_records, n_range_bins)
-        self.wfm_power = np.reshape(self.nc.ku_wf, target_shape).astype(
-            np.uint16)
+        self.wfm_power = np.reshape(self.nc.ku_wf, target_shape).astype(np.uint16)
 
         # Get the window delay
         # "The tracker_range_20hz is the range measured by the onboard tracker

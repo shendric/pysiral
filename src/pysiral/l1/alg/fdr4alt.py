@@ -88,8 +88,8 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
 
         target_dict = self.cfg.target_variables
         with xr.open_datatree(tp_file, decode_times=False) as ds:
-            index_map_fdr, index_map_tp = self._get_index_map(l1.classifier.time_num, ds.main.time.values)
-            assert len(index_map_fdr) == len(index_map_tp), "Index maps must be of the same length."
+            # NOTE: Index mapping is on latitudes, as there seems to be an issue with the ERS timestamps
+            index_map_fdr, index_map_tp = self._get_index_mappings(l1.time_orbit.latitude, ds.main.latitude.values)
             try:
                 assert len(index_map_fdr) > 0, "No overlapping time coverage between Level-1 data and Thematic Product."
             except AssertionError as e:
@@ -102,10 +102,10 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
                 l1_var[index_map_fdr] = tp_var[index_map_tp]
                 setattr(l1.correction, var_target, l1_var)
 
-    def _get_index_map(
-            self,
-            l1_time_num: np.ndarray,
-            tp_time_num: np.ndarray
+    @staticmethod
+    def _get_index_mappings(
+            l1_latitude: np.ndarray,
+            tp_latitude: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get the indices arrays that map the L1 data coverage with the
@@ -115,33 +115,23 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
 
         Implementation from https://stackoverflow.com/questions/57873670/index-mapping-between-two-sorted-partially-overlapping-numpy-arrays
 
-        :param l1_time_num: The Level-1 (FDR) time as numberic value
-        :param tp_time_num: The Thematic product time as numeric value
+        :param l1_latitude: The Level-1 (FDR) latitude as numeric value
+        :param tp_latitude: The Thematic product latitude as numeric value
 
         :return: (l1_index_map, tp_index_map)
         """
 
         # Convert to integer (milliseconds since epoch) for safe comparison
         # (default date units for FDR4ALT is days since epoch)
-        days_to_milliseconds = 86_400 * 1_000
-        l1_time_int = (l1_time_num * days_to_milliseconds).astype(int)
-        tp_time_int = (tp_time_num * days_to_milliseconds).astype(int)
+        degress_to_minutes = 3600
+        l1_lat_int = (l1_latitude * degress_to_minutes).astype(int)
+        tp_lat_int = (tp_latitude * degress_to_minutes).astype(int)
 
-        # First Check: arrays are equal -> index map is all indices and the same for both
-        if np.array_equal(l1_time_int, tp_time_int):
-            index_map = np.arange(l1_time_int.size)
-            return index_map, index_map
-
-        # Step 1: Check if all thematic products points are in the L1 (FDR) time coverage
-        overlap_mask = np.isin(tp_time_int, l1_time_int)
-        tp_index_map = np.where(overlap_mask)[0]
-
-        # Step 2: Map the L1 indices to the thematic product indices
-        l1_index_map = np.searchsorted(l1_time_int, tp_time_int[tp_index_map])
-
-        # Step 3: Validate the mapping
+        # Use numpy's `intersect1d` to find the common elements and their indices
+        _, l1_index_map, tp_index_map = np.intersect1d(l1_lat_int, tp_lat_int, return_indices=True)
+        # Validate the mapping
         assert len(l1_index_map) == len(tp_index_map), "Index maps must be of the same length."
-        assert np.array_equal(l1_time_int[l1_index_map], tp_time_int[tp_index_map]), "Mapped times must be equal."
+        assert np.array_equal(l1_lat_int[l1_index_map], tp_lat_int[tp_index_map]), "Mapped latitudes must be equal."
 
         return l1_index_map, tp_index_map
 
@@ -189,7 +179,7 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
         assert lookup_directory.is_dir(), f"Lookup directory {lookup_directory} does not exist or is not a directory."
 
         # Cycle directories may be distributed over two years
-        cycle_directories = lookup_directory.rglob(f"**/{cycle_number:03d}")
+        cycle_directories = lookup_directory.rglob(f"**/{cycle_number:d}")
         file_list = []
         for cycle_directory in cycle_directories:
             file_list.extend(cycle_directory.rglob("*.nc"))

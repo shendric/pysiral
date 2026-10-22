@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, TypeVar, Union, Optional, Any
 
 import numpy as np
+import pandas as pd
 from dateperiods import DatePeriod, PeriodIterator
 from geopy import distance
 from loguru import logger
@@ -62,13 +63,13 @@ class Level1PInputHandlerBase(DefaultLoggingClass):
         self.raise_on_error = raise_on_error
 
     def get_l1(self,
-               filepath: Path,
+               source_file: pd.Series,
                **kwargs,
                ) -> Union[None, Level1bData]:
         """
         This method needs to be overwritten by inherting class.
 
-        :param filepath:
+        :param source_file: A row from the input file catalog DataFrame representing a source file.
         :return:
         """
         raise NotImplementedError("Level1PInputHandlerBase is to be inherited only")
@@ -131,7 +132,7 @@ class L1PreProcBase(DefaultLoggingClass):
             else:
                 self.processor_item_dict[algorithm_def.stage] = [(obj, algorithm_def.label)]
 
-    def process_input_files(self, input_file_list: List[Union[Path, str]]) -> None:
+    def process_input_files(self, file_ctlg: pd.DataFrame) -> None:
         """
         Main entry point for the Level-1 pre-processor and start of the main
         loop of this class:
@@ -149,19 +150,18 @@ class L1PreProcBase(DefaultLoggingClass):
                 3. Export to l1p netCDF
         6. Export the last l1p segment at the end of the loop.
 
-        :param input_file_list: A list full filepath for the pre-processor
+        :param input_files: A DataFrame containing the input files for the pre-processor
 
         :return: None
         """
 
         # Validity Check
-        n_input_files = len(input_file_list)
-        if n_input_files == 0:
+        if file_ctlg is None or file_ctlg.empty:
             logger.warning("Passed empty input file list to process_input_files()")
             return
 
         # Init helpers
-        prgs = ProgressIndicator(n_input_files)
+        prgs = ProgressIndicator(len(file_ctlg))
 
         # A class that is passed to the input adapter to check if the pre-processor wants the
         # content of the current file
@@ -179,7 +179,9 @@ class L1PreProcBase(DefaultLoggingClass):
 
         # orbit segments may or may not be connected, therefore the list of input file
         # needs to be processed sequentially.
-        for i, input_file in enumerate(input_file_list):
+        for i, source_file in file_ctlg.iterrows():
+
+            input_file = Path(source_file.filepath)
 
             # Step 1: Read Input
             # Map the entire orbit segment into on Level-1 data object. This is the task
@@ -187,7 +189,7 @@ class L1PreProcBase(DefaultLoggingClass):
             # region to assess whether it is necessary to parse and transform the file content
             # for the sake of computational efficiency.
             logger.info(f"+ Process input file {prgs.get_status_report(i)} [{input_file.name}]")
-            l1 = self.input_adapter.get_l1(input_file, polar_ocean_check=polar_ocean_check)
+            l1 = self.input_adapter.get_l1(source_file, polar_ocean_check=polar_ocean_check)
             if l1 is None:
                 logger.info("- No polar ocean data for curent job -> skip file")
                 continue
@@ -1235,14 +1237,14 @@ class Level1PreProcJobDef(DefaultLoggingClass):
                 msg %= self.l1pprocdef.platforms
                 raise ValueError(msg)
 
-            if platform_is_known and self.platform not in str(self._l1pprocdef.platform):
+            if platform_is_known and self.platform not in self.l1pprocdef.platforms:
                 msg = "Error: platform in l1p settings (%s) and given platform (%s) do not match"
-                msg %= (self._l1pprocdef.platform, self.platform)
+                msg %= (self.l1pprocdef.platforms, self.platform)
                 sys.exit(msg)
 
         # If platform in settings is unambiguous, but not provided -> get platform from settings
         if not settings_is_ambigous and not platform_is_known:
-            self._platform = self._l1pprocdef.platform
+            self._platform = self._l1pprocdef.platforms[0]
             logger.info(f"- get platform from l1p settings -> {self.platform}")
 
     @property

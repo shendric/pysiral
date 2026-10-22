@@ -5,13 +5,15 @@
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
-import xarray as xr
+
 from pathlib import Path
 from typing import Dict, Optional
-
-import numpy as np
 from cftime import num2pydate
 from pydantic import BaseModel
+
+import numpy as np
+import pandas as pd
+import xarray as xr
 
 from pysiral import PSRLCFG
 from pysiral.core.flags import ESA_SURFACE_TYPE_DICT
@@ -28,7 +30,9 @@ class FDR4ALTConfig(BaseModel):
     mission: str
     classifier_targets: Dict[str, str]
     range_correction_targets: Dict[str, str]
-    bin_width_meter: float = 0.4686
+    range_bin_width_envisat: float = 0.4686
+    range_bin_width_ers: float = 0.4545
+    nominal_tracking_bin_ers: float = 32.5
     radar_mode: str = "lrm"
     timeliness: str = "rep"
     raise_on_error: bool = True
@@ -39,7 +43,7 @@ class FDR4ALTDataLoader(object):
     def __init__(self, **kwargs) -> None:
         self.cfg = FDR4ALTConfig(**kwargs)
 
-    def _set_input_file_metadata(self, l1: Level1bData, fdr_ds: xr.DataTree) -> None:
+    def _set_input_file_metadata(self, l1: Level1bData, fdr_ds: xr.DataTree, mission_id: str) -> None:
         """
         Extract dataset attributes from FDR dataset and store them
         in the Level-1 data object.
@@ -49,25 +53,28 @@ class FDR4ALTDataLoader(object):
 
         :return: None (l1 is change in place)
         """
+
+        mission = {"er1": "ers1", "er2": "ers2", "en1": "envisat"}.get(mission_id.lower(), mission_id)
         l1.info.set_attribute("pysiral_version", PSRLCFG.version)
-        l1.info.set_attribute("mission", "envisat")
+        l1.info.set_attribute("mission", mission)
         l1.info.set_attribute("mission_data_version", fdr_ds.attrs.get("source"))
         l1.info.set_attribute("orbit", fdr_ds.attrs.get("pass_number"))
         l1.info.set_attribute("cycle", fdr_ds.attrs.get("cycle_number"))
         l1.info.set_attribute("mission_data_source", fdr_ds.attrs.get("title"))
         l1.info.set_attribute("timeliness", self.cfg.timeliness)
 
-    def _get_l1(self, filepath: Path, **kwargs) -> Optional[Level1bData]:
+    def _get_l1(self, source_file: pd.Series, **kwargs) -> Optional[Level1bData]:
         """
         Read the Envisat FDR4ALT file and transfers its content to a Level1Data instance
 
-        :param filepath: The full file path to the netCDF file
+        :param source_file: A row from the input file catalog DataFrame representing a source file.
         :return: The parsed (or empty) Level-1 data container
         """
+
         l1 = Level1bData()
         # NOTE: `decode_times=False` prevents a pandas.errors.OutOfBoundsTimedelta exception
-        with xr.open_datatree(filepath, decode_times=False) as fdr_ds:
-            self._set_input_file_metadata(l1, fdr_ds)
+        with xr.open_datatree(source_file.filepath, decode_times=False) as fdr_ds:
+            self._set_input_file_metadata(l1, fdr_ds, mission_id=source_file.mission_id)
             self._transfer_data_groups(l1, fdr_ds)
         return l1
 
@@ -227,13 +234,13 @@ class EnvisatFDR4ALTDataLoader(SourceDataLoader, FDR4ALTDataLoader):
         nominal_tracking_bin = 63 + fdr_ds.main.offset_tracking.values/256 * bandwidth / 320_000_000.0
 
         # Window delay is defined as the range to the start of the range window
-        window_delay_m = fdr_ds.main.Ku.tracker_range.values - nominal_tracking_bin * self.cfg.bin_width_meter
+        window_delay_m = fdr_ds.main.Ku.tracker_range.values - nominal_tracking_bin * self.cfg.range_bin_width_envisat
 
         # Compute the range value for each range bin of the 18hz waveform
         wfm_range = get_envisat_wfm_range(
             window_delay_m,
             n_range_bins,
-            bin_width_meter=self.cfg.bin_width_meter
+            bin_width_meter=self.cfg.range_bin_width_envisat
         )
         # Transfer data to the waveform group
         l1.waveform.set_waveform_data(wfm_power, wfm_range, self.cfg.radar_mode)
@@ -282,45 +289,30 @@ class ERSFDR4ALTDataLoader(SourceDataLoader, FDR4ALTDataLoader):
         # Transfer the reformed 18Hz waveforms
         # "waveform samples (I2+Q2, 1/2048 FFT power unit): 18 Hz Ku band";
         # "the echo is corrected for the intermediate frequency filter effect";
-        wfm_power = fdr_ds.main.Ku.power_waveform.values
+        wfm_power = fdr_ds.main.power_waveform.values
         n_records, n_range_bins = wfm_power.shape
 
-        breakpoint()
-
-        # # From the FDR4ALT product handbook
-        # # 6.2.8 Offset tracking flag and reference Abscissa (ENVISAT)
-        # chirp_band_width_dict = {
-        #     0: 320_000_000.,   # Ku band Ocean Mode
-        #     1:  82_500_000,    # Lu band Ice Mode
-        #     2:  20_000_000,    # ?
-        # }
-        #
-        # # NOTE: There may be NaN's values in chirp band, which will be replaced by the default value of 320 MHz
-        # #       lacking a better solution at this point (and assuming it won't have practical consequences)
-        # bandwidth = np.vectorize(chirp_band_width_dict.get)(fdr_ds.main.Ku.chirp_band.values, 320_000_000.0)
-        # nominal_tracking_bin = 63 + fdr_ds.main.offset_tracking.values/256 * bandwidth / 320_000_000.0
-        #
         # # Window delay is defined as the range to the start of the range window
-        # window_delay_m = fdr_ds.main.Ku.tracker_range.values - nominal_tracking_bin * self.cfg.bin_width_meter
+        window_delay_m = fdr_ds.main.tracker_range.values - self.cfg.nominal_tracking_bin_ers * self.cfg.range_bin_width_ers
         #
-        # # Compute the range value for each range bin of the 18hz waveform
-        # wfm_range = get_envisat_wfm_range(
-        #     window_delay_m,
-        #     n_range_bins,
-        #     bin_width_meter=self.cfg.bin_width_meter
-        # )
-        # # Transfer data to the waveform group
-        # l1.waveform.set_waveform_data(wfm_power, wfm_range, self.cfg.radar_mode)
-        #
-        # # Set valid flag to exclude calibration data
-        # all_flags = np.stack(
-        #     (
-        #         fdr_ds.main.mcd_flag_agc_fault_id.astype(bool),
-        #         fdr_ds.main.mcd_flag_rx_delay_fault_id.astype(bool),
-        #         fdr_ds.main.mcd_flag_proc_error.astype(bool),
-        #         fdr_ds.main.mcd_flag_uso.values.astype(bool),
-        #         fdr_ds.main.mcd_flag_waveform_fault_id.values.astype(bool),
-        #     )
-        # )
-        # valid_flag = np.logical_not(np.max(all_flags, axis=0))
-        # l1.waveform.set_valid_flag(valid_flag)
+        # Compute the range value for each range bin of the 18hz waveform
+        wfm_range = get_envisat_wfm_range(
+            window_delay_m,
+            n_range_bins,
+            bin_width_meter=self.cfg.range_bin_width_ers
+        )
+        # Transfer data to the waveform group
+        l1.waveform.set_waveform_data(wfm_power, wfm_range, self.cfg.radar_mode)
+
+        # Set valid flag to exclude calibration data
+        all_flags = np.stack(
+            (
+                fdr_ds.main.qual_wf_not_tracking.astype(bool),
+                fdr_ds.main.qual_wf_noisy.astype(bool),
+                fdr_ds.main.qual_wf_low_var.astype(bool),
+                fdr_ds.main.qual_wf_bad_le.values.astype(bool),
+                fdr_ds.main.qual_range_cor_net_instr.values.astype(bool),
+            )
+        )
+        valid_flag = np.logical_not(np.max(all_flags, axis=0))
+        l1.waveform.set_valid_flag(valid_flag)

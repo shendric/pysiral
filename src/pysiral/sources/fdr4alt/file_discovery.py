@@ -81,16 +81,18 @@ class FDR4ALTFileDiscovery(FileDiscovery):
     def __init__(self, **kwargs):
         self.cfg = FDR4ALTFileDiscoveryConfig(**kwargs)
 
-    def query_period(self, period) -> Optional[List[Path]]:
+    def query_period(self, period) -> Optional[pd.DataFrame]:
         """
         Abstract method to load source data into Level 1 data object from a given file path.
         """
         file_catalog = self._get_year_catalog(period)
+        if file_catalog.empty:
+            return None
         query_subset = file_catalog[
             (file_catalog.time_coverage_start >= period.tcs.dt) &
             (file_catalog.time_coverage_end <= period.tce.dt)
             ]
-        return query_subset.filepath.to_list() if not query_subset.empty else None
+        return query_subset if not query_subset.empty else None
 
     def _get_year_catalog(self, period) -> pd.DataFrame:
         """

@@ -91,7 +91,7 @@ def l1preproc(
 
         # 5.1 Get input files
         file_list = file_discovery.query_period(period)
-        if len(file_list) == 0:
+        if file_list is None or file_list.empty:
             logger.warning(f"No input files found for period: {period.date_label}, skipping")
 
         # 5.2 Output management
