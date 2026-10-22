@@ -26,13 +26,15 @@ dynamic_variables:
     sh: ""
 
   l1p_settings:  # -> l1p_settings[PLATFORM] -> variable L1P_SETTINGS
-    ers2: "ers2_fdr4alt_v1p0"
+    ers1: "ers_fdr4alt_v1p0"
+    ers2: "ers_fdr4alt_v1p0"
     envisat: "envisat_fdr4alt_v1p0"
     cryosat2: "cryosat2_pds_ipf1e_v1p2"
     sentinel3a: "sentinel3a_l2lan_v1p2"
     sentinel3b: "sentinel3b_l2lan_v1p2"
 
   l1p_version:  # -> l1p_version[PLATFORM] -> variable L1P_VERSION
+    ers1: "fdr4alt_v1p0"
     ers2: "fdr4alt_v1p0"
     envisat: "fdr4alt_v1p0"
     cryosat2: "pds_ipf1e_v1p2"
