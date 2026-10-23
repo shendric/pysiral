@@ -88,6 +88,14 @@ processor:
                   solid_earth_tide: expert/solid_earth_tide_correction
                   wet_tropospheric: expert/wet_tropospheric_correction
 
+        # Compute Sigma from peak power and scaling factor
+        - label: "Compute Sigma0 from Scaling Factor"
+          stage: post_ocean_segment_extraction
+          class_name: L1PSigma0FromScalingFactor
+          options:
+            peak_power_fraction: 1.0
+            classifier_target: scaling_factor
+
         # Compute the leading edge width parameters (full, first half & second half)
         - label: "Compute Leading Edge Width"
           stage: post_ocean_segment_extraction

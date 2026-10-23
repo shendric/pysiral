@@ -60,6 +60,12 @@ l1b_repository:
             source: ""
             l1p: ""
 
+        fdr4alt:
+            source:
+                fdr: ""
+                tp: ""
+            l1p: ""
+
     # ERS-1
     ers1:
 
@@ -67,12 +73,24 @@ l1b_repository:
         sgdr_reaper_v1p08:
             source: ""
             l1p: ""
+
+        fdr4alt:
+            source:
+                fdr: ""
+                tp: ""
+            l1p: ""
     # ERS-2
     ers2:
 
         # ERS-2 Sensor & Geophysical Data Record (SGDR) products
         sgdr_reaper_v1p08:
             source: ""
+            l1p: ""
+
+        fdr4alt:
+            source:
+                fdr: ""
+                tp: ""
             l1p: ""
 
     # Sentinel-3A

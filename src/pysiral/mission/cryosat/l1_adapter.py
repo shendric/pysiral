@@ -22,7 +22,7 @@ from pysiral.mission import SourceDataLoader
 from pysiral.mission.cryosat import cs2_procstage2timeliness
 from pysiral.l1.l1_data import Level1bData
 from pysiral.l1 import Level1PInputHandlerBase, L1PreProcPolarOceanCheck
-from pysiral.l1.alg.waveform import OCOGParameter
+from pysiral.l1.alg.ocog import OCOGParameter
 
 
 class ESACryoSat2ICEL1bProducts(SourceDataLoader):

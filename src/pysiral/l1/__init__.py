@@ -4,7 +4,13 @@
 
 """
 
-__all__ = ["L1PreProcCustomOrbitSegment", "L1PreProcFullOrbit", "L1PreProcHalfOrbit", "L1PreProcessorDefinition"]
+__all__ = [
+    "L1PreProcCustomOrbitSegment",
+    "L1PreProcFullOrbit",
+    "L1PreProcHalfOrbit",
+    "L1PreProcessorDefinition",
+    "L1Algorithm"
+]
 
 import copy
 import sys
