@@ -28,7 +28,7 @@ classifiers = [
 dependencies = [
     "astropy",
     "bottleneck",
-    "cf-data-struct @ https://github.com/pysiral/cf-data-struct@main#egg=cf-data-struct",
+    "cf-data-struct @ git+https://github.com/pysiral/cf-data-struct@main#egg=cf-data-struct",
     "cftime",
     "cython",
     "dateperiods @ git+https://github.com/pysiral/dateperiods.git@main#egg=dateperiods",
