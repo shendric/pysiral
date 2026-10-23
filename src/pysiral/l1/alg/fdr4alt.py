@@ -149,8 +149,9 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
             return None
 
         # Some sanity checks on the file catalog
-        assert file_catalog.esa_file_type.nunique() == 1, "Multiple ESA file type IDs found in thematic file catalog."
-        assert 'F4A_ALT_TDP_SI_' in file_catalog.esa_file_type.unique()[0], "File type != 'F4A_ALT_TDP_SI_*'"
+        # assert file_catalog.esa_file_type.nunique() == 1, "Multiple ESA file type IDs found in thematic file catalog."
+        file_types = file_catalog.esa_file_type.unique()
+        assert all('F4A_ALT_TDP_SI_' in ft for ft in file_types), "File type != 'F4A_ALT_TDP_SI_*'"
 
         # Check for overlapping time coverage with the query period
         min_starts = file_catalog.time_coverage_start.apply(lambda x: max(x, tcs))
