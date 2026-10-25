@@ -97,7 +97,11 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
                 return
             for var_target in target_dict.keys():
                 tp_variable_name = target_dict[var_target]
-                tp_var = ds[tp_variable_name].values
+                try:
+                    tp_var = ds[tp_variable_name].values
+                except KeyError:
+                    logger.warning(f"Could not file range correction {tp_variable_name} in source file")
+                    tp_var = np.full(l1.time_orbit.timestamp.shape, 0.0)
                 l1_var = getattr(l1.correction, var_target)
                 l1_var[index_map_fdr] = tp_var[index_map_tp]
                 setattr(l1.correction, var_target, l1_var)
