@@ -1068,6 +1068,7 @@ class Level1PreProcJobDef(DefaultLoggingClass):
         self._platform = platform
         self._source_repo_id = source_repo_id
         self._exclude_month = exclude_month
+        self._l1p_settings_id_or_file = l1p_settings_id_or_file
 
         # Get pysiral configuration
         self.l1pprocdef = self._set_l1p_processor_def(l1p_settings_id_or_file)
@@ -1235,6 +1236,13 @@ class Level1PreProcJobDef(DefaultLoggingClass):
 
         settings_is_ambigous = len(self.l1pprocdef.platforms) > 1
         platform_is_known = self.platform is not None
+
+        if platform_is_known:
+            msg = (
+                f"Error: platform `{self.platform}` and l1p settings mismatch (supported: {self.l1pprocdef.platforms})."
+                f"Incorrect platform or l1p settings file ({self._l1p_settings_id_or_file})?"
+            )
+            assert self.platform in self.l1pprocdef.platforms, msg
 
         if settings_is_ambigous:
 
