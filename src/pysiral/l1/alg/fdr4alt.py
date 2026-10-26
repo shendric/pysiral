@@ -30,6 +30,7 @@ class FillInRangeCorrectionsFromTSIPConfig(BaseModel):
     # Add any configuration parameters here if needed
     local_machine_def_tag: str
     subtag: str
+    thematic_product_time_bias_days: float = 0.0
     target_variables: Dict[str, str]  # Mapping of target variable names to their corresponding names in the TSIP files
 
     def get_lookup_dir(self, platform: str) -> str:
@@ -85,31 +86,48 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
 
         :return: None
         """
-
         target_dict = self.cfg.target_variables
-        with xr.open_datatree(tp_file, decode_times=False) as ds:
-            # NOTE: Index mapping is on latitudes, as there seems to be an issue with the ERS timestamps
-            index_map_fdr, index_map_tp = self._get_index_mappings(l1.time_orbit.latitude, ds.main.latitude.values)
+        with xr.open_datatree(tp_file, decode_times=False, decode_cf=True) as ds:
+
+            # Reference variable is the time variable in number notation
+            l1_time_num = l1.classifier.time_num
+            # NOTE: The ERS-2 thematic product has a time bias of -3652 days (10 years)
+            #       compared to the FDR4ALT time variable. This has to be specified in the configuration file.
+            tp_time_num = ds.main.time.values + self.cfg.thematic_product_time_bias_days
+            index_map_fdr, index_map_tp = self._get_index_mappings(l1_time_num, tp_time_num)
+
+            # NOTE: It happens that file coverage indicates overlap, but the actual data doesn't.
             try:
-                assert len(index_map_fdr) > 0, "No overlapping time coverage between Level-1 data and Thematic Product."
+                assert len(index_map_fdr) > 0, "No overlapping time coverage between L1 data and Thematic Product."
             except AssertionError as e:
                 logger.warning(f"{e} Skipping file: {tp_file}")
                 return
+
+            # Map the target variables from the Thematic Product to the Level-1 data
             for var_target in target_dict.keys():
+
                 tp_variable_name = target_dict[var_target]
+
+                # NOTE: It happened that individual files missing certain range correction variables.
                 try:
                     tp_var = ds[tp_variable_name].values
                 except KeyError:
                     logger.warning(f"Could not file range correction {tp_variable_name} in source file")
-                    tp_var = np.full(l1.time_orbit.timestamp.shape, 0.0)
+                    continue
+
+                # Check if the target variable is all NaN
+                if np.all(np.isnan(tp_var)):
+                    logger.warning(f"Range correction {tp_variable_name} in source file is all NaN")
+                    continue
+
                 l1_var = getattr(l1.correction, var_target)
                 l1_var[index_map_fdr] = tp_var[index_map_tp]
                 setattr(l1.correction, var_target, l1_var)
 
     @staticmethod
     def _get_index_mappings(
-            l1_latitude: np.ndarray,
-            tp_latitude: np.ndarray
+            l1_time_num: np.ndarray,
+            tp_time_num: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Get the indices arrays that map the L1 data coverage with the
@@ -117,25 +135,26 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
 
             l1_time[l1_index_map] = tp_time[tp_index_map]
 
-        Implementation from https://stackoverflow.com/questions/57873670/index-mapping-between-two-sorted-partially-overlapping-numpy-arrays
+        Implementation from
+        https://stackoverflow.com/questions/57873670/index-mapping-between-two-sorted-partially-overlapping-numpy-arrays
 
-        :param l1_latitude: The Level-1 (FDR) latitude as numeric value
-        :param tp_latitude: The Thematic product latitude as numeric value
+        :param l1_time_num: The Level-1 (FDR) time as numeric value
+        :param tp_time_num: The Thematic product time as numeric value
 
         :return: (l1_index_map, tp_index_map)
         """
 
         # Convert to integer (milliseconds since epoch) for safe comparison
         # (default date units for FDR4ALT is days since epoch)
-        degress_to_minutes = 3600
-        l1_lat_int = (l1_latitude * degress_to_minutes).astype(int)
-        tp_lat_int = (tp_latitude * degress_to_minutes).astype(int)
+        days_to_milliseconds = 86_000.0 * 1000.0
+        l1_time_int = (l1_time_num * days_to_milliseconds).astype(int)
+        tp_time_int = (tp_time_num * days_to_milliseconds).astype(int)
 
         # Use numpy's `intersect1d` to find the common elements and their indices
-        _, l1_index_map, tp_index_map = np.intersect1d(l1_lat_int, tp_lat_int, return_indices=True)
+        _, l1_index_map, tp_index_map = np.intersect1d(l1_time_int, tp_time_int, return_indices=True)
         # Validate the mapping
         assert len(l1_index_map) == len(tp_index_map), "Index maps must be of the same length."
-        assert np.array_equal(l1_lat_int[l1_index_map], tp_lat_int[tp_index_map]), "Mapped latitudes must be equal."
+        assert np.array_equal(l1_time_int[l1_index_map], tp_time_int[tp_index_map]), "Mapped times must be equal."
 
         return l1_index_map, tp_index_map
 
@@ -165,7 +184,7 @@ class FillInRangeCorrectionsFromTSIP(L1Algorithm):
         # NOTE: This is done because the time coverage indicated by the filename is only with second resolution
         #       and this can lead to false negatives due to integer second rounding errors
         overlap_seconds = (min_ends - min_starts).values.astype('timedelta64[s]')
-        query_subset = file_catalog[overlap_seconds > 0]
+        query_subset = file_catalog[overlap_seconds > 1]
         return query_subset.filepath.to_list() if not query_subset.empty else None
 
     @lru_cache(maxsize=256)

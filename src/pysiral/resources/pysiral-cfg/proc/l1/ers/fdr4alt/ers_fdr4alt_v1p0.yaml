@@ -82,7 +82,8 @@ processor:
           class_name: FillInRangeCorrectionsFromTSIP
           options:
               local_machine_def_tag: *lmd_tag
-              subtag: "tp"  # FDR4ALT Thematic Sea Ice Product subtag
+              subtag: "tp"
+              thematic_product_time_bias_days: -3652.0
               target_variables:
                   dry_tropospheric: expert/dry_tropospheric_correction
                   inverse_barometric_total: expert/inverse_barometric_total_correction
