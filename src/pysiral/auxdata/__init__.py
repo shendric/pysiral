@@ -6,6 +6,7 @@ Created on Fri May 19 14:42:35 2017
 """
 
 __all__ = ["AuxdataBaseClass",
+           "AuxDataLoader",
            "AuxClassConfig",
            "GridTrackInterpol",
            "get_all_auxdata_classes",
@@ -16,7 +17,8 @@ __all__ = ["AuxdataBaseClass",
            "sic",
            "sitype",
            "snow",
-           "region"]
+           "region"
+           ]
 
 
 import re
@@ -28,9 +30,147 @@ import numpy as np
 import scipy.ndimage as ndimage
 from pyproj import Proj
 
-from pysiral import import_submodules
-from pysiral.core.legacy_classes import AttrDict, ErrorStatus
+from pysiral import import_submodules, PSRLCFG
+from pysiral.auxdata._aux_abc import AuxDataLoader
+from pysiral.core.legacy_classes import AttrDict, ErrorStatus, DefaultLoggingClass
 
+
+class DefaultAuxdataClassHandler(DefaultLoggingClass):
+    """ Class for retrieving handler classes for auxiliary data
+    (mss, sic, sitype, snow). The classes are initialized with directory
+    information from the local machine definition and the auxdata information
+    from `auxdata.yaml` configuration file.
+    """
+
+    def __init__(self):
+        super(DefaultAuxdataClassHandler, self).__init__(self.__class__.__name__)
+        self.error = ErrorStatus(caller_id=self.__class__.__name__)
+
+    def get_pyclass(self, auxdata_class, auxdata_id, l2_procdef_opt):
+        """
+        Returns a class for handling auxiliary data files, that is initialized
+        with auxdata settings in `config/auxdata_def.yaml` and with the
+        directory specified in `local_machine_def.yaml`
+
+        Args:
+            auxdata_class (str): Auxdata class (e.g. mss, sic, sitype, snow)
+            auxdata_id (str): Auxdata class identifier (e.g. osisaf)
+
+        Returns:
+            class: The initialized auxdata handler class
+        """
+
+        # Clear errors
+        self.error.reset()
+
+        # Initialize the class with information from auxdata_def.yaml
+        auxdata_def = self.get_auxdata_def(auxdata_class, auxdata_id)
+        if auxdata_def is None:
+            error_id = "auxdata_missing_definition"
+            error_message = f"auxdata_def: Missing definition [{auxdata_class}:{auxdata_id}]"
+            self.error.add_error(error_id, error_message)
+            self.error.raise_on_error()
+
+        # Set the auxdata config
+        cfg = AuxClassConfig()
+
+        # connect to repository on local machine
+        if "local_repository" in auxdata_def:
+            local_repository_id = auxdata_def.get("local_repository")
+            local_repo = self.get_local_repository(auxdata_class, local_repository_id)
+            if local_repo is None and local_repository_id is not None:
+                error_id = "auxdata_missing_localrepo_def"
+                error_message = f"Missing entry `auxdata_repository.{auxdata_class}.{auxdata_id}` in " + \
+                                f"local_machine_def ({PSRLCFG.local_machine_def_filepath})"
+                error_message += f"\nAvailable entries: {self.get_local_repository_keys(auxdata_class)}"
+                self.error.add_error(error_id, error_message)
+                self.error.raise_on_error()
+            empty_str = len(local_repo) == 0 if local_repo is not None else False
+            if empty_str:
+                msg = "Path definition for {}.{} exists in local_machine_def.yaml, but is empty string"
+                msg = msg.format(auxdata_class, auxdata_id)
+                logger.warning(msg)
+            cfg.set_local_repository(local_repo)
+
+        # set doc str (should be mandatory for all auxdata handlers)
+        if "long_name" in auxdata_def:
+            cfg.set_long_name(auxdata_def.get("long_name"))
+
+        # set filename (e.g. for mss)
+        if "filename" in auxdata_def:
+            local_repository_id = auxdata_def.get("local_repository")
+            local_repo = self.get_local_repository(auxdata_class, local_repository_id)
+            filename = Path(local_repo) / auxdata_def.get("filename")
+            cfg.set_filename(filename)
+
+        # set filenaming (e.g. for sic, sitype, snow)
+        if "filenaming" in auxdata_def:
+            cfg.set_filenaming(auxdata_def.get("filenaming"))
+
+        # set subfolders (e.g. for sic, sitype, snow)
+        if "subfolders" in auxdata_def:
+            cfg.set_subfolder(auxdata_def.get("subfolders"))
+
+        # Set the default options from the auxiliary definition file
+        if "options" in auxdata_def:
+            options = auxdata_def.get("options", None)
+            if options is not None:
+                cfg.set_options(**options)
+
+        # Override option with definition from the l2 processor settings
+        if l2_procdef_opt is not None:
+            cfg.set_options(**l2_procdef_opt)
+
+        # Get the auxiliary data class
+        auxclass = PSRLCFG.get_class_from_registry("AUX_DATA_LOADER", auxdata_def["pyclass"])
+        if auxclass is None:
+            msg = f"Auxdata class {auxdata_def['pyclass']} for {auxdata_class}:{auxdata_id} not found in registry"
+            self.error.add_error("invalid-auxdata-class", msg)
+            self.error.raise_on_error()
+
+        return auxclass(cfg)
+
+    def get_local_repository_keys(self, auxdata_class):
+        """ Get the local repository keys for the auxdata type """
+        aux_repo_defs = PSRLCFG.local_machine["auxdata_repository"]
+        try:
+            local_repo_auxclass = aux_repo_defs[auxdata_class]
+        except KeyError:
+            local_repo_auxclass = {}
+            msg = "Missing auxdata definition in local_machine_def.yaml: auxdata_repository.%s" % auxdata_class
+            self.error.add_error("missing-localmachinedef-tag", msg)
+            self.error.raise_on_error()
+        return sorted(local_repo_auxclass.keys())
+
+    def get_local_repository(self, auxdata_class, auxdata_id):
+        """ Get the local repository for the auxdata type and id """
+        if auxdata_id is None:
+            return None
+        aux_repo_defs = PSRLCFG.local_machine.get("auxdata_repository")
+        try:
+            local_repo_auxclass = aux_repo_defs[auxdata_class]
+        except KeyError:
+            local_repo_auxclass = {}
+            msg = "Missing auxdata definition in local_machine_def.yaml: auxdata_repository.%s" % auxdata_class
+            self.error.add_error("missing-localmachinedef-tag", msg)
+            self.error.raise_on_error()
+        return local_repo_auxclass.get(auxdata_id, None)
+
+    def get_auxdata_def(self, auxdata_class: str, auxdata_id: str) -> "AttrDict":
+        """
+        Returns the definition in `config/auxdata_def.yaml` for specified auxdata class and id.
+        Raises an error if the entry is not found.
+        :param auxdata_class: The code for auxiliary data type (sic, mss, sitype, snow, ...)
+        :param auxdata_id: The id of a specific data set for the auxiliary data class (e.g. sic:osisaf-operational)
+        :return: The configuration dictionary
+        """
+
+        auxdata_def = PSRLCFG.auxdata.get_definition(auxdata_class, auxdata_id)
+        if auxdata_def is None:
+            msg = f"Cannot find entry for auxiliary data set {auxdata_class}:{auxdata_id} in auxdata_def.yaml"
+            self.error.add_error("invalid-auxdata-class", msg)
+            self.error.raise_on_error()
+        return auxdata_def.attrdict
 
 class AuxdataBaseClass(object):
     """

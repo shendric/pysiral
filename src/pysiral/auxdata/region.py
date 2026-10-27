@@ -40,8 +40,11 @@ from loguru import logger
 from pyproj import CRS
 from xarray import open_dataset
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader
 from pysiral.core.grid import GridTrajectoryExtract
+
+
+__all__ = ["NSIDCRegionMask", "NSIDCRegionMask2021"]
 
 
 class NSIDCRegionMask(AuxdataBaseClass):
@@ -71,12 +74,12 @@ class NSIDCRegionMask(AuxdataBaseClass):
         self.register_auxvar("reg_code", "region_code", region_code, None)
 
 
-class NSIDCRegionMask2021(AuxdataBaseClass):
+class NSIDCRegionMask2021(AuxDataLoader):
     """ Provides region codes from NSIDC regions grids in version 2021 """
 
-    def __init__(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+    def __init__(self, cfg, **kwargs: Optional[Any]) -> None:
 
-        super(NSIDCRegionMask2021, self).__init__(*args, **kwargs)
+        # super(NSIDCRegionMask2021, self).__init__(*args, **kwargs)
 
         # Get the filepath of the mask netCDF file
         # NOTE: There are two options:
@@ -85,6 +88,7 @@ class NSIDCRegionMask2021(AuxdataBaseClass):
         #    2. The config dictionary contains the directory,
         #       a template of the filename as well as the
         #       target resolution
+        self.cfg = cfg
         self.filepath = (
             Path(self.cfg.filename) if "filename" in self.cfg.option_keys
             else self._get_filepath_from_config()
@@ -99,6 +103,9 @@ class NSIDCRegionMask2021(AuxdataBaseClass):
         # Extract information from netCDF
         self.attr_dict: Dict = self._extract_grid_attributes()
         self.grid_def: Dict = self._extract_grid_information()
+
+    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
+        pass
 
     def get_l2_track_vars(self, l2: "Level2Data") -> None:
         """

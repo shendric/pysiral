@@ -9,6 +9,7 @@ __all__ = [
     "l1", "l2", "l3",
     "retracker",
     "PSRLCFG",
+    "sources",
     "import_submodules", "get_cls", "set_psrl_cpu_count",
     "__version__", "__git_version__", "__git_branch__", "__git_origin__"
 ]

@@ -79,6 +79,7 @@ class PysiralPackageConfiguration(object):
     CLASS_REGISTRY = {
         "FILE_DISCOVERY": {},
         "DATA_LOADER": {},
+        "AUX_DATA_LOADER": {},
         "L1_ALGORITHM": {},
         "L2_ALGORITHM": {},
         "L3_ALGORITHM": {}
@@ -254,6 +255,7 @@ class PysiralPackageConfiguration(object):
         the CLASS_REGISTRY attribute.
         :return: None
         """
+        import_submodules("pysiral.auxdata")
         import_submodules("pysiral.l1.alg")
         import_submodules("pysiral.l2.alg")
         import_submodules("pysiral.l3.alg")

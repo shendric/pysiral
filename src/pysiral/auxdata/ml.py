@@ -39,6 +39,8 @@ from typing import Any, Iterable
 import bottleneck as bn
 import numpy as np
 
+from pysiral.auxdata import AuxDataLoader
+
 from pysiral._exceptions import OptionalImportError
 
 try:
@@ -57,7 +59,7 @@ from pysiral.auxdata import AuxdataBaseClass
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 
-class RetrackerThresholdModel(AuxdataBaseClass):
+class RetrackerThresholdModel(AuxDataLoader):
     """
     This class replaces the previous same-name version but utilizizes solely pytorch
     as pysiral's ML/AI framework for retracker-threshold models
@@ -70,7 +72,7 @@ class RetrackerThresholdModel(AuxdataBaseClass):
         :param args:
         :param kwargs:
         """
-        super(RetrackerThresholdModel, self).__init__(*args, **kwargs)
+        breakpoint()
 
         # Retrieve requested model files
         self.valid_waveforms_idx = None
@@ -218,10 +220,7 @@ class RetrackerThresholdModel(AuxdataBaseClass):
         :param l2: `Level2Data` container
 
         :return: None
-
-        :raises: None
         """
-
         # Predict the waveform range
         if self.waveform_for_prediction is not None:
             with torch.no_grad():
