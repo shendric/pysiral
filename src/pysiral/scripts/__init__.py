@@ -15,11 +15,11 @@ import pysiral._logger  # isort:skip
 from pysiral.scripts.info import info, InfoScriptArguments
 from pysiral.scripts.config import config, ConfigScriptArguments
 from pysiral.scripts.l1preproc import l1preproc, L1PreProcScriptArguments
-from pysiral.scripts.l1preproc_product import l1preproc_product, L1PreProcProductScriptArguments
 from pysiral.scripts.l2proc import l2proc, L2ProcScriptArguments
 from pysiral.scripts.l2procfiles import l2procfiles, L2ProcFilesScriptArguments
 from pysiral.scripts.l2preproc import l2preproc, L2PreProcScriptArguments
 from pysiral.scripts.l3proc import l3proc, L3ProcScriptArguments
+from pysiral.scripts.product import product, ProductScriptArguments
 
 
 def main() -> None:
@@ -42,17 +42,11 @@ def main() -> None:
                       from source files.  
                       (see: pysiral l1p --help)
 
-        `l1p_product` Generate Level-1 files (l1p) with trajectory sensors data
-                      from source files. Requires less input parameters than `l1preproc` 
-                      and uses a product ID to determine the processing settings.
-                      (see: pysiral l1p_product --help)
-
-
         `l2`          Generate Level-2 files (l2/l2i) with geophysical information
                       from Level-1 files (l1p) and auxiliary data for a given 
                       Level-2 product definition and period. 
                       (see: pysiral l2 --help)
-                      
+    
         `l2_files`    Generate Level-2 files (l2/l2i) with geophysical information
                       from a list of Level-1 files (l1p) and auxiliary data for a given 
                       Level-2 product definition. 
@@ -64,6 +58,9 @@ def main() -> None:
         `l3`          Generate Level-3 files (l3c/l3s) with gridded data from 
                       Level-2 files (l2/l2i).
                       (see: pysiral l3 --help)
+                      
+        `product`     Run a specific processing level (l1, l2, l3) for a given product ID.
+                      (see: pysiral product --help)
     """
 
     # Get the name of the script
@@ -117,17 +114,6 @@ def l1p_cli(args_list: Optional[List] = None) -> None:
     l1preproc(**vars(L1PreProcScriptArguments().get(args_list)))
 
 
-def l1p_product_cli(args_list: Optional[List] = None) -> None:
-    """
-    Command-line interface entry point for the `pysiral l1` script.
-
-    :param args_list: Command line arguments to be passed to the script.
-
-    :return: None
-    """
-    l1preproc_product(**vars(L1PreProcProductScriptArguments().get(args_list)))
-
-
 def l2_cli(args_list: Optional[List] = None) -> None:
     """
     Command-line interface entry point for the `pysiral l2` script.
@@ -171,6 +157,16 @@ def l3proc_cli(args_list: Optional[List] = None) -> None:
     """
     l3proc(**vars(L3ProcScriptArguments().get(args_list)))
 
+
+def product_cli(args_list: Optional[List] = None) -> None:
+    """
+    Command-line interface entry point for the `pysiral product` script.
+
+    :param args_list: Command line arguments to be passed to the script.
+
+    :return: None
+    """
+    product(**vars(ProductScriptArguments().get(args_list)))
 
 if __name__ == "__main__":
     main()

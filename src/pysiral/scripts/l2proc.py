@@ -3,7 +3,7 @@
 
 
 import argparse
-from typing import List, Union
+from typing import List, Union, Optional
 from pathlib import Path
 
 from dateperiods import DatePeriod
@@ -16,20 +16,21 @@ from pysiral.l2 import Level2Processor, Level2ProductDefinition
 from pysiral.scripts.parser_items import (
     ProcessingPeriod, ExcludeMonths, InputVersion,
     L2Settings, L2Outputs, SourceDatasetID, MultiProcesssingNumCores,
-    UseMultiProcesssing, ForceL2DefRecordType
+    UseMultiProcesssing, ForceL2DefRecordType, PlatformID
 )
 
 
 def l2proc(
-    processing_period: DatePeriod = None,
-    l2_settings: Union[str, Path] = None,
-    l2_outputs: List[Union[str, Path]] = None,
+    processing_period: DatePeriod,
+    l2_settings: Union[str, Path],
+    l2_outputs: List[Union[str, Path]],
+    platform: Optional[str] = None,
     exclude_months: List[int] = None,
-    source_dataset_id: str = None,
-    l1p_version: str = None,
-    force_l2def_record_type: bool = False,
-    use_multiprocessing: bool = False,
-    multiprocessing_num_cores: int = None
+    source_dataset_id: Optional[str] = None,
+    l1p_version: Optional[str] = None,
+    force_l2def_record_type: Optional[bool] = False,
+    use_multiprocessing: Optional[bool] = False,
+    multiprocessing_num_cores: Optional[int] = None
 ) -> None:
     """
     Main entry point for the Level-2 Processor job.
@@ -40,6 +41,7 @@ def l2proc(
     :param processing_period: Start date for processing in [year, month, [day]] format.
     :param l2_settings: Path to the Level-2 settings file or its identifier.
     :param l2_outputs: List of output definitions for Level-2 products.
+    :param platform: Platform identifier (optional only for single platform missions).
     :param exclude_months: List of months to exclude from processing (1-12).
     :param source_dataset_id: Version of the input data (optional).
     :param l1p_version: Version of the Level-1P data (optional).
@@ -58,10 +60,11 @@ def l2proc(
     # yaml L2 product definition files (`pysiral/resources/pysiral-cfg/proc/l2/`).
     product_def = Level2ProductDefinition(
         l2_settings,
+        platform,
         force_l2def_record_type=force_l2def_record_type
     )
-    platform = product_def.l2def.metadata.platform
-    hemisphere = product_def.l2def.metadata.hemisphere
+    platform = product_def.l2def.attributes.platform
+    hemisphere = product_def.l2def.attributes.hemisphere
 
     # The Level-2 data can be written to one or multiple output files.
     for l2_output in l2_outputs:
@@ -135,6 +138,7 @@ class L2ProcScriptArguments(object):
             # Positional arguments
             L2Settings(),
             ProcessingPeriod(),
+            PlatformID(),
             L2Outputs(required=True),
             SourceDatasetID(required=True),
             InputVersion(dest="l1p_version", required=True),

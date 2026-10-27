@@ -20,34 +20,34 @@ auxdata:
     # Add region codes
     # NOTE: It is advisable to do this in the beginning, since the following auxiliary data types can
     #       be modified depending on region code
-    - region:
-        name: antarctic_seas
-        options: null
+    - type: region
+      name: antarctic_seas
+      options: null
 
-    - mss:
-        name: dtu21
-        options:
-            latitude_range: [-90.0, -45.]
+    - type: mss
+      name: dtu21
+      options:
+        latitude_range: [-90.0, -45.]
 
-    - sic:
-        name: c3s
-        options:
-            version: v3p0
+    - type: sic
+      name: c3s
+      options:
+        version: v3p0
             exception_on_error: False
 
-    - sitype:
-         name: fyi_default
-         options:
-             uncertainty_default: 0.1
+    - type: sitype
+      name: fyi_default
+      options:
+        uncertainty_default: 0.1
 
-    - snow:
-         name: icdc_climatology_south
-         options:
-             snow_density: 300.
-             snow_density_uncertainty: 50.
-             smooth_snow_depth: true
-             smooth_filter_width_m: 25000.0
-             exception_on_error: True
+    - type: snow
+      name: icdc_climatology_south
+      options:
+        snow_density: 300.
+        snow_density_uncertainty: 50.
+        smooth_snow_depth: true
+        smooth_filter_width_m: 25000.0
+        exception_on_error: True
 
 
 # --- Level-2 processor steps ---

@@ -1,15 +1,12 @@
 config:
-
   pysiral_version: ">=0.14"
 
 
 attributes:
-
     product_line: "cci"
     record_type: "cdr"
     version: "v5p0"
     platforms: &platforms ["ers2", "envisat", "cryosat2", "sentinel3a", "sentinel3b"]
-
 
 dynamic_variables:
 
@@ -41,6 +38,14 @@ dynamic_variables:
     sentinel3a: "l2lan_v1p2"
     sentinel3b: "l2lan_v1p2"
 
+  mission:
+    ers1: "ers"
+    ers2: "ers"
+    envisat: "envisat"
+    cryosat2: "cryosat"
+    sentinel3a: "sentinel3"
+    sentinel3b: "sentinel3"
+
 processors:
 
   l1:
@@ -50,8 +55,8 @@ processors:
 
   l2:
     l1p_version: "{l1p_version[platform]}"
-    l2_settings: "cci_{mission}_{hemisphere}_v5p0_cdr"
-    l2_output: "l2i_cci_v5p0"
+    l2_settings: "cci_{mission[platform]}_{hemisphere}_v5p0_cdr"
+    l2_outputs: ["l2i_cci_v5p0"]
     platform: "{platform}"
 
   l2p: {}

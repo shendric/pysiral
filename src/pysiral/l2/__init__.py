@@ -11,7 +11,8 @@ from pathlib import Path
 
 from dateperiods import DatePeriod
 from loguru import logger
-from typing import Union, Optional
+from typing import Union, Optional, List, Dict, Any
+from pydantic import BaseModel
 
 from pysiral import PSRLCFG
 from pysiral.core.config import get_yaml_config
@@ -23,6 +24,70 @@ from pysiral.l2.l2data import Level2Data
 from pysiral.l2.procsteps import Level2ProcessorStepOrder
 
 __all__ = ["Level2Processor", "Level2ProductDefinition", "Level2ProcessorStepOrder", "procsteps"]
+
+
+class L2ProcDefConfig(BaseModel):
+    id: str
+    l2_prod_def_style: int
+    status: str
+    supported_platforms: List[str]
+
+
+class L2ProcDefAttributes(BaseModel):
+    label: str
+    product_line: str
+    record_type: str
+    platform: Optional[str] = None
+    version: str
+    file_version_tag: str
+    hemisphere: str
+
+class L2ProcAuxiliaryDataDef(BaseModel):
+    type: str
+    name: str
+    options: Optional[dict] = None
+
+class L2ProcAlgorithmDef(BaseModel):
+    class_name: str
+    options: Optional[Dict[str, Any]] = None
+
+
+class L2ProcessorDefinition(BaseModel):
+    """
+    Pydantic model for Level-2 processor definition.
+    This class is used to validate the structure of the Level-2 processor definition YAML files.
+    """
+    filename: Optional[Union[str, Path]] = None
+    config: L2ProcDefConfig
+    attributes: L2ProcDefAttributes
+    auxdata: List[L2ProcAuxiliaryDataDef]
+    algorithms: List[L2ProcAlgorithmDef]
+
+    def validate_platform(self, target_platform : Optional[str] = None) -> None:
+        """
+        Validate the target platform against the supported platforms in the processor definition.
+
+        :param target_platform: The platform to validate against the processor definition.
+        """
+        supported_platforms = self.config.supported_platforms
+        l2def_target_platform = self.attributes.platform
+
+        if not l2def_target_platform and not target_platform:
+            raise ValueError(
+                f"No target platform defined in {self.filename} or in `platform` argument. "
+                f"Supported platforms are: {supported_platforms} (Missing --platform argument?)"
+            )
+
+        if target_platform and target_platform not in supported_platforms:
+            raise ValueError(
+                f"Target platform `{target_platform}` is not supported by the processor definition {self.filename}. "
+                f"Supported platforms are: {supported_platforms}"
+            )
+
+        if self.attributes.platform and not target_platform:
+            return
+        else:
+            self.attributes.platform = target_platform
 
 
 class Level2Processor(DefaultLoggingClass):
@@ -398,9 +463,11 @@ class Level2Processor(DefaultLoggingClass):
 class Level2ProductDefinition(DefaultLoggingClass):
     """ Main configuration class for the Level-2 Processor """
 
+    # TODO: Chance input to context
     def __init__(
             self,
             l2_settings_file: str,
+            target_platform: Optional[str] = None,
             force_l2def_record_type: bool = False
     ) -> None:
 
@@ -408,8 +475,7 @@ class Level2ProductDefinition(DefaultLoggingClass):
         self.error = ErrorStatus(self.__class__.__name__)
 
         # Mandatory parameter
-        self._l2_settings_file = l2_settings_file
-        self._parse_l2_settings()
+        self._l2def = self._parse_l2_settings(l2_settings_file, target_platform)
         self._run_tag = self._get_run_tag()
         self.force_l2def_record_type = force_l2def_record_type
 
@@ -426,12 +492,27 @@ class Level2ProductDefinition(DefaultLoggingClass):
             output_def=output_def_file, subdirectory=self.run_tag,
             period=period, overwrite_protection=overwrite_protection))
 
-    def _parse_l2_settings(self):
-        try:
-            self._l2def = get_yaml_config(self._l2_settings_file)
-        except Exception as ex:
-            self.error.add_error("invalid-l2-settings", str(ex))
-            self.error.raise_on_error()
+    @staticmethod
+    def _parse_l2_settings(l2_settings_file: str, target_platform: Optional[str] = None) -> L2ProcessorDefinition:
+        """
+        Parse the Level-2 processor definition file and return a L2ProcessorDefinition object
+        and include context information (e.g. platform) if applicable.
+
+        :param l2_settings_file: Path to the Level-2 processor definition file (YAML)
+
+        :raise FileNotFoundError: If the l2_settings_file does not exist
+
+        :raise ValueError: - Product definition supports multiple platforms, but no target platform was specified
+                           - Product definition supports a single platform, but the target platform does not match
+
+        :return: L2ProcessorDefinition object
+        """
+        l2_def_content_dict = get_yaml_config(l2_settings_file)
+        l2_def_content_dict["filepath"] = l2_settings_file
+        l2def = L2ProcessorDefinition(**l2_def_content_dict)
+        l2def.validate_platform(target_platform)
+        return l2def
+
 
     def _get_run_tag(self) -> str:
         """
@@ -460,31 +541,31 @@ class Level2ProductDefinition(DefaultLoggingClass):
 
     @property
     def product_line(self):
-        return self.l2def.metadata.product_line
+        return self.l2def.attributes.product_line
 
     @property
     def record_type(self):
-        return self.l2def.metadata.record_type
+        return self.l2def.attributes.record_type
 
     @property
     def platform(self):
-        return self.l2def.metadata.platform
+        return self.l2def.attributes.platform
 
     @property
     def version(self):
-        return self.l2def.metadata.version
+        return self.l2def.attributes.version
 
     @property
     def file_version_tag(self):
-        return self.l2def.metadata.file_version_tag
+        return self.l2def.attributes.file_version_tag
 
     @property
     def label(self):
-        return self.l2def.metadata.label
+        return self.l2def.attributes.label
 
     @property
     def hemisphere(self):
-        return self.l2def.metadata.hemisphere
+        return self.l2def.attributes.hemisphere
 
     @property
     def hemisphere_code(self):

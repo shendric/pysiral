@@ -52,7 +52,6 @@ class OutputHandlerBase(DefaultLoggingClass):
 
         # Init the parent
         super(OutputHandlerBase, self).__init__(self.__class__.__name__)
-        self.pysiral_config = PSRLCFG
         self.error = ErrorStatus()
         self._basedir = "n/a"
 
