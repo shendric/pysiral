@@ -63,12 +63,12 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
 
         # connect to repository on local machine
         if "local_repository" in auxdata_def:
-            local_repository_id = auxdata_def.local_repository
+            local_repository_id = auxdata_def.get("local_repository")
             local_repo = self.get_local_repository(auxdata_class, local_repository_id)
             if local_repo is None and local_repository_id is not None:
                 error_id = "auxdata_missing_localrepo_def"
                 error_message = f"Missing entry `auxdata_repository.{auxdata_class}.{auxdata_id}` in " + \
-                                f"local_machine_def ({psrlcfg.local_machine_def_filepath})"
+                                f"local_machine_def ({PSRLCFG.local_machine_def_filepath})"
                 error_message += f"\nAvailable entries: {self.get_local_repository_keys(auxdata_class)}"
                 self.error.add_error(error_id, error_message)
                 self.error.raise_on_error()
@@ -81,22 +81,22 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
 
         # set doc str (should be mandatory for all auxdata handlers)
         if "long_name" in auxdata_def:
-            cfg.set_long_name(auxdata_def.long_name)
+            cfg.set_long_name(auxdata_def.get("long_name"))
 
         # set filename (e.g. for mss)
         if "filename" in auxdata_def:
-            local_repository_id = auxdata_def.local_repository
+            local_repository_id = auxdata_def.get("local_repository")
             local_repo = self.get_local_repository(auxdata_class, local_repository_id)
-            filename = Path(local_repo) / auxdata_def.filename
+            filename = Path(local_repo) / auxdata_def.get("filename")
             cfg.set_filename(filename)
 
         # set filenaming (e.g. for sic, sitype, snow)
         if "filenaming" in auxdata_def:
-            cfg.set_filenaming(auxdata_def.filenaming)
+            cfg.set_filenaming(auxdata_def.get("filenaming"))
 
         # set subfolders (e.g. for sic, sitype, snow)
         if "subfolders" in auxdata_def:
-            cfg.set_subfolder(auxdata_def.subfolders)
+            cfg.set_subfolder(auxdata_def.get("subfolders"))
 
         # Set the default options from the auxiliary definition file
         if "options" in auxdata_def:
@@ -134,7 +134,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
         """ Get the local repository for the auxdata type and id """
         if auxdata_id is None:
             return None
-        aux_repo_defs = PSRLCFG.local_machine.auxdata_repository
+        aux_repo_defs = PSRLCFG.local_machine.get("auxdata_repository")
         try:
             local_repo_auxclass = aux_repo_defs[auxdata_class]
         except KeyError:
@@ -153,7 +153,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
         :return: The configuration dictionary
         """
 
-        auxdata_def = PSRLCFG.auxdef.get_definition(auxdata_class, auxdata_id)
+        auxdata_def = PSRLCFG.auxdata.get_definition(auxdata_class, auxdata_id)
         if auxdata_def is None:
             msg = f"Cannot find entry for auxiliary data set {auxdata_class}:{auxdata_id} in auxdata_def.yaml"
             self.error.add_error("invalid-auxdata-class", msg)

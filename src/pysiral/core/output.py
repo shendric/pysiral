@@ -330,7 +330,8 @@ class DefaultLevel2OutputHandler(OutputHandlerBase):
         """ Get main product directory from local_machine_def, add mandatory
         runtag subdirectory, optional second subdirectory for overwrite
         protection and product level id subfolder"""
-        basedir = Path(PSRLCFG.local_machine.product_repository)
+        basedir = Path(PSRLCFG.local_machine.get("product_repository"))
+        assert basedir is not None, "Missing product_repository in local_machine_def.yaml"
         basedir = (
             basedir / Path(*self.subdirectory)
             if isinstance(self.subdirectory, list)

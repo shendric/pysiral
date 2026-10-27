@@ -33,7 +33,7 @@ def get_cls(
         if relaxed:
             return None, e
         else:
-            raise ImportError(f"Cannot load module: {module_name}") from e
+            raise ImportError(f"Cannot load module: {module_name} {module}") from e
     try:
         return getattr(module, class_name), None
     except AttributeError as e:

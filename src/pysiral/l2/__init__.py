@@ -47,6 +47,10 @@ class L2ProcAuxiliaryDataDef(BaseModel):
     name: str
     options: Optional[dict] = None
 
+    @property
+    def id(self) -> str:
+        return f"{self.type}_{self.name.lower()}"
+
 class L2ProcAlgorithmDef(BaseModel):
     class_name: str
     options: Optional[Dict[str, Any]] = None
@@ -175,32 +179,14 @@ class Level2Processor(DefaultLoggingClass):
     def set_auxdata_handler(self):
         """
         Adds all auxdata types from the l2 config file to the Level-2 processor instance
+
         :return: None
         """
-
-        # The auxdata definition is a list of dictionaries of form {auxdata_type: auxdata_def}
-        for auxdata_dict in self.l2def.auxdata:
-
-            # Extract the information
-            auxdata_type = list(auxdata_dict.keys())[0]
-            auxdata_def = auxdata_dict[auxdata_type]
-
-            # Get options from l2 processor definition file
-            # NOTE: These will intentionally override the default options defined in auxdata_def.yaml
-            l2_procdef_opt = auxdata_def.get("options", None)
-
-            # Retrieve the class (errors will be caught in method)
-            auxhandler = self._auxclass_handler.get_pyclass(auxdata_type, auxdata_def["name"], l2_procdef_opt)
-
-            # Get a unique id of the auxhandler
-            auxhandler_id = f"{auxdata_type}_{auxhandler.pyclass.lower()}"
-
-            # Add & register the class to the Level-2 processor instance
-            self._auxhandlers[auxhandler_id] = auxhandler
-            self._registered_auxdata_handlers.append((auxhandler_id, auxdata_type))
-
-            # Report the auxdata class
-            logger.info(f"Processor Settings - {auxhandler_id.upper()} auxdata handler registered")
+        for auxdata_def in self.l2def.auxdata:
+            auxhandler = self._auxclass_handler.get_pyclass(auxdata_def.type, auxdata_def.name, auxdata_def.options)
+            self._auxhandlers[auxdata_def.id] = auxhandler
+            self._registered_auxdata_handlers.append((auxdata_def.id, auxdata_def.type))
+            logger.info(f"Processor Settings - {auxdata_def.id.upper()} auxdata handler registered")
 
     def set_procstep_handler(self):
         """
