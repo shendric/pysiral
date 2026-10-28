@@ -102,7 +102,7 @@ class ParameterRollingStatistics(L2Algorithm):
         return product(self.cfg.options.input_parameters, self.cfg.options.statistics)
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return [self.cfg.options.input_parameters]
 
     @property

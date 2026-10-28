@@ -430,9 +430,9 @@ class PysiralPackageConfiguration(object):
         cls = self.CLASS_REGISTRY[class_type].get(class_name, None)
         if not cls:
             raise NotImplementedError(
-                f"{class_name=} not found in registry for type '{class_type}' "
-                f"Available classes: {list(self.CLASS_REGISTRY[class_type].keys())}\n"
-                "Possible Reasons:\n"
+                f"{class_name=} not found in registry for type '{class_type}'\n\n"
+                f"Available classes:\n- {' \n- '.join(list(self.CLASS_REGISTRY[class_type].keys()))}\n"
+                "\nPossible Reasons:\n"
                 "1. The class has not been implemented yet.\n"
                 "2. The class is not subclass of appropriate abstract base class\n"
                 "3. Classes module is not reached by PSRLCFG.load_class_registry()\n"

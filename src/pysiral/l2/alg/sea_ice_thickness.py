@@ -4,97 +4,24 @@ Created on Mon Apr 25 17:15:39 2016
 
 @author: shendric
 """
+__author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
+__all__ = ["SeaIceFreeboard2SIT",]
 
 import numpy as np
 
-from pysiral.l2.procsteps import Level2ProcessorStep
+from pysiral.l2 import L2Algorithm
 
 
-class AlexandrovSeaIceDensity(Level2ProcessorStep):
-    """
-    A Level-2 processor step that adds sea ice density and sea ice density uncertainty
-    to the L2 data object based on sea ice type classification
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(AlexandrovSeaIceDensity, self).__init__(*args, **kwargs)
-
-    def execute_procstep(self, l1b, l2):
-        """
-        Mandatory method for the Level2ProcessorStep class. Will add sea ice density
-        and uncertainty computed from the sea ice type (interpreted as multi-year ice fraction)
-        and add output parameters to the L2 data object
-        :param l1b:
-        :param l2:
-        :return: Error Status
-        """
-
-        # Get the mandatory error status output
-        error_status = self.get_clean_error_status(l2.n_records)
-
-        # Boundary conditions (all fyi, all myi)
-        rho_i_fyi = self.cfg.options.fyi_density
-        rho_i_myi = self.cfg.options.myi_density
-
-        # Scales with MYI fraction
-        myi_fraction_var_name = self.cfg.options.get("myi_fraction_var_name", "sitype")
-        myi_fraction = l2.get_parameter_by_name(myi_fraction_var_name)
-        rho_i = rho_i_fyi - myi_fraction * (rho_i_fyi - rho_i_myi)
-
-        # Compute uncertainty of sea ice density
-        # Note: it has been decided to use a simplified computation of
-        # sea ice density uncertainty, since a simple Gaussian error
-        # propagation does not cut it, as the two (fyi & myi) reference
-        # uncertainties are not independent (linked via scaling factor).
-        # One could add the covariance matrix, but this is hardly justified
-        # given the already very basic assumptions for fyi and myi density
-        # uncertainty.
-        # Here, the uncertainty is based on the fyi and myi density
-        # uncertainties scaled with the myi fraction. To reflect the
-        # myi_fraction uncertainty, the sea ice density uncertainty is
-        # slightly increased in regions of higher myi_fraction uncertainty
-        if "uncertainty" in self.cfg.options:
-            unc = self.cfg.options.uncertainty
-            rho_i_unc = unc.fyi_density
-            rho_i_unc += myi_fraction * (unc.myi_density - unc.fyi_density)
-            rho_i_unc += (unc.fyi_density - unc.myi_density) * myi_fraction.uncertainty
-
-        # Use fixed value for uncertainty (or 0 if unspecified)
-        else:
-            unc = 0.0
-            if "uncertainty_fixed_value" in self.cfg.options:
-                unc = self.cfg.options.uncertainty_fixed_value
-            rho_i_unc = np.full(rho_i.shape, unc, dtype=np.float32)
-
-        # Add data to the Level-2 data object
-        l2.set_auxiliary_parameter("idens", "sea_ice_density", rho_i, rho_i_unc)
-
-        # Done
-        return error_status
-
-    @property
-    def l2_input_vars(self):
-        return ["sitype"]
-
-    @property
-    def l2_output_vars(self):
-        return ["idens"]
-
-    @property
-    def error_bit(self):
-        return self.error_flag_bit_dict["sit"]
-
-
-class SeaIceFreeboard2SIT(Level2ProcessorStep):
+class SeaIceFreeboard2SIT(L2Algorithm):
     """
     Classical freeboard to thickness conversion assuming that the variable freeboard
     represent sea ice freeboard.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SeaIceFreeboard2SIT, self).__init__(*args, **kwargs)
+    def __init__(self, cfg):
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1, l2):
         """
         Compute sea ice thickness based on a Level-2 data object
         - Assuming freeboard is sea ice freeboard
@@ -107,12 +34,12 @@ class SeaIceFreeboard2SIT(Level2ProcessorStep):
         rho_w = self.cfg.options.water_density
 
         # Compute sea ice thickness ...
-        sit = self.func(l2.frb, l2.sd, rho_w, l2.idens, l2.sdens)
+        sit = icefreeboard2thickness(l2.frb, l2.sd, rho_w, l2.idens, l2.sdens)
 
         # ... and sea ice thickness uncertainty
-        sit_unc = self.uncfunc(l2.frb, l2.sd, rho_w, l2.idens, l2.sdens,
-                               l2.frb.uncertainty, l2.sd.uncertainty,
-                               l2.idens.uncertainty, l2.sdens.uncertainty)
+        sit_unc = frb2sit_errprop(l2.frb, l2.sd, rho_w, l2.idens, l2.sdens,
+                                  l2.frb.uncertainty, l2.sd.uncertainty,
+                                l2.idens.uncertainty, l2.sdens.uncertainty)
 
         # Add parameter to Level-2 data object
         l2.sit.set_value(sit)
@@ -126,7 +53,7 @@ class SeaIceFreeboard2SIT(Level2ProcessorStep):
         return is_not_ice
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["frb", "sd", "sdens", "idens"]
 
     @property
@@ -136,22 +63,6 @@ class SeaIceFreeboard2SIT(Level2ProcessorStep):
     @property
     def error_bit(self):
         return self.error_flag_bit_dict["sit"]
-
-    @property
-    def func(self):
-        """
-        Return the function for transforming sea-ice freeboard to thickness
-        :return:
-        """
-        return icefreeboard2thickness
-
-    @property
-    def uncfunc(self):
-        """
-        Return the function for computing sea-ice thickness uncertainty
-        :return:
-        """
-        return frb2sit_errprop
 
 
 class SnowFreeboard2SIT(SeaIceFreeboard2SIT):
@@ -180,47 +91,6 @@ class SnowFreeboard2SIT(SeaIceFreeboard2SIT):
         """
         # TODO: Is this correct?
         return frb2sit_errprop
-
-
-class L2SeaIceDraft(Level2ProcessorStep):
-    """
-    A Level-2 processor step class for computing sea ice draft and its uncertainty
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(L2SeaIceDraft, self).__init__(*args, **kwargs)
-
-    def execute_procstep(self, l1b, l2):
-        """
-        API class for the Level-2 processor. Functionality is to compute sea ice draft and its uncertainty
-        :param l1b: Level-1 data instance
-        :param l2: A Level-2 data instance
-        :return: None, Level-2 object is change in place
-        """
-
-        # Get error status
-        error_status = self.get_clean_error_status(l2.n_records)
-
-        # Compute sea-ice draft
-        sea_ice_draft = l2.sit - l2.frb
-        sea_ice_draft_uncertainty = np.sqrt(l2.sit.uncertainty**2. + l2.frb.uncertainty**2.)
-
-        # Add to l2
-        l2.set_auxiliary_parameter("sid", "sea_ice_draft", sea_ice_draft, uncertainty=sea_ice_draft_uncertainty)
-
-        return error_status
-
-    @property
-    def l2_input_vars(self):
-        return ["frb", "sit"]
-
-    @property
-    def l2_output_vars(self):
-        return ["sid"]
-
-    @property
-    def error_bit(self):
-        return self.error_flag_bit_dict["sit"]
 
 
 def icefreeboard2thickness(frb, sd, rho_w, rho_i, rho_s):

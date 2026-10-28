@@ -64,7 +64,7 @@ class L1BL2TransferVariables(L2Algorithm):
         return error_status
 
     @property
-    def l2_input_vars(self) -> List[str]:
+    def l2_dependencies(self) -> List[str]:
         return []
 
     @property

@@ -7,17 +7,18 @@ A python module dedicated to freeboard estimation.
 """
 
 import numbers
-from typing import overload
+from typing import overload, List
 
 import numpy as np
 import numpy.typing as npt
 
 from pysiral.l1.l1_data import Level1bData
+from pysiral.l2 import L2Algorithm
 from pysiral.l2.l2data import Level2Data
 from pysiral.l2.procsteps import Level2ProcessorStep
 
 
-class SnowGeometricCorrection(Level2ProcessorStep):
+class SnowGeometricCorrection(L2Algorithm):
     """
     Computes the freeboard from radar freeboard by application of geometric corrections for snow wave progagation
     only. No form of penetration correction is applied based on the assumption that radar freeboard is the
@@ -57,17 +58,17 @@ class SnowGeometricCorrection(Level2ProcessorStep):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg):
         """
         Initialize the class.
         """
-        super(SnowGeometricCorrection, self).__init__(*args, **kwargs)
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1, l2):
         """
         Compute and apply the geometric correction to the radar freeboard to compute sea-ice freeboard.
         Only l2 data is needed for this class and the object will be modified in-place
-        :param l1b: The Level-1b data class
+        :param l1: The Level-1b data class
         :param l2: The Level-2 data class
         :return: error status flag
         """
@@ -131,7 +132,7 @@ class SnowGeometricCorrection(Level2ProcessorStep):
             raise ValueError("Invalid option `vacuum_light_speed_reduction` [{}]".format(str(config_value)))
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["afrb", "sd", "sdens", "surface_type"]
 
     @property
@@ -143,18 +144,18 @@ class SnowGeometricCorrection(Level2ProcessorStep):
         return self.error_flag_bit_dict["frb"]
 
 
-class SnowFreeboardAssumption(Level2ProcessorStep):
+class SnowFreeboardAssumption(L2Algorithm):
     """
     Assumes the altimeter freeboard is the snow freeboard
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SnowFreeboardAssumption, self).__init__(*args, **kwargs)
+    def __init__(self, cfg):
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1, l2):
         """
         Compute the freeboard and its uncertainty
-        :param l1b:
+        :param l1:
         :param l2:
         :return:
         """
@@ -174,27 +175,31 @@ class SnowFreeboardAssumption(Level2ProcessorStep):
         return freeboard, freeboard_uncertainty
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["afrb", "surface_type"]
 
     @property
-    def l2_output_vars(self):
+    def l2_output_vars(self) -> List[str]:
         return ["frb"]
 
+    @property
+    def error_bit(self) -> int:
+        return self.error_flag_bit_dict["frb"]
 
-class RadarFreeboardDefault(Level2ProcessorStep):
+
+class RadarFreeboardDefault(L2Algorithm):
     """
     Default Class for computing radar freeboard based on elevation, mean sea surface and
     sea level anomaly
     """
 
-    def __init__(self, *args, **kwargs):
-        super(RadarFreeboardDefault, self).__init__(*args, **kwargs)
+    def __init__(self, cfg):
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1, l2):
         """
         Compute the radar freeboard and its uncertainty and modifies the Level-2 data object in-place
-        :param l1b:
+        :param l1:
         :param l2:
         :return:
         """
@@ -224,15 +229,15 @@ class RadarFreeboardDefault(Level2ProcessorStep):
         return np.isnan(l2.afrb[:])
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self) -> List[str]:
         return ["elev", "mss", "sla"]
 
     @property
-    def l2_output_vars(self):
+    def l2_output_vars(self) -> List[str]:
         return ["afrb"]
 
     @property
-    def error_bit(self):
+    def error_bit(self) -> int:
         return self.error_flag_bit_dict["frb"]
 
 
@@ -252,7 +257,7 @@ class LaforgeTFMR50PPCorrection(Level2ProcessorStep):
     def __init__(self, *args, **kwargs):
         super(LaforgeTFMR50PPCorrection, self).__init__(*args, **kwargs)
 
-    def execute_procstep(self, l1b: Level1bData, l2: Level2Data) -> npt.NDArray:
+    def apply(self, l1b: Level1bData, l2: Level2Data) -> npt.NDArray:
         """
         Correct range values based on pulse peakiness according the Laforge et al. 2010.
 
@@ -322,7 +327,7 @@ class LaforgeTFMR50PPCorrection(Level2ProcessorStep):
         return -1390. * pp ** 3. + 339 * pp ** 2. - 28.4 * pp + 0.994
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["pulse_peakiness", "elev"]
 
     @property

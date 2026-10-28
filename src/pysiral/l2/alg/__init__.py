@@ -6,10 +6,12 @@ This module contains the Level-2 algorithms that are used in the Level-2 process
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 __all__ = [
     "dynamic_ocean_topography",
+    "envisat",
     "ers",
     "filter",
     "freeboard",
     "l1_variables",
+    "marginal_ice_zone",
     "range_corrections",
     "retracker",
     "sea_ice_density",

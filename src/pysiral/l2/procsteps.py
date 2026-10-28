@@ -15,6 +15,7 @@ from scipy.interpolate import interp1d
 from pysiral import PSRLCFG
 from pysiral.core.legacy_classes import DefaultLoggingClass
 from pysiral.l1.l1_data import Level1bData
+from pysiral.l2 import L2Algorithm
 from pysiral.l2.l2data import Level2Data
 
 
@@ -169,7 +170,7 @@ class Level2ProcessorStepOrder(DefaultLoggingClass):
         """
         pass
 
-    def validate(self) -> bool:
+    def validate(self) -> None:
         """
         Checkout the difference processing steps and validate input/output variables in
         the order of the steps
@@ -178,17 +179,8 @@ class Level2ProcessorStepOrder(DefaultLoggingClass):
         # Get the initialized classes and check if it has the required methods
         classes = self.class_instances
         for obj in classes:
-            for mandatory_attr in ["execute_procstep", "l2_input_vars", "l2_output_vars", "error_bit"]:
-                try:
-                    has_attr = hasattr(obj, mandatory_attr)
-                except NotImplementedError:
-                    has_attr = False
-                if not has_attr:
-                    msg = "Class {} is missing the mandatory method/property: {}"
-                    msg = msg.format(obj.__class__.__name__, mandatory_attr)
-                    logger.error(msg)
-                    return False
-        return True
+            # Check if the class is a subclass of L2Algorithm
+            assert issubclass(obj.__class__, L2Algorithm), f"Not a valid Level-2 algorithm class {obj.__class__}"
 
     @property
     def class_list(self):
