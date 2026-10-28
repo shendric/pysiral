@@ -7,6 +7,7 @@ Created on Fri May 19 14:42:35 2017
 
 __all__ = ["AuxdataBaseClass",
            "AuxDataLoader",
+           "AuxDataExitFlag",
            "AuxClassConfig",
            "GridTrackInterpol",
            "get_all_auxdata_classes",
@@ -32,7 +33,7 @@ import scipy.ndimage as ndimage
 from pyproj import Proj
 
 from pysiral import import_submodules, PSRLCFG
-from pysiral.auxdata._aux_abc import AuxDataLoader
+from pysiral.auxdata._aux_abc import AuxDataLoader, AuxDataExitFlag
 from pysiral.core.legacy_classes import AttrDict, ErrorStatus, DefaultLoggingClass
 
 
@@ -363,11 +364,6 @@ class AuxdataBaseClass(object):
         msg = msg.format(self.__class__.__name__)
         raise NotImplementedError(msg)
 
-    def update_l2(self, l2):
-        """ Automatically add all auxiliary variables to a Level-2 data object"""
-        for auxvar in self._auxvars:
-            uncertainty = auxvar.get("uncertainty", None)
-            l2.set_auxiliary_parameter(auxvar["id"], auxvar["name"], auxvar["value"], uncertainty)
 
     @property
     def pyclass(self) -> str:

@@ -60,6 +60,7 @@ class OsiSafSIC(AuxDataLoader):
         :param args:
         :param kwargs:
         """
+        super(OsiSafSIC, self).__init__()
 
         # Pre-process the options for cdr/icdr data sets
         is_cdr_icdr = cfg.options.get("is_cdr_icdr", False)
@@ -92,18 +93,7 @@ class OsiSafSIC(AuxDataLoader):
         self.hemisphere_code = None
         self.hemisphere = None
 
-    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
-        """
-        Required subclass method: Receive the Level-1P data object and extract the necessary information
-        to construct the file path for the requested date.
-
-        :param l1p: Level-1P data object
-
-        :return: None
-        """
-        pass
-
-    def get_l2_track_vars(self, l2: "Level2Data") -> None:
+    def apply(self, l1: "L1bdataNCFile", l2: "Level2Data") -> None:
         """
         Main entry point of the class, add sea ice concentration to the l2 data object (in-place)
         :param l2: Level-2 data object<
@@ -145,9 +135,9 @@ class OsiSafSIC(AuxDataLoader):
         l2.info.adf_sea_ice_concentration = ice_conc_filepath
 
         # All done, register the variable
-        self.register_auxvar("sic", "sea_ice_concentration", sic, None)
-        self.register_auxvar("dto", "distance_to_ocean", ocean_proximity, None)
-        self.register_auxvar("dtlsic", "distance_to_low_ice_concentration", distance_to_low_ice_concentration, None)
+        l2.set_auxiliary_parameter("sic", "sea_ice_concentration", sic, None)
+        l2.set_auxiliary_parameter("dto", "distance_to_ocean", ocean_proximity, None)
+        l2.set_auxiliary_parameter("dtlsic", "distance_to_low_ice_concentration", distance_to_low_ice_concentration, None)
 
         # Skip the current trajectory if there is no sea ice in the track
         # NOTE: This option must be activated in the Level-2 processor configuration file

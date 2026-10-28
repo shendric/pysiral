@@ -98,7 +98,7 @@ class ProductDefinitionCatalogue:
             self,
             product_id: str,
             processor_level: str
-    ) -> Tuple[Dict[str, str], Dict[str, Dict[str, Any]]]:
+    ) -> Tuple[Dict[str, Union[str, List[str]]], Dict[str, Dict[str, Any]]]:
         """
         Get the product definition for a given product ID and processor level#
 

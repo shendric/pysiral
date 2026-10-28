@@ -40,27 +40,11 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
 
     """
 
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg):
+        super(SeasonalArcticSnowDensityMallett2020, self).__init__()
         self.cfg = cfg
 
-    def subclass_init(self):
-        """
-        Not requires
-        :return:
-        """
-        pass
-
-    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
-        """
-        Mandatory class for Level-1 processing item. Needs to be overwritten
-        by the inheriting class.
-        :param l1:
-
-        :return:
-        """
-        pass
-
-    def get_l2_track_vars(self, l2):
+    def apply(self, l1, l2):
         """
         Mandatory method for the Level-2 processor. Registers snow density (and only density)
         as the auxiliary parameter.
@@ -110,7 +94,7 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
             var[no_sea_ice] = np.nan
 
         # Register the auxiliary variable
-        self.register_auxvar("sdens", "snow_density", sdens, sdens_unc)
+        l2.set_auxiliary_parameter("sdens", "snow_density", sdens, sdens_unc)
 
 
 class FixedSnowDepthDensity(AuxdataBaseClass):

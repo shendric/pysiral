@@ -411,7 +411,15 @@ class PysiralPackageConfiguration(object):
             raise ValueError(f"Product ID '{product_id}' not found in product definitions")
 
         templ = TemplateEngine(context_attributes=context_attributes, dynamic_variables=dynamic_variables)
-        processor_settings = {key: templ.render(value) for key, value in product_definition.items()}
+        processor_settings = {}
+        for key, value in product_definition.items():
+            match value:
+                case str():
+                    processor_settings[key] = templ.render(value)
+                case dict():
+                    processor_settings[key] = {k: templ.render(v) for k, v in value.items()}
+                case _:
+                    processor_settings[key] = value
 
         return processor_settings
 

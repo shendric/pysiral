@@ -23,20 +23,20 @@ from pysiral.core.output import PysiralOutputFilenaming
 class L1PDataHandler(DefaultLoggingClass):
     """ Class for querying L1P data files """
 
-    def __init__(self,
-                 platform: str,
-                 hemisphere: str,
-                 source_version: str = None,
-                 l1p_version: str = None,
-                 file_version: str = None,
-
-                 ):
+    def __init__(
+        self,
+        platform: str,
+        hemisphere: str,
+        source_version: str = None,
+        l1p_version: str = None,
+        file_version: str = None,
+    ) -> None:
         """
         Init the class
         :param platform: pysiral compliant platform id (cryosat2, envisat, ...)
         :param hemisphere: hemishphere code (north, nh, ...)
         :param source_version: Input version, e.g. CryoSat-2 baseline-d, ...
-        :param: file_version: The file version of the l1p data (e.g. v1p1).
+        :param file_version: The file version of the l1p data (e.g. v1p1).
             NOTE: Only newer l1p files use the version subfolder. Thus, this is optional.
         """
         super(L1PDataHandler, self).__init__(self.__class__.__name__)
@@ -135,7 +135,7 @@ class L1PDataHandler(DefaultLoggingClass):
         """
         l1p_base_dir = None
         try:
-            l1p_base_dir = PSRLCFG.local_machine.l1b_repository[self._platform][self._source_version]["l1p"]
+            l1p_base_dir = PSRLCFG.local_machine["l1b_repository"][self._platform][self._source_version]["l1p"]
         except (AttributeError, KeyError):
             msg = f"missing entry `l1bdata.{self._platform}.{self._source_version}.l1p` in local_machine_def.yaml"
             msg = f"{msg} ({PSRLCFG.local_machine_def_filepath})"

@@ -40,7 +40,7 @@ from loguru import logger
 from pyproj import CRS
 from xarray import open_dataset
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader
+from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.core.grid import GridTrajectoryExtract
 
 
@@ -51,19 +51,20 @@ class NSIDCRegionMask(AuxdataBaseClass):
     """ Provides region codes from NSIDC style region grids """
 
     def __init__(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
-
         super(NSIDCRegionMask, self).__init__(*args, **kwargs)
 
         # The region mask is static, parse the file during init
         self.nc = open_dataset(self.cfg.filename)
 
-    def get_l2_track_vars(self, l2: "Level2Data") -> None:
+    def apply(self, l1: "L1bdataNCFile", l2: "Level2Data") -> AuxDataExitFlag:
         """
         API method to map gridded region id on the trajectory
-        :param l2:
-        :return:
-        """
 
+        :param l1:
+        :param l2:
+
+        :return: Exit Status
+        """
         # Extract from grid
         griddef = self.cfg.options[l2.hemisphere]
         grid_lons, grid_lats = self.nc.longitude.values, self.nc.latitude.values
@@ -72,12 +73,14 @@ class NSIDCRegionMask(AuxdataBaseClass):
 
         # Register the variable
         self.register_auxvar("reg_code", "region_code", region_code, None)
+        return AuxDataExitFlag.NOMINAL
 
 
 class NSIDCRegionMask2021(AuxDataLoader):
     """ Provides region codes from NSIDC regions grids in version 2021 """
 
     def __init__(self, cfg, **kwargs: Optional[Any]) -> None:
+        super(NSIDCRegionMask2021, self).__init__()
 
         # super(NSIDCRegionMask2021, self).__init__(*args, **kwargs)
 
@@ -104,17 +107,16 @@ class NSIDCRegionMask2021(AuxDataLoader):
         self.attr_dict: Dict = self._extract_grid_attributes()
         self.grid_def: Dict = self._extract_grid_information()
 
-    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
-        pass
-
-    def get_l2_track_vars(self, l2: "Level2Data") -> None:
+    def apply(self, l1: "L1bdataNCFile", l2: "Level2Data") -> None:
         """
         API method to map gridded region id on the trajectory
+        :param l1:
         :param l2:
         :return:
         """
         region_code = self.get_trajectory(l2.longitude, l2.latitude)
-        self.register_auxvar("reg_code", "region_code", region_code, None)
+        l2.set_auxiliary_parameter("reg_code", "region_code", region_code, None)
+        return AuxDataExitFlag.NOMINAL
 
     def get_trajectory(self, longitude: np.ndarray, latitude: np.ndarray) -> np.ndarray:
         """
@@ -224,7 +226,6 @@ class AntarcticSeas(AuxdataBaseClass):
         :param l2:
         :return:
         """
-
         # Get a default region code value (ice free ocean)
         # -> Land will be explicitly set
         # -> Definition of seas should be complete
@@ -265,10 +266,11 @@ class AntarcticSeas(AuxdataBaseClass):
 
         # Register the variable
         self.register_auxvar("reg_code", "region_code", region_code, None)
+        return AuxDataExitFlag.NOMINAL
 
     @staticmethod
-    def get_angular_distance(lon1: Union[float, int, np.array],
-                             lon2: Union[float, int, np.array]) -> Union[float, int, np.array]:
+    def get_angular_distance(lon1: Union[float, int, np.ndarray],
+                             lon2: Union[float, int, np.ndarray]) -> Union[float, int, np.ndarray]:
         """
         Return the angular distance between two longitude values that
         follow come in units of degrees east and degrees west

@@ -661,12 +661,12 @@ class Level2Data(object):
         return self._n_records
 
     @property
-    def hemisphere(self):
+    def hemisphere(self) -> str:
         return self.info.subset_region_name
 
     @property
-    def hemisphere_code(self):
-        return self._HEMISPHERE_CODES[self.hemisphere]
+    def hemisphere_code(self) -> str:
+        return self._HEMISPHERE_CODES.get(self.hemisphere, self.hemisphere)
 
     @property
     def footprint_spacing(self):

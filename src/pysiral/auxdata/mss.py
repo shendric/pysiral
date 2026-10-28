@@ -39,7 +39,7 @@ import scipy.ndimage as ndimage
 from loguru import logger
 from time import time
 
-from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader
+from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader, AuxDataExitFlag
 from pysiral.core.iotools import ReadNC
 
 
@@ -49,6 +49,7 @@ class DTU1MinGrid(AuxDataLoader):
     """
 
     def __init__(self, cfg, **kwargs):
+        super(DTU1MinGrid, self).__init__()
 
         self.cfg = cfg
 
@@ -73,18 +74,7 @@ class DTU1MinGrid(AuxDataLoader):
         for i in np.arange(len(self.latitude)):
             self.elevation[i, :] += (delta_h[i]-delta_h1[i])
 
-    def receive_l1p_input(self, l1p):
-        """
-        Receive the Level-1 pre-processor data object and extract the relevant information for the auxdata
-        processing. This method is called during the Level-2 processor initialization.
-
-        :param l1p: Level-1 pre-processor data object
-
-        :return: None
-        """
-        pass
-
-    def get_l2_track_vars(self, l2):
+    def apply(self, l1, l2):
 
         # Use fast image interpolation (since DTU is on regular grid)
         # Longitudes must be 0 -> 360
@@ -107,7 +97,8 @@ class DTU1MinGrid(AuxDataLoader):
         mss_track_elevation = ndimage.map_coordinates(self.elevation, [iy, ix])
 
         # Register auxdata variable
-        self.register_auxvar("mss", "mean_sea_surface", mss_track_elevation, None)
+        l2.set_auxiliary_parameter("mss", "mean_sea_surface", mss_track_elevation, None)
+        return AuxDataExitFlag.NOMINAL
 
 
 class DTU25Grid(AuxdataBaseClass):

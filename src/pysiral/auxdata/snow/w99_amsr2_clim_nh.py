@@ -56,20 +56,11 @@ class Warren99AMSR2Clim(AuxDataLoader):
         :param cfg: Configuration for AuxDataLoader
         :param kwargs: Keyword arguments for AuxDataLoader
         """
+        super(Warren99AMSR2Clim, self).__init__()
         self.cfg = cfg
         self._data = Warren99AMSR2ClimDataContainer(self.cfg, self.use_daily_scaling)
 
-    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
-        """
-        Mandatory class for Level-1 processing item. Needs to be overwritten
-        by the inheriting class.
-        :param l1:
-
-        :return:
-        """
-        pass
-
-    def get_l2_track_vars(self, l2):
+    def apply(self, l1, l2):
         """
         This is the method that will be evoked by the Level-2 processor. This method will extract the
         geophysical parameters
@@ -106,8 +97,8 @@ class Warren99AMSR2Clim(AuxDataLoader):
             snow = self._get_snow_track(l2)
 
         # Register Variables
-        self.register_auxvar("sd", "snow_depth", snow.depth, snow.depth_uncertainty)
-        self.register_auxvar("sdens", "snow_density", snow.density, snow.density_uncertainty)
+        l2.set_auxiliary_parameter("sd", "snow_depth", snow.depth, snow.depth_uncertainty)
+        l2.set_auxiliary_parameter("sdens", "snow_density", snow.density, snow.density_uncertainty)
 
     def update_external_data(self):
         """

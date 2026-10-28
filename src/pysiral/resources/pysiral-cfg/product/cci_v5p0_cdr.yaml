@@ -30,13 +30,21 @@ dynamic_variables:
     sentinel3a: "sentinel3a_l2lan_v1p2"
     sentinel3b: "sentinel3b_l2lan_v1p2"
 
+  source_dataset_id:  # -> source_dataset_id[PLATFORM] -> variable SOURCE_DATASET_ID
+    ers1: "fdr4alt"
+    ers2: "fdr4alt"
+    envisat: "fdr4alt"
+    cryosat2: "baseline_e"
+    sentinel3a: "l2_lan_si_rep"
+    sentinel3b: "l2_lan_si_b005"
+
   l1p_version:  # -> l1p_version[PLATFORM] -> variable L1P_VERSION
-    ers1: "fdr4alt_v1p0"
-    ers2: "fdr4alt_v1p0"
-    envisat: "fdr4alt_v1p0"
-    cryosat2: "pds_ipf1e_v1p2"
-    sentinel3a: "l2lan_v1p2"
-    sentinel3b: "l2lan_v1p2"
+    ers1: "fdr4alt:v1p0"
+    ers2: "fdr4alt:v1p0"
+    envisat: "fdr4alt:v1p0"
+    cryosat2: "pds_ipf1e:v1p2"
+    sentinel3a: "l2kan:v1p2"
+    sentinel3b: "l2lan:v1p2"
 
   mission:
     ers1: "ers"
@@ -57,6 +65,7 @@ processors:
     l1p_version: "{l1p_version[platform]}"
     l2_settings: "cci_{mission[platform]}_{hemisphere}_v5p0_cdr"
     l2_outputs: ["l2i_cci_v5p0"]
+    source_dataset_id: "{source_dataset_id[platform]}"
     platform: "{platform}"
 
   l2p: {}

@@ -196,17 +196,7 @@ class OsiSafSITypeCDR(AuxDataLoader):
         self.start_time = None
         self.hemisphere_code = None
 
-    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
-        """
-        Mandatory class for Level-1 processing item. Needs to be overwritten
-        by the inheriting class.
-        :param l1:
-
-        :return:
-        """
-        pass
-
-    def get_l2_track_vars(self, l2):
+    def apply(self, l1, l2):
         """
         Mandadory method of AuxdataBaseClass subclass.
         Registers two variables to the Level-2 data container:

@@ -72,6 +72,7 @@ class RetrackerThresholdModel(AuxDataLoader):
         :param args:
         :param kwargs:
         """
+        super(RetrackerThresholdModel, self).__init__()
         self.cfg = cfg
 
         # Retrieve requested model files
@@ -110,6 +111,20 @@ class RetrackerThresholdModel(AuxDataLoader):
         self.model = model_class()
         self.model.load_state_dict(torch.load(self.model_filepath, map_location=torch.device('cpu')))
         self.model.eval()
+
+    def apply(self, l1, l2):
+        """
+        [Mandatory class method] Add the model prediction for the tfmra retracker threshold to the
+        Level-2 data object. The model evaluation depends solely on waveform power.
+
+        :param l1: `L1bdataNCFile` container
+        :param l2: `Level2Data` container
+
+        :return: None
+        """
+        # Receive the L1P input and prepare for prediction
+        self.receive_l1p_input(l1)
+        self.get_l2_track_vars(l2)
 
     def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
         """

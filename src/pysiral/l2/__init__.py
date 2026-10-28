@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from pysiral import PSRLCFG
 from pysiral.core.config import get_yaml_config
-from pysiral.auxdata import DefaultAuxdataClassHandler
+from pysiral.auxdata import DefaultAuxdataClassHandler, AuxDataExitFlag
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.core.output import DefaultLevel2OutputHandler, Level2Output
 from pysiral.l1.l1_data import L1bdataNCFile
@@ -165,10 +165,10 @@ class Level2Processor(DefaultLoggingClass):
         logger.info("Starting Initialization")
 
         # Initialize the auxiliary data handlers
-        self.set_auxdata_handler()
+        self.init_auxdata_loader()
 
         # Initialize the Level-2 processor step handler
-        self.set_procstep_handler()
+        self.init_algorithm_classes()
 
         # Report on output location
         self._report_output_location()
@@ -177,7 +177,7 @@ class Level2Processor(DefaultLoggingClass):
         self._initialized = True
         logger.info("Initialization complete")
 
-    def set_auxdata_handler(self):
+    def init_auxdata_loader(self):
         """
         Adds all auxdata types from the l2 config file to the Level-2 processor instance
 
@@ -189,7 +189,7 @@ class Level2Processor(DefaultLoggingClass):
             self._registered_auxdata_handlers.append((auxdata_def.id, auxdata_def.type))
             logger.info(f"Processor Settings - {auxdata_def.id.upper()} auxdata handler registered")
 
-    def set_procstep_handler(self):
+    def init_algorithm_classes(self):
         """
         Add and initialize Level-2 processor items
 
@@ -201,7 +201,7 @@ class Level2Processor(DefaultLoggingClass):
         self.procsteps.validate()
         logger.info("Processor steps initialized and validated")
 
-    def execute_l2_processor_steps(self, l1b, l2):
+    def execute_algorithms(self, l1b, l2):
         """
         Executes all Level-2 processor steps.
 
@@ -275,16 +275,16 @@ class Level2Processor(DefaultLoggingClass):
                 l2.info.timeliness = self._l2def.record_type
 
             # Get auxiliary data from all registered auxdata handlers
-            error_status, error_codes, skip_signal = self.get_auxiliary_data(l1b, l2)
-            if True in error_status:
+            exit_statuses = self.get_auxiliary_data(l1b, l2)
+            if AuxDataExitFlag.ERROR_CONTINUE in exit_statuses:
                 logger.warning("- skip file due to auxdata errors")
                 continue
-            if skip_signal:
-                logger.warning("- skip file due to skip signal send from one of the auxdata handlers")
+            if AuxDataExitFlag.ERROR_SKIP in exit_statuses:
+                logger.error("- skip file due to skip signal send from one of the auxdata handlers")
                 continue
 
             # Execute all Level-2 processor steps
-            self.execute_l2_processor_steps(l1b, l2)
+            self.execute_algorithms(l1b, l2)
 
             # Create output files
             l2.set_metadata(auxdata_source_dict=self.l2_auxdata_source_dict,
@@ -359,51 +359,30 @@ class Level2Processor(DefaultLoggingClass):
         return l1
 
     def get_auxiliary_data(self, l1p: 'L1bdataNCFile', l2: 'Level2Data'):
-        """ Transfer along-track data from all registered auxdata handler to the l2 data object """
+        """
+        Transfer along-track data from all registered auxdata handler to the l2 data object
+
+        :param l1p: Level-1b data object
+        :param l2: Level-2 data object
+
+        :return: exit status
+        """
 
         # Loop over all auxiliary data types. Each type must have:
         # a) entry in the l2 processing definition under the root.auxdata
         # b) entry in .pysiral-cfg.auxdata.yaml
         # c) python class in pysiral.auxdata.$auxdata_type$
-
-        auxdata_error_status = []
-        auxdata_error_codes = []
-        skip_signals_received = []
-
+        auxdata_exit_status = []
         for (auxdata_id, auxdata_type) in self.registered_auxdata_handlers:
-
-            # Get the class
             auxclass = self._auxhandlers[auxdata_id]
-
-            # Pass optional l1p data container
-            auxclass.receive_l1p_input(l1p)
-
-            # Transfer variables (or at least attempt to)
-            auxclass.add_variables_to_l2(l2)
-
-            # Reporting
-            for msg in auxclass.msgs:
-                logger.info(f"- {auxdata_type.upper()} auxdata handler message: {msg}")
-
-            # Check for errors
-            if auxclass.error.status:
-                error_messages = auxclass.error.get_all_messages()
-                for error_message in error_messages:
-                    logger.warning(f"! {error_message}")
-                    # auxdata handler is persistent, therefore errors status
-                    # needs to be reset before next orbit
-                    auxclass.error.reset()
-
-            auxdata_error_status.append(auxclass.error.status)
-            auxdata_error_codes.extend(auxclass.error.codes)
-
-            # Check for skip signal
-            skip_signals_received.append(auxclass.skip_signal)
-
+            exit_status = auxclass.apply(l1p, l2)
+            assert exit_status in AuxDataExitFlag.__members__.values(), \
+                f"Invalid exit status {exit_status} from auxdata handler {auxdata_id}"
+            auxdata_exit_status.append(exit_status)
             logger.info(f"- {auxdata_type.upper()} auxdata handler completed")
 
         # Return error status list
-        return auxdata_error_status, auxdata_error_codes, any(skip_signals_received)
+        return auxdata_exit_status
 
     def _create_l2_outputs(self, l2):
         for output_handler in self._output_handler:
