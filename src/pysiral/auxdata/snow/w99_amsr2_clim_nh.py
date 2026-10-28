@@ -9,7 +9,7 @@ from loguru import logger
 
 from xarray import open_dataset
 
-from pysiral.auxdata import GridTrackInterpol, AuxDataLoader
+from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.auxdata.snow._data import SnowParameterContainer
 from pysiral.core.legacy_classes import ErrorStatus
 
@@ -60,7 +60,7 @@ class Warren99AMSR2Clim(AuxDataLoader):
         self.cfg = cfg
         self._data = Warren99AMSR2ClimDataContainer(self.cfg, self.use_daily_scaling)
 
-    def apply(self, l1, l2):
+    def apply(self, l1, l2) -> AuxDataExitFlag:
         """
         This is the method that will be evoked by the Level-2 processor. This method will extract the
         geophysical parameters
@@ -68,6 +68,8 @@ class Warren99AMSR2Clim(AuxDataLoader):
         :param l2: The Level-2 data container
         :return: None
         """
+
+        exit_status = AuxDataExitFlag.NOMINAL
 
         # Set the requested date
         self.set_requested_date_from_l2(l2)
@@ -89,6 +91,7 @@ class Warren99AMSR2Clim(AuxDataLoader):
 
         # Ensure that snow depth and uncertainty variables are added (even if just NaN)
         if not valid_month or not self.has_data_loaded:
+            exit_status = AuxDataExitFlag.ERROR_CONTINUE
             logger.warning("- Previous errors and/or warnings, snow depth -> NaN")
             snow = SnowParameterContainer()
             snow.set_dummy(l2.n_records)
@@ -99,6 +102,8 @@ class Warren99AMSR2Clim(AuxDataLoader):
         # Register Variables
         l2.set_auxiliary_parameter("sd", "snow_depth", snow.depth, snow.depth_uncertainty)
         l2.set_auxiliary_parameter("sdens", "snow_density", snow.density, snow.density_uncertainty)
+
+        return exit_status
 
     def update_external_data(self):
         """
@@ -111,16 +116,16 @@ class Warren99AMSR2Clim(AuxDataLoader):
             self._data.load()
             if self._data.has_data_loaded:
                 for filepath in self._data.filepaths:
-                    self.add_handler_message(self.__class__.__name__ + ": Load {}".format(filepath))
+                    logger.info(self.__class__.__name__ + ": Load {}".format(filepath))
             else:
                 msg = ": Loading data has failed failed"
-                self.add_handler_message(self.__class__.__name__ + msg)
+                logger.error(self.__class__.__name__ + msg)
         else:
             if self._data.has_data_loaded:
-                self.add_handler_message(self.__class__.__name__+": Data already present")
+                logger.info(self.__class__.__name__+": Data already present")
             else:
                 msg = ": No Data: Loading failed in an earlier attempt"
-                self.add_handler_message(self.__class__.__name__ + msg)
+                logger.error(self.__class__.__name__ + msg)
 
     def _get_snow_track(self, l2):
         """
@@ -130,7 +135,8 @@ class Warren99AMSR2Clim(AuxDataLoader):
         """
 
         # Extract track data from grid
-        griddef = self.cfg.options[l2.hemisphere]
+        hemisphere_code = {"nh": "north", "sh": "south"}.get(l2.hemisphere, l2.hemisphere)
+        griddef = self.cfg.options[hemisphere_code]
         grid_lons, grid_lats = self._data.get_lonlat()
         grid2track = GridTrackInterpol(l2.track.longitude, l2.track.latitude, grid_lons, grid_lats, griddef)
 

@@ -38,6 +38,7 @@ Important Note:
 
 import contextlib
 from pathlib import Path
+from loguru import logger
 from typing import List
 
 import numpy as np
@@ -45,7 +46,7 @@ import scipy.ndimage as ndimage
 from pyproj import Proj
 from scipy import interpolate
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader
+from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.alg.sea_level_anomaly import SLABaseFunctionality
 
@@ -54,13 +55,16 @@ class OsiSafSIType(AuxDataLoader):
     """ This is a class for the OSI-403 product with variables ice_type and confidence_level """
 
     def __init__(self, cfg, **kwargs):
+        super(OsiSafSIType, self).__init__()
         self.cfg = cfg
         self._data = None
         self.start_time = None
         self.hemisphere_code = None
 
-    def get_l2_track_vars(self, l2):
+    def apply(self, l1, l2) -> AuxDataExitFlag:
         """ Default grid auxiliary data set"""
+
+        exit_status = AuxDataExitFlag.NOMINAL
 
         # These properties are needed to construct the product path
         self.start_time = l2.info.start_time
@@ -73,12 +77,13 @@ class OsiSafSIType(AuxDataLoader):
         self.update_external_data()
 
         # Check if data is available
-        if self.error.status or self._data is None:
+        if self._data is None:
             sitype = self.get_empty_array(l2)
             uncertainty = self.get_empty_array(l2)
-            exception_on_error = self.cfg.options.get("execption_on_error", True)
+            exception_on_error = self.cfg.options.get("exception_on_error", True)
+            exit_status = AuxDataExitFlag.ERROR_SKIP
             if exception_on_error:
-                self.error.raise_on_error()
+                raise FileNotFoundError(f"Auxdata: {self.__class__.__name__}: File not found: {self.requested_filepath}")
         else:
             # Get and return the track
             sitype, uncertainty = self._get_sitype_track(l2)
@@ -94,26 +99,21 @@ class OsiSafSIType(AuxDataLoader):
             sitype, uncertainty = fill_sitype_gaps(sitype, uncertainty, l2.sic[:])
 
         # Register the data
-        self.register_auxvar("sitype", "sea_ice_type", sitype, uncertainty)
+        l2.set_auxiliary_parameter("sitype", "sea_ice_type", sitype, uncertainty)
 
-    def load_requested_auxdata(self):
-        """ Required subclass method: Load the data file necessary to satisfy condition for requested date"""
+        return exit_status
 
-        # Retrieve the file path for the requested date from a property of the auxdata parent class
+    def load_requested_auxdata(self) -> None:
+        """
+        Required subclass method: Load the data file necessary to satisfy condition for requested date
+        """
         path = Path(self.requested_filepath)
-
-        # Validation
         if not path.is_file():
-            msg = f"OsiSafSIType: File not found: {path} "
-            self.add_handler_message(msg)
-            self.error.add_error("auxdata_missing_sitype", msg)
+            logger.error(f"OsiSafSIType: File not found: {path}")
+            self._data = None
             return
-
-        # --- Read the data ---
         self._data = ReadNC(path)
-
-        # Report
-        self.add_handler_message(f"OsiSafSIType: Loaded SIType file: {path}")
+        logger.info(f"OsiSafSIType: Loaded SIType file: {path}")
 
     def _get_sitype_track(self, l2):
 
@@ -170,23 +170,34 @@ class OsiSafSITypeCDR(AuxDataLoader):
     - C3S sea ice tyoe climate data record v2.0
     """
 
-    def __init__(self, cfg, **kwargs) -> None:
+    def __init__(self, cfg) -> None:
         """
         Init the class.
         NOTE: The options template can be different for continuous data sets (is_cdr_icdr: False)
               and those with a dedicated split into a climate data record (cdr) and an interim
               climate data record (icdr). A pre-processing of the options dictionary is therefore necessary
               to follow the mechanics of the auxiliary data class.
-        :param args:
-        :param kwargs:
+        :param cfg: Configuration object
         """
+        super(OsiSafSITypeCDR, self).__init__()
 
         # Pre-process the options for cdr/icdr data sets
         is_cdr_icdr = cfg.options.get("is_cdr_icdr", False)
         target_version = cfg.options.get("version", None)
+
+        match target_version:
+            case str():
+                version = {'cdr': target_version, 'icdr': target_version}
+            case dict():
+                version = target_version
+            case None:
+                version = {'cdr': None, 'icdr': None}
+            case _:
+                raise ValueError(f"Invalid target_version: {target_version}")
+
         if is_cdr_icdr:
             global_options = cfg.options.get("global", {})
-            version_options = cfg.options.get(target_version, {})
+            version_options = cfg.options.get(version["cdr"], {})
             cfg.options.update(global_options)
             cfg.options.update(version_options)
             cfg.options.update({"long_name_template": cfg.long_name})
@@ -196,7 +207,7 @@ class OsiSafSITypeCDR(AuxDataLoader):
         self.start_time = None
         self.hemisphere_code = None
 
-    def apply(self, l1, l2):
+    def apply(self, l1, l2) -> AuxDataExitFlag:
         """
         Mandadory method of AuxdataBaseClass subclass.
         Registers two variables to the Level-2 data container:
@@ -205,6 +216,7 @@ class OsiSafSITypeCDR(AuxDataLoader):
         :param l2: Level-2 Data object
         :return: None
         """
+        exit_status = AuxDataExitFlag.NOMINAL
 
         # These properties are needed to construct the product path
         self.start_time = l2.info.start_time
@@ -217,9 +229,10 @@ class OsiSafSITypeCDR(AuxDataLoader):
         self.update_external_data()
 
         # Check if error with file I/O
-        if self.error.status or self._data is None:
+        if self._data is None:
             sitype = self.get_empty_array(l2)
             uncertainty = self.get_empty_array(l2)
+            exit_status = AuxDataExitFlag.ERROR_CONTINUE
         else:
             # Get and return the track
             sitype, uncertainty = self._get_sitype_track(l2)
@@ -236,7 +249,8 @@ class OsiSafSITypeCDR(AuxDataLoader):
             sitype, uncertainty = fill_sitype_gaps(sitype, uncertainty, l2.sic[:])
 
         # Register the sea ice type data to the L2 data object
-        self.register_auxvar("sitype", "sea_ice_type", sitype, uncertainty)
+        l2.set_auxiliary_parameter("sitype", "sea_ice_type", sitype, uncertainty)
+        return exit_status
 
     def load_requested_auxdata(self) -> None:
         """
@@ -249,9 +263,8 @@ class OsiSafSITypeCDR(AuxDataLoader):
 
         # Validation
         if not path.is_file():
-            msg = f"{self.__class__.__name__}: File not found: {path} "
-            self.add_handler_message(msg)
-            self.error.add_error("auxdata_missing_sitype", msg)
+            logger.error(f"{self.__class__.__name__}: File not found: {path}")
+            self._data = None
             return
 
         # Read and prepare input data
@@ -356,7 +369,7 @@ class OsiSafSITypeCDR(AuxDataLoader):
         is_cdr_icdr = opt.get("is_cdr_icdr", False)
         version = opt.get("version", None)
         record_type = None
-        file_version = self.cfg.get("file_version", version)
+        file_version = opt.get("file_version", version)
         if is_cdr_icdr:
             product_index = int(self.start_time > opt[opt.version]["cdr_time_coverage_end"])
             record_type = self.cdr_icdr_record_types[product_index]

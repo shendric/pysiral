@@ -8,6 +8,7 @@ __all__ = ["AuxDataExitFlag", "AuxDataLoader"]
 
 from abc import ABC, abstractmethod
 from enum import IntEnum
+from loguru import logger
 
 import numpy as np
 
@@ -70,12 +71,33 @@ class AuxDataLoader(ABC):
         day = l2.track.timestamp[0].day
         self.set_requested_date(year, month, day)
 
+    def update_external_data(self):
+        """
+        This method will check if the requested date matches current data
+        and call the subclass data loader method if not
+
+        :return:
+        """
+
+        # Check if data for day is already loaded
+        if self._requested_date != self._current_date:
+            # NOTE: The implementation of this method needs to be in the subclass
+            self.load_requested_auxdata()
+            self._current_date = self._requested_date
+            if self.has_data_loaded:
+                logger.info(self.__class__.__name__ + ": Load " + str(self.requested_filepath))
+        else:
+            if self.has_data_loaded:
+                logger.info(self.__class__.__name__ + ": Data already present")
+            else:
+                logger.error(self.__class__.__name__ + ": No Data: Loading failed in an earlier attempt")
+
     @staticmethod
-    def get_empty_array(l2, empty_val=np.nan):
+    def get_empty_array(l2, empty_val= np.nan):
         return np.full(l2.n_records, empty_val)
 
     @abstractmethod
-    def apply(self, l1: 'L1bdataNCFile', l2: 'Level2Data') -> None:
+    def apply(self, l1: 'L1bdataNCFile', l2: 'Level2Data') -> AuxDataExitFlag:
         """
         [Mandatory class method] Add the model prediction for the tfmra retracker threshold to the
         Level-2 data object. The model evaluation depends solely on waveform power.
@@ -83,6 +105,22 @@ class AuxDataLoader(ABC):
         :param l1: `L1bdataNCFile` container
         :param l2: `Level2Data` container
 
-        :return: None
+        :return: exit status flag
         """
         pass
+
+    @property
+    def year(self):
+        return "%04g" % self._requested_date[0]
+
+    @property
+    def month(self):
+        return "%02g" % self._requested_date[1]
+
+    @property
+    def day(self):
+        return "%02g" % self._requested_date[2]
+
+    @property
+    def has_data_loaded(self) -> bool:
+        return self._data is not None if hasattr(self, "_data") else False

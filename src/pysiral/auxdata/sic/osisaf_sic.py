@@ -37,7 +37,7 @@ import numpy.typing as npt
 import scipy.ndimage as ndimage
 from scipy.spatial.distance import cdist
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader
+from pysiral.auxdata import AuxDataExitFlag, GridTrackInterpol, AuxDataLoader
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.l2data import Level2Data
 
@@ -79,7 +79,7 @@ class OsiSafSIC(AuxDataLoader):
         if is_cdr_icdr:
             global_options = cfg.options.get("global", {})
             version_options = cfg.options.get(version["cdr"], {})
-            cfg.options.update({"version": target_version})
+            cfg.options.update({"version": version})
             cfg.options.update(global_options)
             cfg.options.update(version_options)
             cfg.options.update({"long_name_template": cfg.long_name})
@@ -93,14 +93,14 @@ class OsiSafSIC(AuxDataLoader):
         self.hemisphere_code = None
         self.hemisphere = None
 
-    def apply(self, l1: "L1bdataNCFile", l2: "Level2Data") -> None:
+    def apply(self, l1: "L1bdataNCFile", l2: "Level2Data") -> "AuxDataExitFlag":
         """
         Main entry point of the class, add sea ice concentration to the l2 data object (in-place)
         :param l2: Level-2 data object<
         :return: None
         """
 
-        self.skip_signal = False
+        exit_status = AuxDataExitFlag.NOMINAL
 
         # These properties are needed to construct the product path
         self.start_time = l2.info.start_time
@@ -114,10 +114,11 @@ class OsiSafSIC(AuxDataLoader):
         self.update_external_data()
 
         # Check if error with file I/O
-        if self.error.status or self._data is None:
+        if self._data is None:
             sic = self.get_empty_array(l2)
             ocean_proximity = self.get_empty_array(l2)
             distance_to_low_ice_concentration = self.get_empty_array(l2)
+            exit_status = AuxDataExitFlag.ERROR_SKIP
 
         else:
             # Get and return the track
@@ -144,8 +145,9 @@ class OsiSafSIC(AuxDataLoader):
         if self.cfg.options.get("send_skip_signal_on_no_sea_ice", False):
             # If there is no sea ice in the track, set the skip signal to True
             if not np.any(sic > 1.0):
-                self.skip_signal = True
+                exit_status = AuxDataExitFlag.ERROR_SKIP
 
+        return exit_status
 
     def load_requested_auxdata(self) -> None:
         """
@@ -188,7 +190,8 @@ class OsiSafSIC(AuxDataLoader):
         """
 
         # Extract from grid
-        griddef = self.cfg.options[l2.hemisphere]
+        hemisphere_code = {"nh": "north", "sh": "south"}[l2.hemisphere]
+        griddef = self.cfg.options[hemisphere_code]
         grid_lons, grid_lats = self._data.lon, self._data.lat
         grid2track = GridTrackInterpol(l2.track.longitude, l2.track.latitude, grid_lons, grid_lats, griddef)
         sic = grid2track.get_from_grid_variable(self._data.ice_conc, flipud=True)
@@ -242,7 +245,9 @@ class OsiSafSIC(AuxDataLoader):
 
         # Compute the minimal distance between each sea ice pixel and all
         # ice/ocean edge pixel and convert result to physical units
-        griddef = self.cfg.options[self.hemisphere]
+        hemisphere_dict = {"nh": "north", "sh": "south"}
+        hemisphere = hemisphere_dict.get(self.hemisphere, self.hemisphere)
+        griddef = self.cfg.options[hemisphere]
         pixel_spacing = float(griddef["dimension"]["dx"])
         dist = cdist(ice_points, ice_edge_ocean_points)
         min_dist = np.nanmin(dist, axis=1) * pixel_spacing

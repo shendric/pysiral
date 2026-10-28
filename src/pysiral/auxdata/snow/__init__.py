@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+from pysiral.auxdata.snow._data import SnowParameterContainer
 from pysiral.auxdata.snow.density import SeasonalArcticSnowDensityMallett2020, FixedSnowDepthDensity
 from pysiral.auxdata.snow.esa_cci_clim_sh import ICDCSouthernClimatology
 from pysiral.auxdata.snow.esa_cryotempo_clim_nh import CryoTempoNorthernClimatology

@@ -1,10 +1,13 @@
 
 
 from datetime import datetime
+from loguru import logger
 
 import numpy as np
 
-from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader
+from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata.snow import SnowParameterContainer
+
 
 
 class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
@@ -44,13 +47,16 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
         super(SeasonalArcticSnowDensityMallett2020, self).__init__()
         self.cfg = cfg
 
-    def apply(self, l1, l2):
+    def apply(self, l1, l2) -> AuxDataExitFlag:
         """
         Mandatory method for the Level-2 processor. Registers snow density (and only density)
         as the auxiliary parameter.
         :param l2:
-        :return:
+        :return: AuxDataExitFlag
+
         """
+
+        exit_status = AuxDataExitFlag.NOMINAL
 
         # Set the requested date
         self.set_requested_date_from_l2(l2)
@@ -80,8 +86,9 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
         if "snow_density_uncertainty" in self.cfg.options:
             static_sdens_unc = self.cfg.options.snow_density_uncertainty
         else:
+            exit_status = AuxDataExitFlag.ERROR_CONTINUE
             msg = ": Warning - snow_density_uncertainty missing in processor definition (set to 0.0)"
-            self.add_handler_message(self.__class__.__name__ + msg)
+            logger.error(self.__class__.__name__ + msg)
             static_sdens_unc = 0.0
 
         # Create variables
@@ -95,7 +102,7 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
 
         # Register the auxiliary variable
         l2.set_auxiliary_parameter("sdens", "snow_density", sdens, sdens_unc)
-
+        return exit_status
 
 class FixedSnowDepthDensity(AuxdataBaseClass):
     """

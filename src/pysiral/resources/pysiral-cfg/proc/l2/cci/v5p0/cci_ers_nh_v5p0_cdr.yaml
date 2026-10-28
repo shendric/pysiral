@@ -32,7 +32,7 @@ auxdata:
     - type: sitype
       name: c3s
       options:
-        version: v3p0
+        version: v4p0
         fill_valid_sic_gaps: True
         exception_on_error: False
 
@@ -51,24 +51,24 @@ auxdata:
         snow_density_uncertainty: 50.
 
     # Ingest machine learned models
-    - type: ml
-      name: tfmra_threshold_model
-      options:
-        output_parameter: [tfmrathrs_iml, tfmra_threshold_iceml]
-        model_file: fnn_ers2_ccip-p2-v008_tc-022_20240503.pth
-        model_class: ERS2_TestCandidate_006_FNN
-        fmi_leading_bins: 5
-        fmi_trailing_bins: 30
-        classifiers:
-            peakiness: [3.50, 52.00]
-            sigma0: [1.90, 47.00]
-            leading_edge_width: [0.500, 1.0625]
-            epsilon_sec: [-4.550, 4.550]
-            late_tail_to_peak_power: [0.000, 0.350]
-            trailing_edge_slope: [-0.850, -0.0150]
-            longitude: [-180.0, 180.0]
-            latitude: [59.00, 81.52]
-        valid_range: [0.10, 0.99]
+#    - type: ml
+#      name: tfmra_threshold_model
+#      options:
+#        output_parameter: [tfmrathrs_iml, tfmra_threshold_iceml]
+#        model_file: fnn_ers2_ccip-p2-v008_tc-022_20240503.pth
+#        model_class: ERS2_TestCandidate_006_FNN
+#        fmi_leading_bins: 5
+#        fmi_trailing_bins: 30
+#        classifiers:
+#            peakiness: [3.50, 52.00]
+#            sigma0: [1.90, 47.00]
+#            leading_edge_width: [0.500, 1.0625]
+#            epsilon_sec: [-4.550, 4.550]
+#            late_tail_to_peak_power: [0.000, 0.350]
+#            trailing_edge_slope: [-0.850, -0.0150]
+#            longitude: [-180.0, 180.0]
+#            latitude: [59.00, 81.52]
+#        valid_range: [0.10, 0.99]
 
 # --- Level-2 processor steps ---
 #
