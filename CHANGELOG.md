@@ -260,7 +260,7 @@
 - Default output directory for level-2 data is defined as series of subfolders based on the `metadata` group in the processor file. 
 - Logging system now based on loguru instead of logbook. New logging format.
 - Split content of `surface_type` module between flag definitions and actual surface type classification processor steps
-- Renamed `ssh` module to `sla` (more in line with L2 naming conventions)
+- Renamed `ssh` module to `sea_level_anomaly.py` (more in line with L2 naming conventions)
 - Made a distinction between dependancies (required packages) and installation reqirements (other github projects) in `setup.py` to avoid crash during `build_ext`
 - Improving the way pysiral handles the different options for the location of the config files
 - Performace improvements (approx. 30%) of Level-1 preprocessor by using `bottleneck.nanmean` instead of `np.nanmean`

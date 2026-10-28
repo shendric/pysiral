@@ -65,14 +65,14 @@ class RetrackerThresholdModel(AuxDataLoader):
     as pysiral's ML/AI framework for retracker-threshold models
     """
 
-    def __init__(self, *args: Iterable[Any], **kwargs: Iterable[Any]) -> None:
+    def __init__(self, cfg, **kwargs: Iterable[Any]) -> None:
         """
         Initialiaze the class. This step includes establishing the model by parsing the
         model parameter file as specified in the Level-2 processor definition file.
         :param args:
         :param kwargs:
         """
-        breakpoint()
+        self.cfg = cfg
 
         # Retrieve requested model files
         self.valid_waveforms_idx = None
@@ -108,8 +108,7 @@ class RetrackerThresholdModel(AuxDataLoader):
             self.error.add_error("class-not-found", msg)
             self.error.raise_on_error()
         self.model = model_class()
-        self.model.load_state_dict(torch.load(self.model_filepath,
-                                              map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load(self.model_filepath, map_location=torch.device('cpu')))
         self.model.eval()
 
     def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:

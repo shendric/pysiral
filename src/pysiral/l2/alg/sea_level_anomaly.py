@@ -27,6 +27,7 @@ from sklearn import gaussian_process
 from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 
 from pysiral.core.flags import SurfaceType
+from pysiral.l2 import L2Algorithm
 from pysiral.l2.alg.filter import fill_nan, idl_smooth
 from pysiral.l2.l2data import L2DataArray
 from pysiral.l2.procsteps import Level2ProcessorStep
@@ -491,23 +492,23 @@ class SLAGaussianProcess(Level2ProcessorStep, SLABaseFunctionality):
         return self.error_flag_bit_dict["sla"]
 
 
-class SLASmoothedLinear(Level2ProcessorStep, SLABaseFunctionality):
+class SLASmoothedLinear(L2Algorithm, SLABaseFunctionality):
     """
     Default implemetation of a smoothed interpolation of ssh tiepoints (with various filter options).
     This class will compute the sea level anomaly (sla)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg):
         """
         Init the class. Options will be passed to parent class
         (pysiral.l2.procsteps.Level2ProcessorStep)
         :param args:
         :param kwargs:
         """
-        Level2ProcessorStep.__init__(self, *args, **kwargs)
+        self.cfg = cfg
         SLABaseFunctionality.__init__(self)
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Mandatory Level-2 processor method that will execute the processing step
         and modify the L2 data object in-place.
@@ -662,7 +663,7 @@ class SLASmoothedLinear(Level2ProcessorStep, SLABaseFunctionality):
         return sla_unc_min + sla_unc_range * tiepoint_distance_scalefact
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self) -> List[str]:
         """
         Mandatory property for Level2ProcessorStep children
         :return: list (str)
@@ -670,7 +671,7 @@ class SLASmoothedLinear(Level2ProcessorStep, SLABaseFunctionality):
         return ["surface_type", "elev", "mss"]
 
     @property
-    def l2_output_vars(self):
+    def l2_output_vars(self) -> List[str]:
         """
         Mandatory property for Level2ProcessorStep children
         :return: list (str)
@@ -678,7 +679,7 @@ class SLASmoothedLinear(Level2ProcessorStep, SLABaseFunctionality):
         return ["sla"]
 
     @property
-    def error_bit(self):
+    def error_bit(self) -> int:
         return self.error_flag_bit_dict["sla"]
 
 

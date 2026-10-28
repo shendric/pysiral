@@ -20,10 +20,11 @@ from pysiral.auxdata import DefaultAuxdataClassHandler
 from pysiral.core.legacy_classes import DefaultLoggingClass, ErrorStatus
 from pysiral.core.output import DefaultLevel2OutputHandler, Level2Output
 from pysiral.l1.l1_data import L1bdataNCFile
+from pysiral.l2._l2_abc import L2Algorithm
 from pysiral.l2.l2data import Level2Data
 from pysiral.l2.procsteps import Level2ProcessorStepOrder
 
-__all__ = ["Level2Processor", "Level2ProductDefinition", "Level2ProcessorStepOrder", "procsteps"]
+__all__ = ["Level2Processor", "Level2ProductDefinition", "Level2ProcessorStepOrder", "L2Algorithm", "alg"]
 
 
 class L2ProcDefConfig(BaseModel):
@@ -195,7 +196,7 @@ class Level2Processor(DefaultLoggingClass):
         :return: None
         """
         logger.info("Init Processor Steps")
-        cfg = self.l2def.procsteps
+        cfg = self.l2def.algorithms
         self.procsteps = Level2ProcessorStepOrder(cfg)
         is_valid = self.procsteps.validate()
         if not is_valid:
@@ -522,8 +523,8 @@ class Level2ProductDefinition(DefaultLoggingClass):
         return self.l2def.auxdata
 
     @property
-    def procsteps(self):
-        return self.l2def.procsteps
+    def algorithms(self) -> List[L2ProcAlgorithmDef]:
+        return self.l2def.algorithms
 
     @property
     def product_line(self):

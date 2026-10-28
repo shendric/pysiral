@@ -39,21 +39,21 @@ import scipy.ndimage as ndimage
 from loguru import logger
 from time import time
 
-from pysiral.auxdata import AuxdataBaseClass
+from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader
 from pysiral.core.iotools import ReadNC
 
 
-class DTU1MinGrid(AuxdataBaseClass):
+class DTU1MinGrid(AuxDataLoader):
     """
     Parsing Routine for DTU 1 minute global mean sea surface height files
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
 
-        super(DTU1MinGrid, self).__init__(*args, **kwargs)
+        self.cfg = cfg
 
         # Read as standard netcdf
-        dtu_grid = ReadNC(self.cfg.filename)
+        dtu_grid = ReadNC(cfg.filename)
 
         # Cut to ROI regions (latitude only)
         # -> no need for world mss
@@ -72,6 +72,17 @@ class DTU1MinGrid(AuxdataBaseClass):
         delta_h = egm2wgs_delta_h(self.latitude)
         for i in np.arange(len(self.latitude)):
             self.elevation[i, :] += (delta_h[i]-delta_h1[i])
+
+    def receive_l1p_input(self, l1p):
+        """
+        Receive the Level-1 pre-processor data object and extract the relevant information for the auxdata
+        processing. This method is called during the Level-2 processor initialization.
+
+        :param l1p: Level-1 pre-processor data object
+
+        :return: None
+        """
+        pass
 
     def get_l2_track_vars(self, l2):
 

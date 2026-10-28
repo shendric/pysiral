@@ -6,15 +6,13 @@
 """
 
 
-import time
 from typing import Dict
 
 import numpy as np
-from loguru import logger
+
 
 from pysiral.core.flags import FlagContainer
 from pysiral.core.legacy_classes import AttrDict
-from pysiral.l2.procsteps import Level2ProcessorStep
 
 __all__ = ["ccilead", "corrections", "mock", "ocog", "samosa", "tfmra", "samosa_wfm",
            "BaseRetracker"]
@@ -144,95 +142,6 @@ class BaseRetracker(object):
     @property
     def error_flag(self):
         return FlagContainer(self._flag)
-
-
-class Level2RetrackerContainer(Level2ProcessorStep):
-    """
-    The interface for the Level-2 processor for all retrackers
-    """
-
-    def __init__(self, *args, **kwargs):
-        """
-        Initialize the instance
-        :param args:
-        :param kwargs:
-        """
-        super(Level2RetrackerContainer, self).__init__(*args, **kwargs)
-
-    def execute_procstep(self, l1b, l2):
-        """
-        Mandatory class
-        :param l1b:
-        :param l2:
-        :return:
-        """
-
-        # Get the error status
-        error_status = self.get_clean_error_status(l2.n_records)
-
-        # Retracker are surface type dependent
-        # -> Loop over all requested surface types in the
-        #    l2 processor definition file
-        for surface_type, retracker_def in list(self.cfg.options.items()):
-
-            # Check first if there are any waveforms of the requested
-            # surface type
-            surface_type_flag = l2.surface_type.get_by_name(surface_type)
-            if surface_type_flag.num == 0:
-                logger.info(f"- no waveforms of type {surface_type}")
-                continue
-            else:
-                logger.info(
-                    f"Retrack {surface_type_flag.num} {surface_type} waveforms with " + retracker_def["pyclass"]
-                )
-
-            # Benchmark retracker performance
-            timestamp = time.time()
-
-            # Retrieve the retracker associated with surface type from the l2 settings
-            retracker = get_retracker_class(retracker_def["pyclass"])
-
-            # Set options (if any)
-            retracker_options = {"surface_type": surface_type}
-            if retracker_def["options"] is not None:
-                retracker_options.update(retracker_def["options"])
-            retracker.set_options(**retracker_options)
-
-            # set subset of waveforms
-            retracker.set_indices(surface_type_flag.indices)
-
-            # Add classifier data (some retracker need that)
-            retracker.set_classifier(l1b.classifier)
-
-            # Start the retracker procedure
-            retracker.retrack(l1b, l2)
-
-            # Update range value of the Level-2 data object
-            l2.update_retracked_range(retracker)
-
-            # XXX: Let the retracker return other parameters?
-            l2.radar_mode = l1b.waveform.radar_mode
-
-            # retrieve potential error status and update surface type flag
-            if retracker.error_flag.num > 0:
-                l2.surface_type.add_flag(retracker.error_flag.flag, "invalid")
-            logger.info("- Retrack class %s with %s in %.3f seconds" % (
-                surface_type, retracker_def["pyclass"],
-                time.time()-timestamp))
-
-        return error_status
-
-    @property
-    def l2_input_vars(self):
-        return []
-
-    @property
-    def l2_output_vars(self):
-        return ["radar_mode", "range", "elev"]
-
-    @property
-    def error_bit(self):
-        return self.error_flag_bit_dict["retracker"]
 
 
 def get_registered_retrackers() -> Dict:

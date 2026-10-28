@@ -9,12 +9,12 @@ from loguru import logger
 
 from xarray import open_dataset
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import GridTrackInterpol, AuxDataLoader
 from pysiral.auxdata.snow._data import SnowParameterContainer
 from pysiral.core.legacy_classes import ErrorStatus
 
 
-class Warren99AMSR2Clim(AuxdataBaseClass):
+class Warren99AMSR2Clim(AuxDataLoader):
     """
     Class for monthly snow depth & density climatology based on merged Warren99 climatology and
     monthly AMSR2 snow depth composite (source: IUP). The source data is organized as
@@ -50,14 +50,24 @@ class Warren99AMSR2Clim(AuxdataBaseClass):
           rather than monthly (see github issue: https://github.com/shendric/pysiral/issues/40)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
         Init the class for getting snow depth on sea ice with density and respective uncertainties.
-        :param args: Arguments for AuxdataBaseClass
-        :param kwargs: Keyword arguments for AuxdataBaseClass
+        :param cfg: Configuration for AuxDataLoader
+        :param kwargs: Keyword arguments for AuxDataLoader
         """
-        super(Warren99AMSR2Clim, self).__init__(*args, **kwargs)
+        self.cfg = cfg
         self._data = Warren99AMSR2ClimDataContainer(self.cfg, self.use_daily_scaling)
+
+    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
+        """
+        Mandatory class for Level-1 processing item. Needs to be overwritten
+        by the inheriting class.
+        :param l1:
+
+        :return:
+        """
+        pass
 
     def get_l2_track_vars(self, l2):
         """

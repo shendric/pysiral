@@ -16,6 +16,7 @@ from pysiral.core.flags import RadarModes
 from pysiral.core.flags import ANDCondition, SurfaceType
 from pysiral.core.legacy_classes import AttrDict
 from pysiral.l1.l1_data import L1bdataNCFile
+from pysiral.l2 import L2Algorithm
 from pysiral.l2.l2data import Level2Data
 from pysiral.l2.procsteps import Level2ProcessorStep
 
@@ -437,7 +438,7 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
         return self.error_flag_bit_dict["surface_type"]
 
 
-class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
+class ClassifierThresholdSurfaceType(L2Algorithm, SurfaceTypeClassifier):
     """
     Simplified surface type classification based on the positive
     classification of leads and lazy sea ice classifcation
@@ -445,22 +446,22 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
     and is within the ice mask)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg):
         """
         Init the class. All *args and **kwargs will be directed to Level2ProcessorStep as
         SurfaceTypeClassifier does not take any input at __init__
-        :param args:
-        :param kwargs:
+        :param cfg:
         """
 
         # Init the parent classes
-        Level2ProcessorStep.__init__(self, *args, **kwargs)
         SurfaceTypeClassifier.__init__(self)
+
+        self.cfg = cfg
 
         # Properties of this class
         self.reference_date = None
 
-    def execute_procstep(self, l1: L1bdataNCFile, l2: Level2Data) -> np.ndarray:
+    def apply(self, l1: L1bdataNCFile, l2: Level2Data) -> np.ndarray:
         """
         The mandatory class for a Level2ProcessorStep.
         :param l1:
@@ -469,7 +470,7 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
         """
 
         # Step 1: Transfer classifier / sea ice concentration radar mode
-        self.add_classifier_parameter(l2, self.l2_input_vars)
+        self.add_classifier_parameter(l2, self.l2_dependencies)
         self.reference_date = l2.time[0]
 
         # Step 2: Initialize the surface type with default value "unknown"
@@ -620,7 +621,7 @@ class ClassifierThresholdSurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
         return parameter_name
 
     @property
-    def l2_input_vars(self) -> List[str]:
+    def l2_dependencies(self) -> List[str]:
         parameter_list = self._get_parameter_list()
         parameter_list.append("radar_mode")
         return parameter_list

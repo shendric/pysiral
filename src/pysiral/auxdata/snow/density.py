@@ -4,10 +4,10 @@ from datetime import datetime
 
 import numpy as np
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader
 
 
-class SeasonalArcticSnowDensityMallett2020(AuxdataBaseClass):
+class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
     """
     Returns a seasonal varying but regionally static snow density from Mallett et al. 2020. The density
     is computed as a linear function of time (elapsed month since the October for the Arctic winter season):
@@ -40,12 +40,22 @@ class SeasonalArcticSnowDensityMallett2020(AuxdataBaseClass):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SeasonalArcticSnowDensityMallett2020, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        self.cfg = cfg
 
     def subclass_init(self):
         """
         Not requires
+        :return:
+        """
+        pass
+
+    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
+        """
+        Mandatory class for Level-1 processing item. Needs to be overwritten
+        by the inheriting class.
+        :param l1:
+
         :return:
         """
         pass

@@ -26,6 +26,7 @@ from datetime import date
 from pathlib import Path
 from typing import List
 
+from loguru import logger
 import numpy as np
 import scipy.ndimage as ndimage
 from pyproj import Proj
@@ -171,6 +172,7 @@ class DefaultAuxdataClassHandler(DefaultLoggingClass):
             self.error.add_error("invalid-auxdata-class", msg)
             self.error.raise_on_error()
         return auxdata_def.attrdict
+
 
 class AuxdataBaseClass(object):
     """

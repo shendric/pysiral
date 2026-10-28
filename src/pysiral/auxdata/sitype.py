@@ -45,16 +45,16 @@ import scipy.ndimage as ndimage
 from pyproj import Proj
 from scipy import interpolate
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader
 from pysiral.core.iotools import ReadNC
-from pysiral.l2.alg.sla import SLABaseFunctionality
+from pysiral.l2.alg.sea_level_anomaly import SLABaseFunctionality
 
 
-class OsiSafSIType(AuxdataBaseClass):
+class OsiSafSIType(AuxDataLoader):
     """ This is a class for the OSI-403 product with variables ice_type and confidence_level """
 
-    def __init__(self, *args, **kwargs):
-        super(OsiSafSIType, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        self.cfg = cfg
         self._data = None
         self.start_time = None
         self.hemisphere_code = None
@@ -162,7 +162,7 @@ class OsiSafSIType(AuxdataBaseClass):
         return path
 
 
-class OsiSafSITypeCDR(AuxdataBaseClass):
+class OsiSafSITypeCDR(AuxDataLoader):
     """
     Class for reprocessed OSISAF sea ice type products (e.g. for C3S). Currently supports the
     - C3S sea ice type climate data record v1.0
@@ -170,7 +170,7 @@ class OsiSafSITypeCDR(AuxdataBaseClass):
     - C3S sea ice tyoe climate data record v2.0
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, cfg, **kwargs) -> None:
         """
         Init the class.
         NOTE: The options template can be different for continuous data sets (is_cdr_icdr: False)
@@ -182,7 +182,6 @@ class OsiSafSITypeCDR(AuxdataBaseClass):
         """
 
         # Pre-process the options for cdr/icdr data sets
-        cfg = args[0]
         is_cdr_icdr = cfg.options.get("is_cdr_icdr", False)
         target_version = cfg.options.get("version", None)
         if is_cdr_icdr:
@@ -192,10 +191,20 @@ class OsiSafSITypeCDR(AuxdataBaseClass):
             cfg.options.update(version_options)
             cfg.options.update({"long_name_template": cfg.long_name})
 
-        super(OsiSafSITypeCDR, self).__init__(*args, **kwargs)
+        self.cfg = cfg
         self._data = None
         self.start_time = None
         self.hemisphere_code = None
+
+    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
+        """
+        Mandatory class for Level-1 processing item. Needs to be overwritten
+        by the inheriting class.
+        :param l1:
+
+        :return:
+        """
+        pass
 
     def get_l2_track_vars(self, l2):
         """

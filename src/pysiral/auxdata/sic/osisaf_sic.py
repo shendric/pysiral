@@ -37,19 +37,19 @@ import numpy.typing as npt
 import scipy.ndimage as ndimage
 from scipy.spatial.distance import cdist
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.l2data import Level2Data
 
 __author__ = "Stefan Hendricks"
 
 
-class OsiSafSIC(AuxdataBaseClass):
+class OsiSafSIC(AuxDataLoader):
     """
     Class for the OSI SAF sea ice concentration data set.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, cfg, **kwargs) -> None:
         """
         Init the class.
         NOTE: The options template can be different for continuous data sets (is_cdr_icdr: False)
@@ -62,7 +62,6 @@ class OsiSafSIC(AuxdataBaseClass):
         """
 
         # Pre-process the options for cdr/icdr data sets
-        cfg = args[0]
         is_cdr_icdr = cfg.options.get("is_cdr_icdr", False)
         target_version = cfg.options.get("version", None)
 
@@ -83,7 +82,7 @@ class OsiSafSIC(AuxdataBaseClass):
             cfg.options.update(global_options)
             cfg.options.update(version_options)
             cfg.options.update({"long_name_template": cfg.long_name})
-        super(OsiSafSIC, self).__init__(*args, **kwargs)
+        self.cfg = cfg
 
         # Class properties
         self._data = None
@@ -92,6 +91,17 @@ class OsiSafSIC(AuxdataBaseClass):
         self.start_time = None
         self.hemisphere_code = None
         self.hemisphere = None
+
+    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
+        """
+        Required subclass method: Receive the Level-1P data object and extract the necessary information
+        to construct the file path for the requested date.
+
+        :param l1p: Level-1P data object
+
+        :return: None
+        """
+        pass
 
     def get_l2_track_vars(self, l2: "Level2Data") -> None:
         """
