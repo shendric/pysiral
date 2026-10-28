@@ -51,14 +51,14 @@ class Level2RetrackerContainer(L2Algorithm):
                 continue
             else:
                 logger.info(
-                    f"Retrack {surface_type_flag.num} {surface_type} waveforms with " + retracker_def["pyclass"]
+                    f"Retrack {surface_type_flag.num} {surface_type} waveforms with " + retracker_def["class_name"]
                 )
 
             # Benchmark retracker performance
             timestamp = time.time()
 
             # Retrieve the retracker associated with surface type from the l2 settings
-            retracker = get_retracker_class(retracker_def["pyclass"])
+            retracker = get_retracker_class(retracker_def["class_name"])
 
             # Set options (if any)
             retracker_options = {"surface_type": surface_type}

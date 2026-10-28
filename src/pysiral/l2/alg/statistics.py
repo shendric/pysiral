@@ -99,11 +99,11 @@ class ParameterRollingStatistics(L2Algorithm):
 
     @property
     def statistics_combinations(self):
-        return product(self.cfg.options.input_parameters, self.cfg.options.statistics)
+        return product(self.cfg.options["input_parameters"], self.cfg.options["statistics"])
 
     @property
     def l2_dependencies(self):
-        return [self.cfg.options.input_parameters]
+        return [self.cfg.options["input_parameters"]]
 
     @property
     def l2_output_vars(self):

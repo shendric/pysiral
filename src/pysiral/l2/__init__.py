@@ -217,7 +217,7 @@ class Level2Processor(DefaultLoggingClass):
         # Note: The property `class_instances` return freshly initialized
         #       class instances of the respective processor step
         for procstep_class in self.procsteps.class_instances:
-            procstep_class.execute(l1b, l2)
+            procstep_class.apply(l1b, l2)
 
     def _report_output_location(self):
         for output_handler in self._output_handler:
@@ -277,8 +277,7 @@ class Level2Processor(DefaultLoggingClass):
             # Get auxiliary data from all registered auxdata handlers
             exit_statuses = self.get_auxiliary_data(l1b, l2)
             if AuxDataExitFlag.ERROR_CONTINUE in exit_statuses:
-                logger.warning("- skip file due to auxdata errors")
-                continue
+                logger.warning("- auxdata errors encountered, continue processing with missing data")
             if AuxDataExitFlag.ERROR_SKIP in exit_statuses:
                 logger.error("- skip file due to skip signal send from one of the auxdata handlers")
                 continue

@@ -595,7 +595,7 @@ class ClassifierThresholdSurfaceType(L2Algorithm, SurfaceTypeClassifier):
         :return: list of parameters that can be retrieved with `l2.get_parameter_by_name()`
         """
         parameter_list = []
-        surface_types = self.cfg.options.surface_types
+        surface_types = self.cfg.options["surface_types"]
         for surface_type_name in surface_types:
             radar_mode_list = self.cfg.options.get(surface_type_name)
             for opt in radar_mode_list:
