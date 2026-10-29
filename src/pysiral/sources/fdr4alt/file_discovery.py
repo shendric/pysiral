@@ -92,6 +92,7 @@ class FDR4ALTFileDiscovery(FileDiscovery):
             (file_catalog.time_coverage_start >= period.tcs.dt) &
             (file_catalog.time_coverage_end <= period.tce.dt)
             ]
+        query_subset.reset_index(inplace=True)
         return query_subset if not query_subset.empty else None
 
     def _get_year_catalog(self, period) -> pd.DataFrame:

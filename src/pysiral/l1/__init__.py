@@ -167,7 +167,7 @@ class L1PreProcBase(DefaultLoggingClass):
             return
 
         # Init helpers
-        prgs = ProgressIndicator(len(file_ctlg))
+        prgs = ProgressIndicator(file_ctlg.shape[0])
 
         # A class that is passed to the input adapter to check if the pre-processor wants the
         # content of the current file

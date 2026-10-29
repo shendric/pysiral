@@ -63,8 +63,8 @@ class PysiralPackageConfiguration(object):
     # valid settings types, processor levels and data level ids.
     # NOTE: These tie into the naming and content of definition files
     VALID_SETTING_TYPES = ["proc", "output", "grid"]
-    VALID_PROCESSOR_LEVELS = ["l1", "l2", "l2p", "l3"]
-    VALID_DATA_LEVEL_IDS = ["l1", "l2", "l2i", "l2p", "l3", None]
+    VALID_PROCESSOR_LEVELS = ["l1p", "l2", "l2p", "l3"]
+    VALID_DATA_LEVEL_IDS = ["l1", "l1p", "l2", "l2i", "l2p", "l3", None]
     VALID_CONFIG_TARGETS = ["PACKAGE", "USER_HOME"]
 
     # Multiprocessing properties
@@ -329,6 +329,7 @@ class PysiralPackageConfiguration(object):
         if settings_type not in self.VALID_SETTING_TYPES:
             return None
 
+        # TODO: Differentiate between proc (processor id's) and output (output id's)?
         if data_level not in self.VALID_DATA_LEVEL_IDS:
             return None
 
@@ -352,6 +353,7 @@ class PysiralPackageConfiguration(object):
             index = ids.index(setting_id_or_filename)
             return Path(files[index])
         except (IOError, ValueError):
+            print(f"setting-file-not-found: {settings_type}-{str(data_level)} setting file not found for id {setting_id_or_filename}")
             return None
 
     @staticmethod

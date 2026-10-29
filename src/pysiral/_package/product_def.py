@@ -45,7 +45,7 @@ class ProcessorDefinition(BaseModel):
     """
     Processor keywords for the fixed list of pysiral-supported processor types (l1, l2, l2p, l3)
     """
-    l1: ProcessorKeywords
+    l1p: ProcessorKeywords
     l2: ProcessorKeywords
     l2p: ProcessorKeywords
     l3: ProcessorKeywords

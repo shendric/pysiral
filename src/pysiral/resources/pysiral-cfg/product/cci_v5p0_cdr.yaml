@@ -56,7 +56,7 @@ dynamic_variables:
 
 processors:
 
-  l1:
+  l1p:
     l1p_settings: "{l1p_settings[platform]}"
     hemisphere: "{hemisphere}"
     platform: "{platform}"

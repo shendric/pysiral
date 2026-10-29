@@ -60,9 +60,11 @@ def product(
     proc_settings.update(pass_through_keyw)
 
     # Check if some settings file need to be resolved to a full path
+    # TODO: This hack is needed due to some inconsistencies between `l1` and `l1p`
+    data_level = {"l1p": "l1"}.get(processing_level, processing_level)
     for key in ["l1p_settings", "l2_settings", "l3_settings"]:
         if key in proc_settings and proc_settings[key] is not None:
-            proc_settings[key] = PSRLCFG.get_settings_file("proc", processing_level, proc_settings[key])
+            proc_settings[key] = PSRLCFG.get_settings_file("proc", data_level, proc_settings[key])
 
     # Check if some settings file need to be resolved to a full path
     output_processing_level = {"l2_outputs": "l2i", "l3_outputs": "l3"}
@@ -74,7 +76,7 @@ def product(
                 )
 
     processors = {
-        "l1": l1preproc,
+        "l1p": l1preproc,
         "l2": l2proc,
         "l3": l3proc
     }

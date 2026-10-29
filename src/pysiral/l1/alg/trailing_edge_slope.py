@@ -9,6 +9,7 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 from dataclasses import dataclass
 from functools import partial
+from pydantic import BaseModel
 from typing import Tuple
 from scipy.stats import linregress
 
@@ -19,8 +20,8 @@ import bottleneck as bn
 import numpy as np
 
 from pysiral import PSRLCFG
+from pysiral.l1 import L1Algorithm
 from pysiral.l1.l1_data import Level1bData
-from pysiral.l1.alg import L1PProcItem
 
 
 @dataclass
@@ -54,11 +55,17 @@ class WFMTrailingEdgeSlopeData:
         plt.ylim(0, 1.1)
         plt.show()
 
+class TrailingEdgeSlopeConfig(BaseModel):
+    """
+    Configuration class for the trailing edge slope algorithm.
+    """
+    noise_floor_power_threshold: float = 0.15
 
-class L1PTrailingEdgeSlope(L1PProcItem):
+
+class L1PTrailingEdgeSlope(L1Algorithm):
 
     def __init__(self, **cfg) -> None:
-        super(L1PTrailingEdgeSlope, self).__init__(**cfg)
+        self.cfg = TrailingEdgeSlopeConfig(**cfg)
 
     def apply(self, l1: Level1bData):
         """
@@ -90,8 +97,7 @@ class L1PTrailingEdgeSlope(L1PProcItem):
         pool = multiprocessing.Pool(PSRLCFG.CPU_COUNT)
         results = pool.starmap(
             partial(
-                trailing_edge_slope,
-                noise_floor_power_threshold=self.cfg.get("noise_floor_power_threshold")
+                trailing_edge_slope, noise_floor_power_threshold=self.cfg.noise_floor_power_threshold
             ),
             fit_inputs
         )

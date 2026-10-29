@@ -73,7 +73,7 @@ class FDR4ALTDataLoader(object):
 
         l1 = Level1bData()
         # NOTE: `decode_times=False` prevents a pandas.errors.OutOfBoundsTimedelta exception
-        with xr.open_datatree(source_file.filepath, decode_times=False) as fdr_ds:
+        with xr.open_datatree(source_file.filepath, decode_cf=True, decode_times=False) as fdr_ds:
             self._set_input_file_metadata(l1, fdr_ds, mission_id=source_file.mission_id)
             self._transfer_data_groups(l1, fdr_ds)
         return l1

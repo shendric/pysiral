@@ -113,6 +113,14 @@ processor:
               skip_first_range_bins: 10
               norm_is_range_bin: True
 
+        # Compute Sigma from peak power and scaling factor
+        - label: "Compute Sigma0 from Scaling Factor"
+          stage: post_ocean_segment_extraction
+          class_name: L1PSigma0FromScalingFactor
+          options:
+            peak_power_fraction: 1.0
+            classifier_target: scaling_factor
+
         # Compute the leading edge quality indicator
         # This class will add three parameters to the l1p classifier data group:
         #  1. Leading edge quality
@@ -133,3 +141,35 @@ processor:
             # Minimum valid first maximum index
             minimum_valid_first_maximum_index:
                 lrm: 10
+
+        # Compute the leading edge peakiness
+        # This class will add three parameters to the l1p classifier data group:
+        #  1. Leading edge peakiness
+        - label: "Compute Leading Edge Peakiness"
+          stage: post_ocean_segment_extraction
+          class_name: L1PLeadingEdgePeakiness
+          options:
+            # Power threshold for the normalized waveform
+            # that the first maximum has to exceed
+            window_size: 3
+
+        # Compute the Late Tail to Peak Power Parameter
+        # This class will one parameter to the l1p classifier data group:
+        #  1. late tail to peak power
+        - label: "Compute Late Tail to Peak Power (LTPP)"
+          stage: post_ocean_segment_extraction
+          class_name: L1PLateTail2PeakPower
+          options:
+            # Index Window after maximum power for late tail power
+            late_tail_window_idx:
+              lrm: [10, 20]
+
+        # Compute Trailing Edge Slope
+        # This class will several parameter to the l1p classifier data group:
+        #  1. trailing_edge_slope
+        #  2. trailing_edge_slope_quality (pearson correlation coefficient of linear slope fit)
+        - label: "Compute Trailing Edge Slope"
+          stage: post_ocean_segment_extraction
+          class_name: L1PTrailingEdgeSlope
+          options:
+            noise_floor_power_threshold: 0.15
