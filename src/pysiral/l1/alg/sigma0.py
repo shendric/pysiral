@@ -322,4 +322,7 @@ class L1PSigma0FromScalingFactor(L1Algorithm):
         scaling_factor = l1.get_parameter_by_name("classifier", self.cfg.classifier_target)
         assert scaling_factor is not None, f"Classifier parameter '{self.cfg.classifier_target}' does not exist"
         sigma0 = self.cfg.peak_power_fraction * scaling_factor
+
+        # From Marion Bocquet (pers.comm., Nov 2026=
+        sigma0 = scaling_factor + 10. * np.log10(np.nanmax(l1.waveform.power, axis=1) / 2048.)
         l1.classifier.add(sigma0, "sigma0")
