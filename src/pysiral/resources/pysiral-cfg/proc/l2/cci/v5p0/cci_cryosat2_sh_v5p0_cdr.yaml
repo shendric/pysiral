@@ -33,7 +33,7 @@ auxdata:
       name: c3s
       options:
         version: v3p0
-            exception_on_error: False
+        exception_on_error: False
 
     - type: sitype
       name: fyi_default
@@ -82,7 +82,7 @@ algorithms:
               ocean_tide_long_period: [rcotlp, ocean_tide_long_period]
               ocean_loading_tide: [rcolt, ocean_loading_tide]
               solid_earth_tide: [rcset, solid_earth_tide]
-              geocentric_polar_tide: [rcgpt,  geocentric_polar_tide]
+              geocentric_polar_tide: [rcgpt, geocentric_polar_tide]
           time_orbit:
               antenna_pitch: [toantptch, antenna_pitch]
               antenna_roll: [toantrll, antenna_roll]
@@ -110,7 +110,7 @@ algorithms:
       options:
 
           # This option defines the surface type order. It is important that
-          # leads are classified before sea ice to fullfill the condition
+          # leads are classified before sea ice to fulfill the condition
           # that sea-ice waveforms are not lead waveforms.
           surface_types: [ocean, lead, sea_ice]
 

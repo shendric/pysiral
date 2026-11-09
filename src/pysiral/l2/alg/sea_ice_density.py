@@ -5,6 +5,7 @@
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
+import numpy as np
 
 from pysiral.l2 import L2Algorithm
 

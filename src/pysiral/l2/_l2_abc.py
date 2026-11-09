@@ -78,7 +78,7 @@ class L2Algorithm(ABC):
         return np.full(shape, False)
 
     @property
-    def errpr_flag_bit_dict(self) -> Dict[str, int]:
+    def error_flag_bit_dict(self) -> Dict[str, int]:
         """
         Return the error flag bit dictionary that maps error types to their corresponding bit positions.
         :return: Dictionary mapping error types to bit positions
@@ -96,4 +96,3 @@ class L2Algorithm(ABC):
             "filter": 9,
             "other": 15
         }
-

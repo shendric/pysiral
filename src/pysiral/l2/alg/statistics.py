@@ -51,6 +51,7 @@ class ParameterRollingStatistics(L2Algorithm):
     def __init__(self, cfg):
         self.cfg = cfg
 
+    # pyrefly: ignore[unknown-name]
     def apply(self, l1: "Level1bData", l2: "Level2Data") -> np.ndarray:
         """
         API method for Level2ProcessorStep subclasses. Computes and add rolling statistics

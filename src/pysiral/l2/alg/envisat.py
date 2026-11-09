@@ -20,12 +20,13 @@ class EnvisatBackscatterDriftCorrection(L2Algorithm):
     """
 
     def __init__(self, cfg):
+        super(EnvisatBackscatterDriftCorrection, self).__init__()
         self.cfg = cfg
 
-    def apply(self, l1b, l2):
+    def apply(self, l1, l2):
         """
         Apply a backscatter correction
-        :param l1b:
+        :param l1:
         :param l2:
         :return:
         """
@@ -36,18 +37,18 @@ class EnvisatBackscatterDriftCorrection(L2Algorithm):
         # Get the backscatter value
         datagroup = self.cfg.options.l1b_data_group
         name = self.cfg.options.l1b_parameter_name
-        value = l1b.get_parameter_by_name(datagroup, name)
+        value = l1.get_parameter_by_name(datagroup, name)
 
         # Compute the drift correction
         year_base, month_base = self.cfg.options.backscatter_base_period
-        year, month = l1b.info.start_time.year, l1b.info.start_time.month
+        year, month = l1.info.start_time.year, l1.info.start_time.month
         time_shift_factor = (year_base - year) * 12 + (month_base - month)
         sigma0_drift_factor = self.cfg.options.backscatter_drift_factor
         sigma0_drift = time_shift_factor * sigma0_drift_factor
 
-        # Apply and update the backscatter by changing the l1b data object in-place
+        # Apply and update the backscatter by changing the l1 data object in-place
         value += sigma0_drift
-        l1b.set_parameter_by_name(datagroup, name, value)
+        l1.set_parameter_by_name(datagroup, name, value)
 
         # Done
         return error_status
