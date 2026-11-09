@@ -2,7 +2,7 @@ config:
     id: cci_cryosat2_sh_v5p0_cdr
     l2_prod_def_style: 2
     status: tds
-    valid_platforms: ["cryosat2"]
+    supported_platforms: ["cryosat2"]
 
 attributes:
     label: "ESA CCI+ CryoSat-2 southern hemisphere sea-ice thickness climate data record v5.0 test dataset 1"
@@ -48,7 +48,6 @@ auxdata:
         smooth_snow_depth: true
         smooth_filter_width_m: 25000.0
         exception_on_error: True
-
 
 # --- Level-2 processor steps ---
 #
@@ -253,16 +252,6 @@ algorithms:
           target_variables: [frb]
           valid_minimum_point_value: -0.25
           valid_maximum_point_value: 2.25
-
-  # Add sea ice density to the Level-2 object
-    # Base values for pure ice type uncertainties from Alexandrov et al., 2010, The Cryosphere
-    - class_name: AlexandrovSeaIceDensity
-      options:
-          fyi_density: 916.7
-          myi_density: 882.0
-          uncertainty:
-              fyi_density: 35.7
-              myi_density: 23.0
 
     # Algorithm for getting sea ice thickness from other l2 parameters
     - class_name: SeaIceFreeboard2SIT

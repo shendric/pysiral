@@ -183,11 +183,12 @@ class Level2Processor(DefaultLoggingClass):
 
         :return: None
         """
+        logger.info("--- Auxiliary Data Loader ---")
         for auxdata_def in self.l2def.auxdata:
             auxhandler = self._auxclass_handler.get_pyclass(auxdata_def.type, auxdata_def.name, auxdata_def.options)
             self._auxhandlers[auxdata_def.id] = auxhandler
             self._registered_auxdata_handlers.append((auxdata_def.id, auxdata_def.type))
-            logger.info(f"Processor Settings - {auxdata_def.id.upper()} auxdata handler registered")
+            logger.info(f"Init {auxhandler.__class__.__name__} ({auxdata_def.type}:{auxdata_def.name})")
 
     def init_algorithm_classes(self):
         """
@@ -195,11 +196,11 @@ class Level2Processor(DefaultLoggingClass):
 
         :return: None
         """
-        logger.info("Init Processor Steps")
+        logger.info("--- Algorithm Classes ---")
         cfg = self.l2def.algorithms
         self.procsteps = Level2ProcessorStepOrder(cfg)
         self.procsteps.validate()
-        logger.info("Processor steps initialized and validated")
+        logger.info("Algorithm steps initialized and validated")
 
     def execute_algorithms(self, l1b, l2):
         """
@@ -533,7 +534,7 @@ class Level2ProductDefinition(DefaultLoggingClass):
     @property
     def hemisphere_code(self):
         codes = dict(north="nh", south="sh")
-        return codes.get(self.hemisphere, "global")
+        return codes.get(self.hemisphere, self.hemisphere)
 
     @property
     def output_handler(self):

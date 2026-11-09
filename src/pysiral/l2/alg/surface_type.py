@@ -454,9 +454,9 @@ class ClassifierThresholdSurfaceType(L2Algorithm, SurfaceTypeClassifier):
         """
 
         # Init the parent classes
-        SurfaceTypeClassifier.__init__(self)
+        SurfaceTypeClassifier.__init__(self, cfg)
 
-        self.cfg = cfg
+        # self.cfg = cfg
 
         # Properties of this class
         self.reference_date = None

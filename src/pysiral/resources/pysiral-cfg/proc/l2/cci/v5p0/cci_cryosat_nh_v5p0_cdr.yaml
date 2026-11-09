@@ -2,7 +2,8 @@ config:
     id: cci_cryosat2_nh_v5p0_cdr
     l2_prod_def_style: 2
     status: tds
-    valid_platforms: ["cryosat2"]
+    supported_platforms: ["cryosat2"]
+
 
 attributes:
     label: "ESA CCI+ CryoSat-2 northern hemisphere sea-ice thickness climate data record v5.0 test dataset 1"
@@ -43,15 +44,18 @@ auxdata:
         latitude_range: [45.0, 90.0]
 
     - type: sic
-      name: c3s
+      name: osi-cdr-icdr
       options:
-        version: v3p0
-        exception_on_error: False
+          version:
+              cdr: "v3p1"
+              icdr: "v3p0-amsr"
+          exception_on_error: False
+          send_skip_signal_on_no_sea_ice: False
 
     - type: sitype
       name: c3s
       options:
-        version: v3p0
+        version: v4p0
         fill_valid_sic_gaps: True
         exception_on_error: False
 

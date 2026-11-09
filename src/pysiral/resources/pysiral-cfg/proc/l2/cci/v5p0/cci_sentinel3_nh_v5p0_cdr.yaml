@@ -2,7 +2,7 @@ config:
     id: cci_sentinel3_nh_v5p0_cdr
     l2_prod_def_style: 2
     status: tds
-    valid_platforms: ["sentinel3a", "sentinel3b", "sentinel3c"]
+    supported_platforms: ["sentinel3a", "sentinel3b", "sentinel3c"]
 
 attributes:
     label: "ESA CCI+ {platform_name} northern hemisphere sea-ice thickness climate data record v5.0 test dataset 1"

@@ -48,7 +48,7 @@ class Level2ProcessorStepOrder(DefaultLoggingClass):
         l2_classes = []
         for procstep_def in self.cfg:
             obj = PSRLCFG.get_class_from_registry("L2_ALGORITHM", procstep_def.class_name)
-            logger.info(f"Added L2 processor step: {procstep_def.class_name}")
+            logger.info(f"Init {procstep_def.class_name}")
             l2_classes.append(obj)
         return l2_classes
 

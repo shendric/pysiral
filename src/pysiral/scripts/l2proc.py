@@ -58,6 +58,7 @@ def l2proc(
     # Get the Level-2 product definition containing the product metadata, list of
     # auxiliary data files and the algorithm steps. This information is saved in
     # yaml L2 product definition files (`pysiral/resources/pysiral-cfg/proc/l2/`).
+    assert l2_settings is not None, "Level-2 settings file must be provided."
     product_def = Level2ProductDefinition(
         l2_settings,
         platform,
