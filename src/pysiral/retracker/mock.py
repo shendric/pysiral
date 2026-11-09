@@ -6,10 +6,10 @@ This submodule contains classes that mock retracker functionality.
 
 from loguru import logger
 
-from pysiral.l2.procsteps import Level2ProcessorStep
+from pysiral.l2 import L2Algorithm
 
 
-class SGDRMultipleElevations(Level2ProcessorStep):
+class SGDRMultipleElevations(L2Algorithm):
     """
     A processing step that computes elevation from a set of
     already retracked ranges and sets these as auxiliary
@@ -24,10 +24,11 @@ class SGDRMultipleElevations(Level2ProcessorStep):
           corresponding L2 processor steps
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SGDRMultipleElevations, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        super(SGDRMultipleElevations, self).__init__()
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Computes elevations from pre-defined retrackers
         :param l1b:
@@ -69,7 +70,7 @@ class SGDRMultipleElevations(Level2ProcessorStep):
         return self.cfg.options.get("predefined_retrackers", [])
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return []
 
     @property

@@ -13,11 +13,11 @@ try:
 except ImportError:
     SAMOSA_OK = False
 
-from pysiral.l2.procsteps import Level2ProcessorStep
+from pysiral.l2 import L2Algorithm
 
 
 
-class SSBCorrectionJason2(Level2ProcessorStep):
+class SSBCorrectionJason2(L2Algorithm):
     """
     A processing step applying a sea state bias correction.
 
@@ -31,12 +31,13 @@ class SSBCorrectionJason2(Level2ProcessorStep):
 
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SSBCorrectionJason2, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        super(SSBCorrectionJason2, self).__init__()
+        self.cfg = cfg
         if not SAMOSA_OK:
             logger.error("Unable to import the SAMOSA retracker helper functions. Has it been installed?")
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Compute the ssb correction.
         :param l1b:
@@ -79,7 +80,7 @@ class SSBCorrectionJason2(Level2ProcessorStep):
         return error_status
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["elev", "samswh", "samwsp"]
 
     @property

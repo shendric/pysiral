@@ -4,7 +4,7 @@
 @author: Stefan Hendricks
 
 pysiral module for estimating dynamic ocean topography from existing sea-level anomaly data
-child classes of pysiral.l2.procsteps.Level2ProcessorStep.
+for Level-2 algorithms.
 
 NOTES:
 
@@ -22,19 +22,20 @@ __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 import numpy as np
 
-from pysiral.l2.procsteps import Level2ProcessorStep
+from pysiral.l2 import L2Algorithm
 
 
-class DynamicOceanTopography(Level2ProcessorStep):
+class DynamicOceanTopography(L2Algorithm):
     """
     A Level-2 processor step that adds sea ice density and sea ice density uncertainty
     to the L2 data object based on sea ice type classification
     """
 
-    def __init__(self, *args, **kwargs):
-        super(DynamicOceanTopography, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        super(DynamicOceanTopography, self).__init__()
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Mandatory Level-2 processor method that will execute the processing step and modify the
         L2 data object in-place.
@@ -57,9 +58,9 @@ class DynamicOceanTopography(Level2ProcessorStep):
         return np.isnan(l2.dot[:])
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         """
-        Mandatory property for Level2ProcessorStep children
+        Mandatory property for L2Algorithm children
         :return: list (str)
         """
         return ["mdt", "sla"]
@@ -67,7 +68,7 @@ class DynamicOceanTopography(Level2ProcessorStep):
     @property
     def l2_output_vars(self):
         """
-        Mandatory property for Level2ProcessorStep children
+        Mandatory property for L2Algorithm children
         :return: list (str)
         """
         return ["dot"]

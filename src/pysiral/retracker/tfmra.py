@@ -12,7 +12,7 @@ import bottleneck as bn
 import numpy as np
 from loguru import logger
 
-from pysiral.l2.procsteps import Level2ProcessorStep
+from pysiral.l2 import L2Algorithm
 from pysiral.retracker import BaseRetracker
 
 # cythonized bottleneck functions for cTFMRA
@@ -546,16 +546,17 @@ class cTFMRA(BaseRetracker):
         })
         return oversampling_method, oversampling_kwargs
 
-class TFMRAMultiThresholdFreeboards(Level2ProcessorStep):
+class TFMRAMultiThresholdFreeboards(L2Algorithm):
     """
     Level-2 processor step to compute elevations from a range of TFMRA thresholds.
     NOTE: Computational expensive, should be handled with care
     """
 
-    def __init__(self, *args, **kwargs):
-        super(TFMRAMultiThresholdFreeboards, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        super(TFMRAMultiThresholdFreeboards, self).__init__()
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Computes the elevation of a range of defined of TFMRA retrackers thresholds to all
         lead or ice elevations.
@@ -609,7 +610,7 @@ class TFMRAMultiThresholdFreeboards(Level2ProcessorStep):
         return error_status
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["range"]
 
     @property
