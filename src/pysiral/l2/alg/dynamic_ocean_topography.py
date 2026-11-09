@@ -35,14 +35,16 @@ class DynamicOceanTopography(L2Algorithm):
         super(DynamicOceanTopography, self).__init__()
         self.cfg = cfg
 
-    def apply(self, l1b, l2):
+    def apply(self, l1, l2):
         """
         Mandatory Level-2 processor method that will execute the processing step and modify the
         L2 data object in-place.
         This method only sets the value of the dynamic ocean topography fields (dot) since
         DOT is a standard Level-2 data item.
-        :param l1b:
+
+        :param l1:
         :param l2:
+
         :return:
         """
 

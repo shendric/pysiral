@@ -14,6 +14,7 @@ from loguru import logger
 
 from pysiral.core.flags import ANDCondition
 from pysiral.l2 import L2Algorithm
+from pysiral.l2.alg.filter import astropy_smooth, interp1d_gap_filling
 
 
 @dataclass
