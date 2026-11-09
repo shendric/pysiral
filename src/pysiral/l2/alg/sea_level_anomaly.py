@@ -371,6 +371,7 @@ class SLAGaussianProcess(L2Algorithm, SLABaseFunctionality):
         """
 
         # Init both base classes
+        super(SLAGaussianProcess, self).__init__()
         self.cfg = cfg
         SLABaseFunctionality.__init__(self)
 
@@ -695,6 +696,7 @@ class SLARaw(L2Algorithm, SLABaseFunctionality):
         """
 
         # Init both base classes
+        super(SLARaw, self).__init__()
         self.cfg = cfg
         SLABaseFunctionality.__init__(self)
 

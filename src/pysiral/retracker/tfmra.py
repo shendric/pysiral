@@ -553,6 +553,7 @@ class TFMRAMultiThresholdFreeboards(L2Algorithm):
     """
 
     def __init__(self, cfg, **kwargs):
+        super(TFMRAMultiThresholdFreeboards, self).__init__()
         self.cfg = cfg
 
     def apply(self, l1b, l2):

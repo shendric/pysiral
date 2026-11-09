@@ -32,6 +32,7 @@ class DynamicOceanTopography(L2Algorithm):
     """
 
     def __init__(self, cfg, **kwargs):
+        super(DynamicOceanTopography, self).__init__()
         self.cfg = cfg
 
     def apply(self, l1b, l2):

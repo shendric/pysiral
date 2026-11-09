@@ -32,6 +32,7 @@ class SSBCorrectionJason2(L2Algorithm):
     """
 
     def __init__(self, cfg, **kwargs):
+        super(SSBCorrectionJason2, self).__init__()
         self.cfg = cfg
         if not SAMOSA_OK:
             logger.error("Unable to import the SAMOSA retracker helper functions. Has it been installed?")

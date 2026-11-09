@@ -254,6 +254,7 @@ class LaforgeTFMR50PPCorrection(L2Algorithm):
     """
 
     def __init__(self, cfg, **kwargs):
+        super(LaforgeTFMR50PPCorrection, self).__init__()
         self.cfg = cfg
 
     def apply(self, l1b: Level1bData, l2: Level2Data) -> npt.NDArray:

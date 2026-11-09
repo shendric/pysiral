@@ -216,6 +216,7 @@ class CS2InstrumentModeflag(L2Algorithm):
         :param cfg:
         :param kwargs:
         """
+        super(CS2InstrumentModeflag, self).__init__()
         self.cfg = cfg
 
     def apply(self, l1b, l2):
@@ -248,7 +249,6 @@ class CS2InstrumentModeflag(L2Algorithm):
     @property
     def error_bit(self):
         return self.error_flag_bit_dict["other"]
-
 
 
 

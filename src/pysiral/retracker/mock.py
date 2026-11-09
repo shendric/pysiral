@@ -25,6 +25,7 @@ class SGDRMultipleElevations(L2Algorithm):
     """
 
     def __init__(self, cfg, **kwargs):
+        super(SGDRMultipleElevations, self).__init__()
         self.cfg = cfg
 
     def apply(self, l1b, l2):

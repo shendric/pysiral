@@ -233,7 +233,7 @@ class SICCI2SurfaceType(L2Algorithm, SurfaceTypeClassifier):
 
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
         Init the class. Configuration is passed as cfg.
         SurfaceTypeClassifier does not take any input at __init__.
@@ -242,6 +242,7 @@ class SICCI2SurfaceType(L2Algorithm, SurfaceTypeClassifier):
         """
 
         # Init the parent classes
+        super(SICCI2SurfaceType, self).__init__()
         self.cfg = cfg
         SurfaceTypeClassifier.__init__(self)
 
@@ -649,6 +650,7 @@ class ClassifierAuxiliarySurfaceType(L2Algorithm, SurfaceTypeClassifier):
         """
 
         # Init the parent classes
+        super(ClassifierAuxiliarySurfaceType, self).__init__()
         self.cfg = cfg
         SurfaceTypeClassifier.__init__(self)
 
