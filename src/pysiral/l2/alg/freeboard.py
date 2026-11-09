@@ -15,7 +15,6 @@ import numpy.typing as npt
 from pysiral.l1.l1_data import Level1bData
 from pysiral.l2 import L2Algorithm
 from pysiral.l2.l2data import Level2Data
-from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 class SnowGeometricCorrection(L2Algorithm):
@@ -241,7 +240,7 @@ class RadarFreeboardDefault(L2Algorithm):
         return self.error_flag_bit_dict["frb"]
 
 
-class LaforgeTFMR50PPCorrection(Level2ProcessorStep):
+class LaforgeTFMR50PPCorrection(L2Algorithm):
     """
     Class implementing the pulse-peakiness based range correction for the
     TFMRA50 described in
@@ -254,8 +253,8 @@ class LaforgeTFMR50PPCorrection(Level2ProcessorStep):
     NOTE: This range correction is not applicable for CryoSat-2 data and the use of a TFMRA50
     """
 
-    def __init__(self, *args, **kwargs):
-        super(LaforgeTFMR50PPCorrection, self).__init__(*args, **kwargs)
+    def __init__(self, cfg, **kwargs):
+        self.cfg = cfg
 
     def apply(self, l1b: Level1bData, l2: Level2Data) -> npt.NDArray:
         """

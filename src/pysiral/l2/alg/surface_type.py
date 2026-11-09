@@ -18,7 +18,6 @@ from pysiral.core.legacy_classes import AttrDict
 from pysiral.l1.l1_data import L1bdataNCFile
 from pysiral.l2 import L2Algorithm
 from pysiral.l2.l2data import Level2Data
-from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 class ClassifierContainer(object):
@@ -71,7 +70,7 @@ class SurfaceTypeClassifier(object):
     for the Level-2 processpr
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
         Initializes the class
         """
@@ -225,7 +224,7 @@ class SurfaceTypeClassifier(object):
 #         self._surface_type.add_flag(ice.flag, "sea_ice")
 
 
-class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
+class SICCI2SurfaceType(L2Algorithm, SurfaceTypeClassifier):
     """
     new and unified surface type classifier for cryosat2 and envisat
     based on similar (pulse peakiness, backscatter, leading edge width)
@@ -236,22 +235,22 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
 
     def __init__(self, *args, **kwargs):
         """
-        Init the class. All *args and **kwargs will be directed to Level2ProcessorStep as
-        SurfaceTypeClassifier does not take any input at __init__
-        :param args:
+        Init the class. Configuration is passed as cfg.
+        SurfaceTypeClassifier does not take any input at __init__.
+        :param cfg:
         :param kwargs:
         """
 
         # Init the parent classes
-        Level2ProcessorStep.__init__(self, *args, **kwargs)
+        self.cfg = cfg
         SurfaceTypeClassifier.__init__(self)
 
         # Set the classes that this classifier will detect
         self._classes = ["unknown", "ocean", "lead", "sea_ice", "land"]
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
-        The mandatory class for a Level2ProcessorStep.
+        The mandatory class for an L2Algorithm.
         :param l1b:
         :param l2:
         :return:
@@ -426,7 +425,7 @@ class SICCI2SurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
             return option_value
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         return ["sic"]
 
     @property
@@ -635,31 +634,31 @@ class ClassifierThresholdSurfaceType(L2Algorithm, SurfaceTypeClassifier):
         return self.error_flag_bit_dict["surface_type"]
 
 
-class ClassifierAuxiliarySurfaceType(Level2ProcessorStep, SurfaceTypeClassifier):
+class ClassifierAuxiliarySurfaceType(L2Algorithm, SurfaceTypeClassifier):
     """
     Surface type classification using a parameter already present in l1p that
     was read in from auxiliary files during preprocessing
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
-        Init the class. All *args and **kwargs will be directed to Level2ProcessorStep as
-        SurfaceTypeClassifier does not take any input at __init__
-        :param args:
+        Init the class. Configuration is passed as cfg.
+        SurfaceTypeClassifier does not take any input at __init__.
+        :param cfg:
         :param kwargs:
         """
 
         # Init the parent classes
-        Level2ProcessorStep.__init__(self, *args, **kwargs)
+        self.cfg = cfg
         SurfaceTypeClassifier.__init__(self)
 
         # Properties of this class
         self.reference_date = None        # Set the classes that this classifier will detect
         self._classes = ["unknown", "ocean", "lead", "sea_ice"]
 
-    def execute_procstep(self, l1, l2) -> np.ndarray:
+    def apply(self, l1, l2) -> np.ndarray:
         """
-        The mandatory class for a Level2ProcessorStep.
+        The mandatory class for an L2Algorithm.
         :param l1:
         :param l2:
         :return:
@@ -758,7 +757,7 @@ class ClassifierAuxiliarySurfaceType(Level2ProcessorStep, SurfaceTypeClassifier)
         self.surface_type.add_flag(ice.flag, "sea_ice")
 
     @property
-    def l2_input_vars(self) -> List[str]:
+    def l2_dependencies(self) -> List[str]:
         return ['sic']
 
     @property

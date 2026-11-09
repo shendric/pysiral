@@ -4,8 +4,7 @@
 @author: Stefan Hendricks
 
 pysiral module for estimating sea surface height (ssh) respectively sea level anomaly (sla) from along-track
-radar altimeter data. The classes are designed to work with the Level-2 Processor, therefore need to be
-child classes of pysiral.l2.procsteps.Level2ProcessorStep.
+radar altimeter data. The classes are designed to work with the Level-2 Processor as L2Algorithm classes.
 
 NOTES:
 
@@ -30,7 +29,6 @@ from pysiral.core.flags import SurfaceType
 from pysiral.l2 import L2Algorithm
 from pysiral.l2.alg.filter import fill_nan, idl_smooth
 from pysiral.l2.l2data import L2DataArray
-from pysiral.l2.procsteps import Level2ProcessorStep
 
 
 def marine_segment_filter(l2, minimum_lead_number, footprint_size, use_ocean_wfm):
@@ -358,26 +356,25 @@ class SLABaseFunctionality(object):
         return distance
 
 
-class SLAGaussianProcess(Level2ProcessorStep, SLABaseFunctionality):
+class SLAGaussianProcess(L2Algorithm, SLABaseFunctionality):
     """
     Use gaussian processes of the scikit-learn module to predict optimal sla from of ssh tiepoints
     (with various filter options similar to SLASmoothedLinear).
     This class will compute the sea level anomaly (sla)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
-        Init the class. Options will be passed to parent class
-        (pysiral.l2.procsteps.Level2ProcessorStep)
-        :param args:
+        Init the class. Options will be passed as cfg.
+        :param cfg:
         :param kwargs:
         """
 
         # Init both base classes
-        Level2ProcessorStep.__init__(self, *args, **kwargs)
+        self.cfg = cfg
         SLABaseFunctionality.__init__(self)
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Mandatory Level-2 processor method that will execute the processing step
         and modify the L2 data object in-place.
@@ -472,9 +469,9 @@ class SLAGaussianProcess(Level2ProcessorStep, SLABaseFunctionality):
         return sla, sla_unc
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         """
-        Mandatory property for Level2ProcessorStep children
+        Mandatory property for L2Algorithm children
         :return: list (str)
         """
         return ["surface_type", "elev", "mss"]
@@ -482,7 +479,7 @@ class SLAGaussianProcess(Level2ProcessorStep, SLABaseFunctionality):
     @property
     def l2_output_vars(self):
         """
-        Mandatory property for Level2ProcessorStep children
+        Mandatory property for L2Algorithm children
         :return: list (str)
         """
         return ["sla"]
@@ -683,26 +680,25 @@ class SLASmoothedLinear(L2Algorithm, SLABaseFunctionality):
         return self.error_flag_bit_dict["sla"]
 
 
-class SLARaw(Level2ProcessorStep, SLABaseFunctionality):
+class SLARaw(L2Algorithm, SLABaseFunctionality):
     """
     Get the raw SLA.
     This class will compute the sea level anomaly (sla)
     :sectionauthor: D. J. Brockley (UCL)
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
-        Init the class. Options will be passed to parent class
-        (pysiral.l2.procsteps.Level2ProcessorStep)
-        :param args:
+        Init the class. Options will be passed as cfg.
+        :param cfg:
         :param kwargs:
         """
 
         # Init both base classes
-        Level2ProcessorStep.__init__(self, *args, **kwargs)
+        self.cfg = cfg
         SLABaseFunctionality.__init__(self)
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Mandatory Level-2 processor method that will execute the processing step
         and modify the L2 data object in-place.
@@ -762,9 +758,9 @@ class SLARaw(Level2ProcessorStep, SLABaseFunctionality):
         return sla_raw, sla_unc
 
     @property
-    def l2_input_vars(self):
+    def l2_dependencies(self):
         """
-        Mandatory property for Level2ProcessorStep children
+        Mandatory property for L2Algorithm children
         :return: list (str)
         """
         return ["surface_type", "elev", "mss"]
@@ -772,7 +768,7 @@ class SLARaw(Level2ProcessorStep, SLABaseFunctionality):
     @property
     def l2_output_vars(self):
         """
-        Mandatory property for Level2ProcessorStep children
+        Mandatory property for L2Algorithm children
         :return: list (str)
         """
         return ["sla"]

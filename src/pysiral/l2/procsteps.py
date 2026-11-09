@@ -203,22 +203,22 @@ class Level2ProcessorStepOrder(DefaultLoggingClass):
 
 
 
-class CS2InstrumentModeflag(Level2ProcessorStep):
+class CS2InstrumentModeflag(L2Algorithm):
     """
     A class creating an instrument_mode flag from radar_mode:
 
         instrument_mode = radar_mode + 1
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg, **kwargs):
         """
         Init the class
-        :param args:
+        :param cfg:
         :param kwargs:
         """
-        super(CS2InstrumentModeflag, self).__init__(*args, **kwargs)
+        self.cfg = cfg
 
-    def execute_procstep(self, l1b, l2):
+    def apply(self, l1b, l2):
         """
         Mandatory method of Level-2 processor
         :param l1b:
@@ -248,7 +248,6 @@ class CS2InstrumentModeflag(Level2ProcessorStep):
     @property
     def error_bit(self):
         return self.error_flag_bit_dict["other"]
-
 
 
 
