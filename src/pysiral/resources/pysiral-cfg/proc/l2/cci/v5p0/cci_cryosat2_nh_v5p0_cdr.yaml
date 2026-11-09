@@ -39,8 +39,8 @@ auxdata:
 
     - type: mss
       name: dtu21
-        options:
-            latitude_range: [45.0, 90.0]
+      options:
+        latitude_range: [45.0, 90.0]
 
     - type: sic
       name: c3s
