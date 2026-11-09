@@ -31,7 +31,7 @@ class SeaIceFreeboard2SIT(L2Algorithm):
         """
 
         # Short cuts
-        rho_w = self.cfg.options.water_density
+        rho_w = self.cfg.options["water_density"]
 
         # Compute sea ice thickness ...
         sit = icefreeboard2thickness(l2.frb, l2.sd, rho_w, l2.idens, l2.sdens)

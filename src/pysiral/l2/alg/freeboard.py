@@ -111,7 +111,7 @@ class SnowGeometricCorrection(L2Algorithm):
         """
 
         # Get the option value from the Level-2 processor definition file
-        config_value = self.cfg.options.vacuum_light_speed_reduction
+        config_value = self.cfg.options["vacuum_light_speed_reduction"]
 
         # Case 1: Number is float value
         # -> return as is

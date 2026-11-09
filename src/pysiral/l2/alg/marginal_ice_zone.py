@@ -14,7 +14,7 @@ from loguru import logger
 
 from pysiral.core.flags import ANDCondition
 from pysiral.l2 import L2Algorithm
-from pysiral.l2.alg.filter import astropy_smooth, interp1d_gap_filling
+from pysiral.l2.alg.filter import astropy_smooth, interp1d_gap_filling, lowess_smooth
 
 
 @dataclass
@@ -177,7 +177,7 @@ class MarginalIceZoneFilterFlag(L2Algorithm):
 
         # Get the output flag format
         # (Can be boolean (0, 1) or extented (-1, 0, 1, 2))
-        boolean_flag_values = self.cfg.get("boolean_flag_values", False)
+        boolean_flag_values = self.cfg.options.get("boolean_flag_values", False)
 
         # Only compute the filter flag, if all basic conditions are met
         filter_execute_conditions = [

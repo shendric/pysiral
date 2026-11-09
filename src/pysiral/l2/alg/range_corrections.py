@@ -46,7 +46,7 @@ class L2ApplyRangeCorrections(L2Algorithm):
 
         # Apply the range corrections (content of l1 data _package)
         # to the l2 elevation (output of retracker) data
-        for correction_name in self.cfg.options.corrections:
+        for correction_name in self.cfg.options["corrections"]:
 
             # Get the range correction field
             range_delta = l2.get_parameter_by_name(correction_name)

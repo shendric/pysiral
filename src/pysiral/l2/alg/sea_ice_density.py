@@ -34,11 +34,11 @@ class AlexandrovSeaIceDensity(L2Algorithm):
         error_status = self.get_clean_error_status(l2.n_records)
 
         # Boundary conditions (all fyi, all myi)
-        rho_i_fyi = self.cfg.options.fyi_density
-        rho_i_myi = self.cfg.options.myi_density
+        rho_i_fyi = self.cfg.options["fyi_density"]
+        rho_i_myi = self.cfg.options["myi_density"]
 
         # Scales with MYI fraction
-        myi_fraction_var_name = self.cfg.options.get("myi_fraction_var_name", "sitype")
+        myi_fraction_var_name = self.cfg.options.get("myi_fraction_var_name", "sea_ice_type")
         myi_fraction = l2.get_parameter_by_name(myi_fraction_var_name)
         rho_i = rho_i_fyi - myi_fraction * (rho_i_fyi - rho_i_myi)
 
@@ -55,16 +55,16 @@ class AlexandrovSeaIceDensity(L2Algorithm):
         # myi_fraction uncertainty, the sea ice density uncertainty is
         # slightly increased in regions of higher myi_fraction uncertainty
         if "uncertainty" in self.cfg.options:
-            unc = self.cfg.options.uncertainty
-            rho_i_unc = unc.fyi_density
-            rho_i_unc += myi_fraction * (unc.myi_density - unc.fyi_density)
-            rho_i_unc += (unc.fyi_density - unc.myi_density) * myi_fraction.uncertainty
+            unc = self.cfg.options["uncertainty"]
+            rho_i_unc = unc["fyi_density"]
+            rho_i_unc += myi_fraction * (unc["myi_density"] - unc["fyi_density"])
+            rho_i_unc += (unc["fyi_density"] - unc["myi_density"]) * myi_fraction.uncertainty
 
         # Use fixed value for uncertainty (or 0 if unspecified)
         else:
             unc = 0.0
             if "uncertainty_fixed_value" in self.cfg.options:
-                unc = self.cfg.options.uncertainty_fixed_value
+                unc = self.cfg.options["uncertainty_fixed_value"]
             rho_i_unc = np.full(rho_i.shape, unc, dtype=np.float32)
 
         # Add data to the Level-2 data object

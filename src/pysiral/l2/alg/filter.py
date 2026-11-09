@@ -51,10 +51,10 @@ class L2ParameterValidRange(L2Algorithm):
         """
 
         # Step 1: Get the filter flag
-        parameter = getattr(l2, self.cfg.options.source_variable)
+        parameter = getattr(l2, self.cfg.options["source_variable"])
         invalid = ORCondition()
-        invalid.add(parameter < self.cfg.options.valid_minimum_point_value)
-        invalid.add(parameter > self.cfg.options.valid_maximum_point_value)
+        invalid.add(parameter < self.cfg.options["valid_minimum_point_value"])
+        invalid.add(parameter > self.cfg.options["valid_maximum_point_value"])
         filter_flag = FlagContainer(invalid.flag)
 
         # Check if any flag was raised
@@ -62,7 +62,7 @@ class L2ParameterValidRange(L2Algorithm):
             return filter_flag.flag
 
         # Modify target variables
-        for parameter_id in self.cfg.options.target_variables:
+        for parameter_id in self.cfg.options["target_variables"]:
             var = getattr(l2, parameter_id)
             var.set_nan_indices(filter_flag.flag)
             setattr(l2, parameter_id, var)
@@ -72,7 +72,7 @@ class L2ParameterValidRange(L2Algorithm):
 
     @property
     def l2_dependencies(self):
-        input_vars = [self.cfg.options.source_variable]
+        input_vars = [self.cfg.options["source_variable"]]
         input_vars.extend(self.cfg.options.target_variables)
         return input_vars
 
@@ -267,6 +267,21 @@ def interp1d_gap_filling(y: np.ndarray, **interp_kwargs) -> np.ndarray:
                  **interp_kwargs
                  )
     return f(x)
+
+
+def lowess_smooth(x: np.ndarray,
+                  y: np.ndarray,
+                  window: int) -> np.ndarray:
+    """
+    Simple lowess smoother
+    :param x:
+    :param y:
+    :param window:
+    :return:
+    """
+    data_fraction = min(float(window) / float(x.shape[0]), 1.0)
+    return sm.nonparametric.lowess(y, x, frac=data_fraction, return_sorted=False)
+
 
 def idl_smooth(x: np.ndarray,
                window: int

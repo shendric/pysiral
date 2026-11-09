@@ -569,17 +569,19 @@ class SLASmoothedLinear(L2Algorithm, SLABaseFunctionality):
         #       the SLA computation is very likely not trustworthy
         mask = np.full(l2.n_records, False)
         if "marine_segment_filter" in self.cfg.options:
-            minimum_lead_number = self.cfg.options.marine_segment_filter.get("minimum_lead_number", np.nan)
+            opt = self.cfg.options["marine_segment_filter"]
+            minimum_lead_number = opt.get("minimum_lead_number", np.nan)
             use_ocean_wfm = self.cfg.options.get("use_ocean_wfm", False)
             filter_mask = marine_segment_filter(l2, minimum_lead_number, l2.footprint_spacing, use_ocean_wfm)
             mask = np.logical_or(mask, filter_mask)
 
         # Step 5 (optional): Filter SLA segments that are far away from the next SSH tie point
         if "tiepoint_maxdist_filter" in self.cfg.options:
+            opt = self.cfg.options["tiepoint_maxdist_filter"]
             is_tiepoint = np.full(l2.n_records, False)
             is_tiepoint[ssh_tiepoint_indices] = True
-            distance_threshold = self.cfg.options.tiepoint_maxdist_filter.get("maximum_distance_to_tiepoint", np.nan)
-            edges_only = self.cfg.options.tiepoint_maxdist_filter.get("edges_only", False)
+            distance_threshold = opt.get("maximum_distance_to_tiepoint", np.nan)
+            edges_only = opt.get("edges_only", False)
             filter_mask = self.tiepoint_maxdist_filter(l2, edges_only, distance_threshold, l2.footprint_spacing)
             mask = np.logical_or(mask, filter_mask)
 

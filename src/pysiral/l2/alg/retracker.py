@@ -85,7 +85,7 @@ class Level2RetrackerContainer(L2Algorithm):
             if retracker.error_flag.num > 0:
                 l2.surface_type.add_flag(retracker.error_flag.flag, "invalid")
             logger.info("- Retrack class %s with %s in %.3f seconds" % (
-                surface_type, retracker_def["pyclass"],
+                surface_type, retracker_def["class_name"],
                 time.time()-timestamp))
 
         return error_status
