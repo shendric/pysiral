@@ -23,6 +23,7 @@ __all__ = ["AuxdataBaseClass",
 
 
 import re
+import warnings
 from datetime import date
 from pathlib import Path
 from typing import List
@@ -185,6 +186,11 @@ class AuxdataBaseClass(object):
     def __init__(self, auxclass_cfg):
         """ This class should not be called directly, only its subclasses. auxclass_cfg needs to be of type
         AuxClassConfig """
+        warnings.warn(
+            "AuxdataBaseClass is deprecated, subclass AuxDataLoader instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
         # Error handler
         self.error = ErrorStatus(self.pyclass)
@@ -593,11 +599,11 @@ def get_all_auxdata_classes():
     """
 
     # Import all submodules of the auxdata module to discover all potential
-    # subclasses of AuxdataBaseClass
+    # subclasses of AuxDataLoader
     import_submodules(__name__)
 
-    # Get a list of AuxdataBaseClass subclasses after import
-    subclass_list = AuxdataBaseClass.__subclasses__()
+    # Get a list of AuxDataLoader subclasses after import
+    subclass_list = list(PSRLCFG.CLASS_REGISTRY["AUX_DATA_LOADER"].values())
 
     # Compile output
     auxdata_class_results = []

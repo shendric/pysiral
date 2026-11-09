@@ -46,7 +46,7 @@ import scipy.ndimage as ndimage
 from pyproj import Proj
 from scipy import interpolate
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.alg.sea_level_anomaly import SLABaseFunctionality
 
@@ -411,7 +411,7 @@ class OsiSafSITypeCDR(AuxDataLoader):
         return ["", "interim"]
 
 
-class ICDCNasaTeam(AuxdataBaseClass):
+class ICDCNasaTeam(AuxDataLoader):
     """ MYI Fraction from NASA Team Algorithm (from ICDC UHH) """
 
     def __init__(self, *args, **kwargs):
@@ -519,7 +519,7 @@ class ICDCNasaTeam(AuxdataBaseClass):
         return sitype, sitype_uncertainty
 
 
-class MYIDefault(AuxdataBaseClass):
+class MYIDefault(AuxDataLoader):
     """ Returns myi for all ice covered regions """
 
     def __init__(self, *args, **kwargs):
@@ -542,7 +542,7 @@ class MYIDefault(AuxdataBaseClass):
             return 0.0
 
 
-class FYIDefault(AuxdataBaseClass):
+class FYIDefault(AuxDataLoader):
     """ Returns myi for all ice covered regions """
 
     def __init__(self, *args, **kwargs):

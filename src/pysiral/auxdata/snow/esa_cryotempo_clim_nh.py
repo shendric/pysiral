@@ -9,7 +9,7 @@ from datetime import date, datetime
 from dateutil.relativedelta import relativedelta
 from typing import List, Tuple
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import AuxDataLoader, GridTrackInterpol
 from pysiral.auxdata.snow._data import SnowParameterContainer
 from pysiral.core.legacy_classes import ErrorStatus
 
@@ -200,7 +200,7 @@ class Warren99SMLGClimDataContainer(object):
         return self.ds.warren99_weight.values if self.ds is not None else np.full(self.ds.lon.shape, np.nan)
 
 
-class CryoTempoNorthernClimatology(AuxdataBaseClass):
+class CryoTempoNorthernClimatology(AuxDataLoader):
     """
     Class for monthly snow depth & density climatology based on merged Warren99 climatology and
     monthly filterer SnowModelLG. The source data is organized as

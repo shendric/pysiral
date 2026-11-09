@@ -9,10 +9,10 @@ Module created for FMI version of pysiral
 
 import numpy as np
 
-from pysiral.auxdata import AuxdataBaseClass
+from pysiral.auxdata import AuxDataLoader
 
 
-class RIO(AuxdataBaseClass):
+class RIO(AuxDataLoader):
 
     def __init__(self, *args, **kwargs):
         super(RIO, self).__init__(*args, **kwargs)

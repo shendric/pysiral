@@ -6,13 +6,18 @@
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 __all__ = ["AuxDataExitFlag", "AuxDataLoader"]
 
-from abc import ABC, abstractmethod
+import re
+from abc import ABC
+from datetime import date
 from enum import IntEnum
+from pathlib import Path
 from loguru import logger
+from typing import Any
 
 import numpy as np
 
 from pysiral import PSRLCFG
+from pysiral.core.legacy_classes import ErrorStatus
 
 
 class AuxDataExitFlag(IntEnum):
@@ -30,7 +35,7 @@ class AuxDataLoader(ABC):
     Abstract base class for Level-2 PreProcessor Algorithms.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, cfg: Any = None, **kwargs) -> None:
 
         # Main properties
         self.data = None     # Data container for external data
@@ -56,6 +61,12 @@ class AuxDataLoader(ABC):
         # further processing of the segment should be stopped
         # TODO: Dangerous implementation, needs to be reworked (signal needs to be reset after each segment)
         self.skip_signal = False
+
+        # Error handler
+        self.error = ErrorStatus(self.pyclass)
+
+        # Optional class configuration
+        self._cfg = cfg
 
     def __init_subclass__(cls):
         PSRLCFG.CLASS_REGISTRY["AUX_DATA_LOADER"][cls.__name__] = cls
@@ -96,18 +107,81 @@ class AuxDataLoader(ABC):
     def get_empty_array(l2, empty_val= np.nan):
         return np.full(l2.n_records, empty_val)
 
-    @abstractmethod
     def apply(self, l1: 'L1bdataNCFile', l2: 'Level2Data') -> AuxDataExitFlag:
         """
-        [Mandatory class method] Add the model prediction for the tfmra retracker threshold to the
-        Level-2 data object. The model evaluation depends solely on waveform power.
+        Default legacy entry point for AuxDataLoader subclasses.
+        Subclasses can override this method directly or implement the classic
+        get_l2_track_vars/load_requested_auxdata flow.
 
         :param l1: `L1bdataNCFile` container
         :param l2: `Level2Data` container
 
         :return: exit status flag
         """
+        self.receive_l1p_input(l1)
+        self.set_requested_date_from_l2(l2)
+        self.update_external_data()
+        self.add_variables_to_l2(l2)
+        return AuxDataExitFlag.NOMINAL
+
+    def check_data_availability(self, data_container_name="_data"):
+        """
+        Checks if data is loaded. If data container is None, raise an Error
+        :param data_container_name:
+        :return:
+        """
+        data_container = getattr(self, data_container_name, None)
+        if data_container is None:
+            msg = "%s: Data not loaded [%s]"
+            msg %= (self.__class__.__name__, f"{self.year}-{self.month}-{self.day}")
+            self.add_handler_message(msg)
+            self.error.add_error("auxdata_missing", msg)
+
+    def reset_auxvars(self):
+        self._auxvars = []
+
+    def reset_handler_messages(self):
+        self.msgs = []
+
+    def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
         pass
+
+    def add_variables_to_l2(self, l2):
+        if not self.has_mandatory_track_method:
+            msg = f"Mandatory subclass method `get_l2_track_vars` not implemented for {self.pyclass} "
+            self.error.add_error("not-implemented", msg)
+            self.error.raise_on_error()
+
+        self.reset_auxvars()
+        self.reset_handler_messages()
+        self.get_l2_track_vars(l2)
+
+        if self.error.status and self.exception_on_error:
+            self.error.raise_on_error()
+
+        for auxvar in self._auxvars:
+            l2.set_auxiliary_parameter(auxvar["id"], auxvar["name"], auxvar["value"], auxvar.get("uncertainty", None))
+
+    def register_auxvar(self, var_id, var_name, value, uncertainty=None):
+        auxvar_dict = dict(id=var_id, name=var_name, value=value, uncertainty=uncertainty)
+        self._auxvars.append(auxvar_dict)
+
+    def add_handler_message(self, msg):
+        self.msgs.append(msg)
+
+    def load_requested_auxdata(self):
+        msg = (
+            "This Exception is caused because the auxiliary data class ({}) is missing the method "
+            "`load_requested_auxdata` or AuxDataLoader was called directly (which it should not)"
+        )
+        raise NotImplementedError(msg.format(self.__class__.__name__))
+
+    def get_l2_track_vars(self, *args):
+        msg = (
+            "This Exception is caused because the auxiliary data class ({}) is missing the method "
+            "`get_l2_track_vars` or AuxDataLoader was called directly (which it should not)"
+        )
+        raise NotImplementedError(msg.format(self.__class__.__name__))
 
     @property
     def year(self):
@@ -124,3 +198,48 @@ class AuxDataLoader(ABC):
     @property
     def has_data_loaded(self) -> bool:
         return self._data is not None if hasattr(self, "_data") else False
+
+    @property
+    def pyclass(self) -> str:
+        return self.__class__.__name__
+
+    @property
+    def cfg(self):
+        return self._cfg
+
+    @cfg.setter
+    def cfg(self, value):
+        self._cfg = value
+
+    @property
+    def exception_on_error(self) -> bool:
+        options = getattr(self.cfg, "options", {})
+        return options.get("exception_on_error", False)
+
+    @property
+    def requested_filepath(self) -> "Path":
+        path = Path(self.cfg.local_repository)
+        for subfolder_tag in self.cfg.subfolders:
+            subfolder = getattr(self, subfolder_tag)
+            path = path / subfolder
+
+        period_dict = {}
+        attrs = re.findall("{.*?}", self.cfg.filenaming)
+        for attr_def in attrs:
+            attr_name = attr_def[1:-1]
+            period_dict[attr_name] = getattr(self, attr_name)
+        filename = self.cfg.filenaming.format(**period_dict)
+        return path / filename
+
+    @property
+    def requested_date(self) -> date:
+        return date(*self._requested_date)
+
+    @property
+    def has_mandatory_track_method(self):
+        get_track_children_method = getattr(self, "get_l2_track_vars", None)
+        return callable(get_track_children_method)
+
+    @property
+    def auxvar_names(self):
+        return [auxvar["name"] for auxvar in self._auxvars]

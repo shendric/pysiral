@@ -32,7 +32,7 @@ from returns.result import Failure, Success, Result
 from shapely import LineString, MultiPoint
 from shapely.strtree import STRtree
 
-from pysiral.auxdata import AuxdataBaseClass
+from pysiral.auxdata import AuxDataLoader
 from pysiral.l2.l2data import Level2Data
 from pysiral.core.iotools import ReadNC
 from pysiral.auxdata import GridTrackInterpol
@@ -324,7 +324,7 @@ class NSIDCIceChartFileCatalog(object):
         return np.array(sorted(list(self._ctlg.keys())))
 
 
-class NSIDCSeaIceChartsSIGRID3(AuxdataBaseClass):
+class NSIDCSeaIceChartsSIGRID3(AuxDataLoader):
 
     def __init__(self, *args, **kwargs):
         super(NSIDCSeaIceChartsSIGRID3, self).__init__(*args, **kwargs)
@@ -724,7 +724,7 @@ class USNICGridFileCatalog(object):
         return pd.DataFrame(entries)
 
 
-class USNICGrid(AuxdataBaseClass):
+class USNICGrid(AuxDataLoader):
     """
     Class for US National Ice Center sea ice charts in gridded netCDF format.
     Source data is available from the NSIDC (https://nsidc.org/data/g02135)
@@ -968,7 +968,7 @@ class USNICGrid(AuxdataBaseClass):
         )
 
 
-class IC(AuxdataBaseClass):
+class IC(AuxDataLoader):
 
     def __init__(self, *args, **kwargs):
         super(IC, self).__init__(*args, **kwargs)
@@ -1146,7 +1146,7 @@ class IC(AuxdataBaseClass):
         return [data_ct, data_ca, data_cb, data_cc, data_sa, data_sb, data_sc]
 
 
-class ICA(AuxdataBaseClass):
+class ICA(AuxDataLoader):
 
     def __init__(self, *args, **kwargs):
 

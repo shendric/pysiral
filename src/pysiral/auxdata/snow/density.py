@@ -8,7 +8,7 @@ from typing import Annotated, Dict, Any, List, Optional
 import numpy as np
 import pandas as pd
 
-from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata import AuxDataLoader, AuxDataExitFlag
 from pysiral.auxdata.snow import SnowParameterContainer
 
 
@@ -107,7 +107,7 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
         return exit_status
 
 
-class FixedSnowDepthDensity(AuxdataBaseClass):
+class FixedSnowDepthDensity(AuxDataLoader):
     """
     Returns constant depth & density (values from l2 processor definition).
 

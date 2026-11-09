@@ -5,13 +5,13 @@ from pathlib import Path
 import numpy as np
 
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
+from pysiral.auxdata import AuxDataLoader, GridTrackInterpol
 from pysiral.auxdata.snow._data import SnowParameterContainer
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.alg.filter import idl_smooth
 
 
-class ICDCSouthernClimatology(AuxdataBaseClass):
+class ICDCSouthernClimatology(AuxDataLoader):
     """ Class for daily climatology fields from UHH ICDC """
 
     def __init__(self, *args, **kwargs):

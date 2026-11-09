@@ -38,12 +38,12 @@ import numpy as np
 import scipy.ndimage as ndimage
 from xarray import open_dataset
 
-from pysiral.auxdata import AuxdataBaseClass
+from pysiral.auxdata import AuxDataLoader
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
 
-class DTUMDTGrid(AuxdataBaseClass):
+class DTUMDTGrid(AuxDataLoader):
     """
     Parsing Routine for DTU 1/8th degree mean dynamic topography grid
     """

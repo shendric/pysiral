@@ -54,7 +54,7 @@ except ImportError as ie:
 from loguru import logger
 
 from pysiral import get_cls
-from pysiral.auxdata import AuxdataBaseClass
+from pysiral.auxdata import AuxDataLoader
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
@@ -777,7 +777,7 @@ class TorchFunctionalWaveformModelCNN(nn.Module):
         return x
 
 
-class RetrackerThresholdModelTorch(AuxdataBaseClass):
+class RetrackerThresholdModelTorch(AuxDataLoader):
 
     def __init__(self, *args: Iterable[Any], **kwargs: Iterable[Any]) -> None:
         """

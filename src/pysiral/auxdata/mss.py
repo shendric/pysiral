@@ -39,7 +39,7 @@ import scipy.ndimage as ndimage
 from loguru import logger
 from time import time
 
-from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata import AuxDataLoader, AuxDataExitFlag
 from pysiral.core.iotools import ReadNC
 
 
@@ -101,7 +101,7 @@ class DTU1MinGrid(AuxDataLoader):
         return AuxDataExitFlag.NOMINAL
 
 
-class DTU25Grid(AuxdataBaseClass):
+class DTU25Grid(AuxDataLoader):
     """
     Parsing Routine for DTU 1 km global mean sea surface height files
     """

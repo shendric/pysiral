@@ -40,14 +40,14 @@ from loguru import logger
 from pyproj import CRS
 from xarray import open_dataset
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.core.grid import GridTrajectoryExtract
 
 
 __all__ = ["NSIDCRegionMask", "NSIDCRegionMask2021"]
 
 
-class NSIDCRegionMask(AuxdataBaseClass):
+class NSIDCRegionMask(AuxDataLoader):
     """ Provides region codes from NSIDC style region grids """
 
     def __init__(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
@@ -194,7 +194,7 @@ class NSIDCRegionMask2021(AuxDataLoader):
         return attrs
 
 
-class AntarcticSeas(AuxdataBaseClass):
+class AntarcticSeas(AuxDataLoader):
     """
     Provides region codes for the *southern hemisphere only* based on longitude ranges
     from Antarctic Seas (source: Stefanie Arndt, AWI, pers comm).
