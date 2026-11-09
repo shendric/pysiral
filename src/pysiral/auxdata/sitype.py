@@ -278,7 +278,8 @@ class OsiSafSITypeCDR(AuxDataLoader):
         """
 
         # --- Extract sea ice type and its uncertainty along the trajectory ---
-        griddef = self.cfg.options[l2.hemisphere]
+        hemisphere = {"nh": "north", "sh": "south"}.get(l2.hemisphere_code, l2.hemisphere_code)
+        griddef = self.cfg.options[hemisphere]
         grid_lons, grid_lats = self._data.lon, self._data.lat
         grid2track = GridTrackInterpol(l2.track.longitude, l2.track.latitude, grid_lons, grid_lats, griddef)
         sitype = grid2track.get_from_grid_variable(self._data.ice_type[0, :, :], flipud=True)
