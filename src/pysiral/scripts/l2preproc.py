@@ -16,41 +16,48 @@ from pysiral.scripts.parser_items import (
 
 
 def l2preproc(
-    processing_period: Optional[DatePeriod] = None,
-    l2i_product_dir: Optional[ Union[str, Path]] = None,
-    l2p_outputs: Optional[List[Union[str, Path]]] = None,
+    processing_period: DatePeriod,
+    l2i_product_dirs: Union[Path, List[Path]],
+    l2p_outputs: List[Union[str, Path]],
+    output_directory: Optional[Union[str, Path]] = None,
     doi: Optional[str] = None,
-    exclude_month: Optional[List[int]] = None,
+    exclude_months: Optional[List[int]] = None,
 ) -> None:
-    """ Caller for converting Level-2 Intermediate (l2i) into
+    """
+    Caller for converting Level-2 Intermediate (l2i) into
     Level-2 Pre-Processed (l2p) data products.
     NOTE: At the moment that only means summary of valid freeboard/thickness
-          data points into daily summary files. """
+          data points into daily summary files.
+
+    """
 
     # Collect job settings from pysiral configuration data and
 
     # Get the product definition
     product_def = Level2PreProcProductDefinition()
 
-    # Specifically add an output handler
-    product_def.add_output_definition(
-            l2i_product_dir,
-            l2p_outputs,
-            period="daily",
-            doi=doi
-    )
+    # Output handler
+    # NOTE: Output will always be written into one directory
+    is_multi_mission = isinstance(l2i_product_dirs, list)
+    l2i_output_directory = output_directory if is_multi_mission else l2i_product_dirs
+    for l2p_output in l2p_outputs:
+        product_def.add_output_definition(
+                l2i_output_directory,
+                l2p_output,
+                period="daily",
+                doi=doi
+        )
 
     # Prepare DataHandler
     # The l2 pre-processor requires l2i input files
-    l2i_handler = L2iDataHandler(l2i_product_dir)
+    l2i_handler = L2iDataHandler(l2i_product_dirs)
 
     # Get list of days for processing
     # start and/or stop can be omitted. In this case fall back to the
     # start and/or stop of l2i product availability
-    breakpoint()
     days = processing_period.get_segments("day")
-    if exclude_month is not None:
-        days.filter_month(exclude_month)
+    if exclude_months is not None:
+        days.filter_month(exclude_months)
 
     # Processor Initialization
     # NOTE: This is only for later cases. Not much is done here at this

@@ -71,13 +71,17 @@ class Level2PreProcProductDefinition(DefaultLoggingClass):
         class_name = self.__class__.__name__
         super(Level2PreProcProductDefinition, self).__init__(class_name)
 
-    def add_output_definition(self, l2i_product_dir, output_def_file,
-                              period="default", overwrite_protection=True,
-                              doi=None):
-
+    def add_output_definition(
+            self,
+            output_dir,
+            output_def_file,
+            period="default",
+            overwrite_protection=True,
+            doi=None
+    ):
         # Set given or default output handler
         self._output_handler = Level2POutputHandler(
-            l2i_product_dir,
+            output_dir,
             output_def=output_def_file,
             period=period,
             doi=doi,

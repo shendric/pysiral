@@ -150,7 +150,9 @@ class L1PDataHandler(DefaultLoggingClass):
 
 
 class L2iDataHandler(object):
-    """ Class for discovering l2i files """
+    """
+    Class for discovering l2i files
+    """
 
     def __init__(
         self,
@@ -244,14 +246,7 @@ class L2iDataHandler(object):
         :return:List of l2i lookup directory as str
         """
         base_directories = base_directories if type(base_directories) in [list, tuple] else [base_directories]
-
-        def validate_dir(directory: str) -> Path:
-            dir_as_path = Path(directory)
-            if not dir_as_path.is_dir():
-                raise IOError(f"Directory is not a path: {directory}")
-            return dir_as_path
-
-        return [validate_dir(directory) for directory in base_directories]
+        return [Path(directory) for directory in base_directories if Path(directory).is_dir()]
 
     def get_lookup_directory(self, year: int, month: int) -> List[Path]:
         """

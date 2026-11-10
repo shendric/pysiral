@@ -94,6 +94,13 @@ class ProductDefinitionCatalogue:
 
         return product_definitions
 
+    def get_product_attributes(self, product_id: str) -> ProductAttributes:
+        """
+        Get the product attributes for the given product ID
+        """
+        product_def = self._product_definitions[product_id]
+        return product_def.attributes
+
     def get_product_definition(
             self,
             product_id: str,

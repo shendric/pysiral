@@ -5,7 +5,7 @@ config:
 attributes:
     product_line: "cci"
     record_type: "cdr"
-    version: "v5p0"
+    version: "v5p0-tds.1"
     platforms: &platforms ["ers2", "envisat", "cryosat2", "sentinel3a", "sentinel3b"]
 
 dynamic_variables:
@@ -26,9 +26,9 @@ dynamic_variables:
     ers1: "ers_fdr4alt_v1p0"
     ers2: "ers_fdr4alt_v1p0"
     envisat: "envisat_fdr4alt_v1p0"
-    cryosat2: "cryosat2_pds_ipf1e_v1p2"
-    sentinel3a: "sentinel3a_l2lan_v1p2"
-    sentinel3b: "sentinel3b_l2lan_v1p2"
+    cryosat2: "cryosat2_pds_ipf1e_v1p1"
+    sentinel3a: "sentinel3a_l2lan_v1p1"
+    sentinel3b: "sentinel3b_l2lan_v1p1"
 
   source_dataset_id:  # -> source_dataset_id[PLATFORM] -> variable SOURCE_DATASET_ID
     ers1: "fdr4alt"
@@ -36,7 +36,7 @@ dynamic_variables:
     envisat: "fdr4alt"
     cryosat2: "baseline_e"
     sentinel3a: "l2_lan_si_rep"
-    sentinel3b: "l2_lan_si_b005"
+    sentinel3b: "l2_lan_si_rep"
 
   l1p_version:  # -> l1p_version[PLATFORM] -> variable L1P_VERSION
     ers1: "sgdr:v1p0"
@@ -68,7 +68,9 @@ processors:
     source_dataset_id: "{source_dataset_id[platform]}"
     platform: "{platform}"
 
-  l2p: {}
+  l2p:
+    platforms: *platforms
+    l2p_outputs: ["l2p_cci_v5p0"]
 
   l3:
     l3_settings: "l3_cci_v5p0"
