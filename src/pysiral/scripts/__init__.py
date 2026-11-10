@@ -168,5 +168,6 @@ def product_cli(args_list: Optional[List] = None) -> None:
     """
     product(**vars(ProductScriptArguments().get(args_list)))
 
+
 if __name__ == "__main__":
     main()
