@@ -42,9 +42,9 @@ dynamic_variables:
     ers1: "sgdr:v1p0"
     ers2: "sgdr:v1p0"
     envisat: "sgdr:v1p0"
-    cryosat2: "esa_pds_ipfe:v1p1"
-    sentinel3a: "l2lan:v1p2"
-    sentinel3b: "l2lan:v1p2"
+    cryosat2: "esa_pds_ipf1e:v1p1"
+    sentinel3a: "l2_lan:v1p1"
+    sentinel3b: "l2_lan:v1p1"
 
   mission:
     ers1: "ers"
