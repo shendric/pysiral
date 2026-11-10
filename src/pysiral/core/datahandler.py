@@ -209,7 +209,7 @@ class L2iDataHandler(object):
         # Get the lookup directory
         lookup_directories = self.get_lookup_directory(day_dt.year, day_dt.month)
         previous_day = day_dt - timedelta(days=1)
-        lookup_directories_previus_day = self.get_lookup_directory(previous_day.year, previous_day.month)
+        lookup_directories_previous_day = self.get_lookup_directory(previous_day.year, previous_day.month)
 
         # XXX: We are not evaluating the netCDF attributes at this point
         #      but assuming that the filename contains start and stop
@@ -217,16 +217,22 @@ class L2iDataHandler(object):
         #      should be replaced as soon as a proper inspection tool is
         #      available
         l2i_files = []
-        for lookup_dir, lookup_dir_previous_day in product(lookup_directories, lookup_directories_previus_day):
+        breakpoint()
+        # TODO: zip instead of product?
+        for lookup_dir, lookup_dir_previous_day in product(lookup_directories, lookup_directories_previous_day):
             day_search = self.get_l2i_search_str(year=day_dt.year, month=day_dt.month, day=day_dt.day)
-            l2i_files.extend(list(lookup_dir.glob(day_search)))
+            files = list(lookup_dir.glob(day_search))
+            logger.info(f"Found {len(files)} l2i files in {lookup_dir} for {day_search}")
+            l2i_files.extend(files)
 
             # Check if day is the first day of the month
             # yes -> check last file of previous month which might have data
             #        for the target day
             # TODO: This needs to be revisited, convention: start time (?)
             if day_dt.day == 1:
-                l2i_files.extend(lookup_dir_previous_day.glob(day_search))
+                files = list(lookup_dir_previous_day.glob(day_search))
+                logger.info(f"Found {len(files)} l2i files in {lookup_dir} for {day_search} (Previous day)")
+                l2i_files.extend(files)
 
         # All done, return sorted output
         return sorted(l2i_files)

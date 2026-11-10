@@ -69,6 +69,7 @@ processors:
     platform: "{platform}"
 
   l2p:
+    # platforms: *platforms
     platforms: *platforms
     l2p_outputs: ["l2p_cci_v5p0"]
 

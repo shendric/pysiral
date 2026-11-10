@@ -76,7 +76,7 @@ class Level2PreProcProductDefinition(DefaultLoggingClass):
             output_dir,
             output_def_file,
             period="default",
-            overwrite_protection=True,
+            overwrite_protection: bool = False,
             doi=None
     ):
         # Set given or default output handler
@@ -93,8 +93,10 @@ class Level2PreProcProductDefinition(DefaultLoggingClass):
 
 
 class Level2POutputHandler(OutputHandlerBase):
-    """ Default output handler with pysiral conventions. Uses product
-    directory from local_machine_def.yaml as standard repository """
+    """
+    Default output handler with pysiral conventions. Uses product
+    directory from local_machine_def.yaml as standard repository
+    """
 
     # Some fixed parameters for this class
     default_file_location = ["settings", "outputdef", "l2p_default.yaml"]
