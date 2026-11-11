@@ -122,7 +122,7 @@ class _MissionDefinitionCatalogue(object):
         :return:
         """
         platform_info = self.get_platform_info(platform_id)
-        return None if platform_info is None else platform_info.long_name
+        return None if platform_info is None else platform_info.name
 
     def get_sensor(self, platform_id):
         """
