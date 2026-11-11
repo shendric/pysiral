@@ -934,6 +934,7 @@ class Level2PContainer(DefaultLoggingClass):
         # 2. Exclude variables that end with `_uncertainty`
         parameter_list = [p for p in parameter_list_all if not re.search("_uncertainty", p)]
 
+
         # 3. Remove parameters from the timeorbit group, surface type &
         # orbit id. This will be added to level 2 object by other means
         # or do not make sense (surface type for valid freeboard will
@@ -941,11 +942,14 @@ class Level2PContainer(DefaultLoggingClass):
         for parameter_name in ["timestamp", "time", "longitude", "latitude", "surface_type"]:
             with contextlib.suppress(ValueError):
                 parameter_list.remove(parameter_name)
+
         # 4. Set parameters
         for parameter_name in parameter_list:
 
             # Get the parameter
             value = data[parameter_name]
+            if len(value.shape) > 1:
+                continue
 
             # Test if uncertainty exists
             uncertainty_name = parameter_name + "_uncertainty"
@@ -953,7 +957,6 @@ class Level2PContainer(DefaultLoggingClass):
                 uncertainty = data[uncertainty_name]
             else:
                 uncertainty = None
-
             # Add to l2 object
             l2.set_parameter(parameter_name, value, uncertainty=uncertainty)
 
@@ -1051,7 +1054,8 @@ class L2iNCFileImport(object):
         self._time_parameter_name = time_parameter_name
         dt = num2pydate(time, content.time_def.units, content.time_def.calendar)
         setattr(self, "time", dt)
-        self.time = self.time
+        # TODO: ??
+        # self.time = self.time
 
     def transfer_nan_mask(self, source, targets):
         source_parameter = getattr(self, source)

@@ -217,9 +217,8 @@ class L2iDataHandler(object):
         #      should be replaced as soon as a proper inspection tool is
         #      available
         l2i_files = []
-        breakpoint()
         # TODO: zip instead of product?
-        for lookup_dir, lookup_dir_previous_day in product(lookup_directories, lookup_directories_previous_day):
+        for lookup_dir, lookup_dir_previous_day in zip(lookup_directories, lookup_directories_previous_day):
             day_search = self.get_l2i_search_str(year=day_dt.year, month=day_dt.month, day=day_dt.day)
             files = list(lookup_dir.glob(day_search))
             logger.info(f"Found {len(files)} l2i files in {lookup_dir} for {day_search}")

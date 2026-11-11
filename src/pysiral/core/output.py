@@ -453,6 +453,11 @@ class NCDataFile(DefaultLoggingClass):
             if data.dtype.str == "|b1":
                 data = np.int8(data)
 
+            if data.dtype.str == "<f8" and parameter_name != "time":
+                data = data.astype(np.float32)
+
+            print(parameter_name, data.dtype.str)
+
             # Set dimensions (dependent on product level)
             if level3:
 

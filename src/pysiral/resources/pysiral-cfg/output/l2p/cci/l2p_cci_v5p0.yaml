@@ -24,7 +24,7 @@ global_attributes:
   - history: "{utcnow:%Y%m%dT%H%M%SZ} - Product generated with pysiral version {pysiral_version}"
   - references: "CCI+ Sea Ice ECV - Sea Ice Thickness Algorithm Theoretical Basis Document (ATBD) - Issue 2.0; CCI+ Sea Ice ECV - Sea Ice Thickness Product User Guide (PUG) - Issue 2.0"
   - tracking_id: "{uuid}"
-  - Conventions: "CF-1.8"
+  # - Conventions: "CF-1.8"
   - product_version: "5.0"
   - format_version: "CCI Data Standards v2.3"
   - processing_level: "Level-2 Pre-processed (l2p)"
@@ -141,17 +141,17 @@ variables:
     coordinates: time
 
   platform:
-    long_name: "Platform"
-    comment: ""
+    long_name: "Platform Flag"
+    comment: "Flag identifying the satellite platform from which the data was derived"
     valid_min: 0
-    valid_max: 4
-    flag_values: "0 1 2 3 4"
-    flag_meanings: "ers2 envisat cryosat2 sentinel3a sentinel3b"
+    valid_max: 5
+    flag_values: "0 1 2 3 4 5"
+    flag_meanings: "ers1 ers2 envisat cryosat2 sentinel3a sentinel3b"
     units: "1"
     coordinates: time
 
   region_code:
-    long_name: "region code"
+    long_name: "Region Flag"
     comment: "Region code from {source_hemisphere:select;A new regional mask for Arctic sea ice trends and climatologies (J. Scott Stewart and Walter N. Meier, NSIDC);Antarctic seas based on their longitude range with additional latitude cut-off at 40S (see Parkinson, C. L. and Cavalieri, D. J. (2012), Antarctic sea ice variability and trends, 1979 - 2010, The Cryosphere)}"
     valid_min: 0
     valid_max: 20
@@ -161,7 +161,7 @@ variables:
     coordinates: time
 
   flag_miz:
-    long_name: "marginal ice zone flag"
+    long_name: "Marginal Ice Zone Flag"
     comment: "indicates potential freeboard/thickness bias by surface waves the marginal ice zone"
     units: "1"
     valid_min: 0

@@ -6,6 +6,7 @@ Created on Fri Aug 11 17:07:02 2017
 """
 
 
+import numpy as np
 from collections import OrderedDict
 from pathlib import Path
 
@@ -39,9 +40,33 @@ class Level2PreProcessor(DefaultLoggingClass):
 
         # Add all l2i objects to the l2p container.
         # NOTE: Only memory is the limit
+        platform_id_dict = {
+            "ers1": 0,
+            "ers2": 1,
+            "envisat": 2,
+            "cryosat2": 3,
+            "sentinel3a": 4,
+            "sentinel3b": 5
+        }
+        platform_name_dict = {
+            "ers1": "ERS-1",
+            "ers2": "ERS-2",
+            "envisat": "Envisat",
+            "cryosat2": "CryoSat-2",
+            "sentinel3a": "Sentinel-3A",
+            "sentinel3b": "Sentinel-3B"
+        }
         for l2i_file in l2i_files:
             try:
                 l2i = L2iNCFileImport(l2i_file)
+
+                # TODO: Bug in l2i files that leave platform attribute empty.
+                platform = l2i.info.id.split("-")[4].split("_")[1]
+                platform_id = platform_id_dict.get(platform, -1)
+                l2i.info.platform = platform_name_dict.get(platform, "Unknown")
+                l2i.parameter_list.append("platform")
+                platform_val = np.full((l2i.n_records,), platform_id).astype(np.uint8)
+                setattr(l2i, "platform", platform_val)
             except Exception as ex:
                 msg = "Error (%s) in l2i file: %s"
                 msg %= (ex, Path(l2i_file).name)
