@@ -10,7 +10,7 @@ from dateutil.relativedelta import relativedelta
 from typing import List, Tuple
 
 from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
-from pysiral.auxdata.snow._data import SnowParameterContainer
+from pysiral.auxdata.snow_depth._data import SnowParameterContainer
 from pysiral.core.legacy_classes import ErrorStatus
 
 

@@ -44,7 +44,7 @@ from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader, 
 from pysiral.core.grid import GridTrajectoryExtract
 
 
-__all__ = ["NSIDCRegionMask", "NSIDCRegionMask2021"]
+__all__ = ["NSIDCRegionMask", "NSIDCRegionMask2021", "AntarcticSeas"]
 
 
 class NSIDCRegionMask(AuxdataBaseClass):
@@ -194,21 +194,22 @@ class NSIDCRegionMask2021(AuxDataLoader):
         return attrs
 
 
-class AntarcticSeas(AuxdataBaseClass):
+class AntarcticSeas(AuxDataLoader):
     """
     Provides region codes for the *southern hemisphere only* based on longitude ranges
     from Antarctic Seas (source: Stefanie Arndt, AWI, pers comm).
     """
 
-    def __init__(self, *args: Optional[Any], **kwargs: Optional[Any]) -> None:
+    def __init__(self, cfg) -> None:
         """
         Init the class
         :param args:
         :param kwargs:
         """
-        super(AntarcticSeas, self).__init__(*args, **kwargs)
+        self.cfg = cfg
+        super(AntarcticSeas, self).__init__()
 
-    def get_l2_track_vars(self, l2: "Level2Data") -> None:
+    def apply(self, l1: "Level1Data", l2: "Level2Data") -> AuxDataExitFlag:
         """
         API method, will return the region cose based on longitude and latitude values.
         The location of the sea, the corresponding code and names are defined in the
@@ -226,6 +227,8 @@ class AntarcticSeas(AuxdataBaseClass):
         :param l2:
         :return:
         """
+        exit_status = AuxDataExitFlag.NOMINAL
+
         # Get a default region code value (ice free ocean)
         # -> Land will be explicitly set
         # -> Definition of seas should be complete
@@ -238,11 +241,14 @@ class AntarcticSeas(AuxdataBaseClass):
         if (l2.latitude > 0).any():
             msg = "- Northern hemisphere positions detected, region code will be erronous"
             logger.error(msg)
+            exit_status = AuxDataExitFlag.ERROR_CONTINUE
+
 
         # Identify and set the Antarctic seas
         region_def = self.cfg.options.get("region_def", [])
         if not region_def:
             logger.error("- No definition of polar seas")
+            exit_status = AuxDataExitFlag.ERROR_CONTINUE
 
         # Loop over all regions
         for region_definition in region_def:
@@ -265,8 +271,8 @@ class AntarcticSeas(AuxdataBaseClass):
             region_code[in_region] = code
 
         # Register the variable
-        self.register_auxvar("reg_code", "region_code", region_code, None)
-        return AuxDataExitFlag.NOMINAL
+        l2.set_auxiliary_parameter("reg_code", "region_code", region_code, None)
+        return exit_status
 
     @staticmethod
     def get_angular_distance(lon1: Union[float, int, np.ndarray],

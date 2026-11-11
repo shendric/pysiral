@@ -10,7 +10,7 @@ from loguru import logger
 from xarray import open_dataset
 
 from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
-from pysiral.auxdata.snow._data import SnowParameterContainer
+from pysiral.auxdata.snow_depth._data import SnowParameterContainer
 from pysiral.core.legacy_classes import ErrorStatus
 
 

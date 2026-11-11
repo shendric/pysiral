@@ -5,20 +5,23 @@ from pathlib import Path
 import numpy as np
 
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol
-from pysiral.auxdata.snow._data import SnowParameterContainer
+from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata.snow_depth._data import SnowParameterContainer
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.alg.filter import idl_smooth
 
 
-class ICDCSouthernClimatology(AuxdataBaseClass):
+class ICDCSouthernClimatology(AuxDataLoader):
     """ Class for daily climatology fields from UHH ICDC """
 
-    def __init__(self, *args, **kwargs):
-        super(ICDCSouthernClimatology, self).__init__(*args, **kwargs)
+    def __init__(self, cfg):
+        self.cfg = cfg
+        super(ICDCSouthernClimatology, self).__init__()
         self._data = None
 
-    def get_l2_track_vars(self, l2):
+    def apply(self, l1, l2):
+
+        exit_status = AuxDataExitFlag.NOMINAL
 
         # Set the requested data
         self.set_requested_date_from_l2(l2)
@@ -38,6 +41,7 @@ class ICDCSouthernClimatology(AuxdataBaseClass):
             # This will return an empty container
             snow = SnowParameterContainer()
             snow.set_dummy(l2.n_records)
+            exit_status = AuxDataExitFlag.ERROR_CONTINUE
         else:
             # Extract along track snow depth and density
             sd, sd_unc = self._get_snow_track(l2)
@@ -62,8 +66,10 @@ class ICDCSouthernClimatology(AuxdataBaseClass):
             snow.density_uncertainty = np.full(sd.shape, self.cfg.options.snow_density_uncertainty)
 
         # Register Variables
-        self.register_auxvar("sd", "snow_depth", snow.depth, snow.depth_uncertainty)
-        self.register_auxvar("sdens", "snow_density", snow.density, snow.density_uncertainty)
+        l2.set_auxiliary_parameter("sd", "snow_depth", snow.depth, snow.depth_uncertainty)
+        l2.set_auxiliary_parameter("sdens", "snow_density", snow.density, snow.density_uncertainty)
+
+        return exit_status
 
     def load_requested_auxdata(self):
         """ Loads file from local repository only if needed """
@@ -76,7 +82,7 @@ class ICDCSouthernClimatology(AuxdataBaseClass):
             msg = "%s: File not found: %s " % (self.__class__.__name__, path)
             self.add_handler_message(msg)
             self.error.add_error("auxdata_missing_snow", msg)
-            return
+            return AuxDataExitFlag.ERROR_CONTINUE
 
         # Store the netCDF data object
         self._data = ReadNC(path)

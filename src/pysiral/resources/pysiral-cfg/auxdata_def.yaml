@@ -288,6 +288,13 @@ snow:
                     dy: 12500
             subfolders: null
 
+    seasonal_snow_density:
+        pyclass: SeasonalSnowDensityClimatology
+        long_name: Seasonal Snow Density Climatology
+        local_repository: null
+        options: {}
+
+
 # List of sea ice concentration products
 sic:
 
@@ -693,3 +700,11 @@ ml:
         long_name: Learned model (torch) for predicting TFMRA retracker threshold from waveform shape parameters
         local_repository: tfmra_threshold_model_torch
         options: null
+
+sea_ice:
+
+    seasonal_sea_ice_density:
+        pyclass: SeasonalSeaIceDensityClimatology
+        long_name: Seasonal sea ice density climatology
+        local_repository: null
+        options: {}

@@ -36,17 +36,14 @@ Important Note:
 """
 
 
-import contextlib
 from pathlib import Path
 from loguru import logger
 from typing import List
 
 import numpy as np
-import scipy.ndimage as ndimage
-from pyproj import Proj
 from scipy import interpolate
 
-from pysiral.auxdata import AuxdataBaseClass, GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
+from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.core.iotools import ReadNC
 from pysiral.l2.alg.sea_level_anomaly import SLABaseFunctionality
 
@@ -410,157 +407,6 @@ class OsiSafSITypeCDR(AuxDataLoader):
     @property
     def cdr_icdr_record_type_prefix(self) -> List[str]:
         return ["", "interim"]
-
-
-class ICDCNasaTeam(AuxdataBaseClass):
-    """ MYI Fraction from NASA Team Algorithm (from ICDC UHH) """
-
-    def __init__(self, *args, **kwargs):
-        super(ICDCNasaTeam, self).__init__(*args, **kwargs)
-        self._data = None
-
-    def get_l2_track_vars(self, l2):
-        self._get_requested_date(l2)
-        self._get_data(l2)
-        if self.error.status:
-            sitype, sitype_uncertainty = self.get_empty_array(l2), self.get_empty_array(l2)
-        else:
-            sitype, sitype_uncertainty = self._get_sitype_track(l2)
-        self.register_auxvar("sitype", "sea_ice_type", sitype, None)
-
-    def _get_requested_date(self, l2):
-        """ Use first timestamp as reference, date changes are ignored """
-        year = l2.track.timestamp[0].year
-        month = l2.track.timestamp[0].month
-        day = l2.track.timestamp[0].day
-        self._requested_date = [year, month, day]
-
-    def _get_data(self, l2):
-        """ Loads file from local repository only if needed """
-
-        opt = self.cfg.options
-
-        # Check if file is already loaded
-        if self._requested_date == self._current_date:
-            # Data already loaded, nothing to do
-            self.add_handler_message("ICDCNasaTeam: Daily grid already present")
-            return
-
-        # construct filename
-        path = Path(self._get_local_repository_filename(l2))
-
-        # Check if the file exists, add an error if not
-        # (error is not raised at this point)
-        if not path.is_file():
-            msg = f"ICDCNasaTeam: File not found: {path} "
-            self.add_handler_message(msg)
-            self.error.add_error("auxdata_missing_sitype", msg)
-            return
-
-        # Bulk read the netcdf file
-        self._data = ReadNC(path)
-
-        # There are multiple myi concentrations fields in the product
-        # The one used here is defined in the auxdata definition file
-        # in the pysiral config folder (`auxdata_def.yaml`)
-        # -> root.sitype.icdc_nasateam.options.variable_name
-        myi_fraction = getattr(self._data, opt.variable_name)
-        self._data.ice_type = myi_fraction[0, :, :]
-
-        # Same for the uncertainty variable
-        # (see description directly above for how to access variable name
-        #  definition)
-        myi_fraction_unc = getattr(self._data, opt.uncertainty_variable_name)
-        self._data.ice_type_uncertainty = myi_fraction_unc[0, :, :]
-
-        # Report and save current data period
-        self.add_handler_message(f"ICDCNasaTeam: Loaded SIType file: {path}")
-        self._current_date = self._requested_date
-
-    def _get_local_repository_filename(self, l2):
-        path = Path(self.cfg.local_repository)
-        for subfolder_tag in self.cfg.subfolders:
-            subfolder = getattr(self, subfolder_tag)
-            path = path / subfolder
-        filename = self.cfg.filenaming.format(
-            year=self.year, month=self.month, day=self.day,
-            hemisphere_code=l2.hemisphere_code)
-        path = path / filename
-        return path
-
-    def _get_sitype_track(self, l2):
-
-        # Convert grid/track coordinates to grid projection coordinates
-        kwargs = self.cfg.option[l2.hemisphere].projection
-        p = Proj(**kwargs)
-        x, y = p(self._data.longitude, self._data.latitude)
-        l2x, l2y = p(l2.track.longitude, l2.track.latitude)
-
-        # Convert track projection coordinates to image coordinates
-        # x: 0 < n_lines; y: 0 < n_cols
-        dim = self.cfg.option[l2.hemisphere].dimension
-
-        x_min = x[0, 0]-(0.5*dim.dx)
-        y_min = y[0, 0]-(0.5*dim.dy)
-        ix, iy = (l2x-x_min)/dim.dx, (l2y-y_min)/dim.dy
-
-        # Extract along track data from grid
-        myi_concentration_percent = ndimage.map_coordinates(self._data.ice_type, [iy, ix], order=0)
-
-        myi_concentration_uncertainty = ndimage.map_coordinates(self._data.ice_type_uncertainty, [iy, ix], order=0)
-
-        # Convert percent [0-100] into fraction [0-1]
-        sitype = myi_concentration_percent/100.
-        sitype_uncertainty = myi_concentration_uncertainty/100.
-
-        # Remove invalid (negative) values
-        sitype[np.where(sitype < 0)] = 0.0
-        sitype_uncertainty[np.where(sitype_uncertainty < 0)] = 0.0
-
-        return sitype, sitype_uncertainty
-
-
-class MYIDefault(AuxdataBaseClass):
-    """ Returns myi for all ice covered regions """
-
-    def __init__(self, *args, **kwargs):
-        super(MYIDefault, self).__init__(*args, **kwargs)
-
-    def get_l2_track_vars(self, l2):
-        """ Every ice is myi (sitype = 1) """
-        sitype = np.zeros(shape=l2.sic.shape, dtype=np.float32)
-        is_ice = np.where(l2.sic > 0)[0]
-        sitype[is_ice] = 1.0
-        uncertainty = np.full(sitype.shape, self.uncertainty_default)
-        # Register the data
-        self.register_auxvar("sitype", "sea_ice_type", sitype, uncertainty)
-
-    @property
-    def uncertainty_default(self):
-        if "uncertainty_default" in self.cfg.option:
-            return self.cfg.option.uncertainty_default
-        else:
-            return 0.0
-
-
-class FYIDefault(AuxdataBaseClass):
-    """ Returns myi for all ice covered regions """
-
-    def __init__(self, *args, **kwargs):
-        super(FYIDefault, self).__init__(*args, **kwargs)
-
-    def get_l2_track_vars(self, l2):
-        """ Every ice is fyi (sitype = 0) """
-        sitype = np.zeros(shape=l2.sic.shape, dtype=np.float32)
-        uncertainty = np.full(sitype.shape, self.uncertainty_default)
-        self.register_auxvar("sitype", "sea_ice_type", sitype, uncertainty)
-
-    @property
-    def uncertainty_default(self):
-        with contextlib.suppress(TypeError):
-            if "uncertainty_default" in self.cfg.options:
-                return self.cfg.options.uncertainty_default
-        return 0.0
 
 
 def fill_sitype_gaps(sitype, sitype_uncertainty, sic, sic_threshold=70., gap_filled_uncertainty=0.5,

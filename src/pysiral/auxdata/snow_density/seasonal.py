@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader, AuxDataExitFlag
-from pysiral.auxdata.snow import SnowParameterContainer
+from pysiral.auxdata.snow_depth import SnowParameterContainer
 
 
 class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
@@ -105,37 +105,6 @@ class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
         # Register the auxiliary variable
         l2.set_auxiliary_parameter("sdens", "snow_density", sdens, sdens_unc)
         return exit_status
-
-
-class FixedSnowDepthDensity(AuxdataBaseClass):
-    """
-    Returns constant depth & density (values from l2 processor definition).
-
-    Example entry in l2 proc config files:
-
-        - snow:
-            name: constant
-            options:
-                snow_density_uncertainty: 50
-
-    TODO: Add uncertainties
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(FixedSnowDepthDensity, self).__init__(*args, **kwargs)
-
-    def subclass_init(self):
-        pass
-
-    def get_l2_track_vars(self, l2):
-        snow_depth = np.full(l2.n_records, self.cfg.options.fixed_snow_depth)
-        snow_density = np.full(l2.n_records, self.cfg.options.fixed_snow_density)
-        snow = SnowParameterContainer()
-        snow.depth = snow_depth
-        snow.density = snow_density
-        # Register Variables
-        self.register_auxvar("sd", "snow_depth", snow.depth, snow.depth_uncertainty)
-        self.register_auxvar("sdens", "snow_density", snow.density, snow.density_uncertainty)
 
 
 class SeasonalSnowDensityConfig(BaseModel):

@@ -11,14 +11,17 @@ __all__ = ["AuxdataBaseClass",
            "AuxClassConfig",
            "GridTrackInterpol",
            "get_all_auxdata_classes",
-           "ml",
-           "mss",
-           "icechart",
-           "rio",
-           "sic",
-           "sitype",
-           "snow",
-           "region"
+           "machine_learning_models",
+           "mean_sea_surface",
+           "sea_ice_chart",
+           "risk_index_outcome",
+           "sea_ice_concentration",
+           "sea_ice_classification",
+           "snow_depth",
+           "snow_density",
+           "sea_ice_density",
+           "region",
+           "shared"
            ]
 
 
@@ -33,6 +36,7 @@ import scipy.ndimage as ndimage
 from pyproj import Proj
 
 from pysiral import import_submodules, PSRLCFG
+from pysiral.auxdata import shared
 from pysiral.auxdata._aux_abc import AuxDataLoader, AuxDataExitFlag
 from pysiral.core.legacy_classes import AttrDict, ErrorStatus, DefaultLoggingClass
 

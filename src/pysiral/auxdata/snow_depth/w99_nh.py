@@ -4,7 +4,7 @@ import numpy as np
 from pyproj import Proj
 
 from pysiral.auxdata import AuxdataBaseClass
-from pysiral.auxdata.snow._data import SnowParameterContainer
+from pysiral.auxdata.snow_depth._data import SnowParameterContainer
 from pysiral.l2.alg.filter import idl_smooth
 
 

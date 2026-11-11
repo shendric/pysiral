@@ -55,19 +55,18 @@ auxdata:
     - type: snow
       name: seasonal_snow_density
       options:
-        date_list: []
-        value_list: []
+        date_list: ["15-07", "15-10", "15-01", "15-04"]
+        value_list: [330., 310., 360.0, 350.]
         interpolation: linear
         uncertainty: 50.
 
     - type: sea_ice
       name: seasonal_sea_ice_density
       options:
-        snow_density: 300.
-        snow_density_uncertainty: 50.
-        smooth_snow_depth: true
-        smooth_filter_width_m: 25000.0
-        exception_on_error: True
+        date_list: ["15-07", "15-10", "15-01", "15-04"]
+        value_list: [920., 915., 875.0, 900.]
+        interpolation: linear
+        uncertainty: 50.
 
 # --- Level-2 processor steps ---
 #
