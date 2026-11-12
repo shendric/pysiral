@@ -4,8 +4,8 @@
 """
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
-__all__ = ["FixedSnowDepthDensity", "SeasonalArcticSnowDensityMallett2020", "SeasonalSnowDensity"]
+__all__ = ["FixedSnowDepthDensity", "SeasonalArcticSnowDensityMallett2020", "SeasonalSnowDensityClimatology"]
 
 from pysiral.auxdata.snow_density.fixed import FixedSnowDepthDensity
-from pysiral.auxdata.snow_density.seasonal import SeasonalArcticSnowDensityMallett2020, SeasonalSnowDensity
+from pysiral.auxdata.snow_density.seasonal import SeasonalArcticSnowDensityMallett2020, SeasonalSnowDensityClimatology
 

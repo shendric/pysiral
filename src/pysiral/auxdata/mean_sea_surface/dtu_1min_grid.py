@@ -55,15 +55,15 @@ class DTU1MinGrid(AuxDataLoader):
         longitude[negative_lons] = longitude[negative_lons] + 360.
 
         # Calculate image coordinates of mss grid "image"
-        mss_lon_min = self.longitude[0]
-        mss_lon_step = self.longitude[1] - self.longitude[0]
-        mss_lat_min = self.latitude[0]
-        mss_lat_step = self.latitude[1] - self.latitude[0]
+        mss_lon_min = self.longitude.values[0]
+        mss_lon_step = self.longitude.values[1] - self.longitude.values[0]
+        mss_lat_min = self.latitude.values[0]
+        mss_lat_step = self.latitude.values[1] - self.latitude.values[0]
         ix = (longitude - mss_lon_min)/mss_lon_step
         iy = (latitude - mss_lat_min)/mss_lat_step
 
         # Extract and return the elevation along the track
-        mss_track_elevation = ndimage.map_coordinates(self.elevation, [iy, ix])
+        mss_track_elevation = ndimage.map_coordinates(self.elevation.values, [iy, ix])
 
         # Register auxdata variable
         l2.set_auxiliary_parameter("mss", "mean_sea_surface", mss_track_elevation, None)

@@ -3,13 +3,15 @@
 from datetime import datetime
 from loguru import logger
 from pydantic import BaseModel, Field, field_validator
-from typing import Annotated, Dict, Any, List, Optional
+from typing import Annotated, Dict, Any, Literal
 
 import numpy as np
 import pandas as pd
 
-from pysiral.auxdata import AuxdataBaseClass, AuxDataLoader, AuxDataExitFlag
-from pysiral.auxdata.snow_depth import SnowParameterContainer
+from pysiral.auxdata import AuxDataLoader, AuxDataExitFlag
+
+
+__all__ = ["SeasonalArcticSnowDensityMallett2020", "SeasonalSnowDensityClimatology"]
 
 
 class SeasonalArcticSnowDensityMallett2020(AuxDataLoader):
@@ -122,6 +124,10 @@ class SeasonalSnowDensityConfig(BaseModel):
         description="List of seasonal snow density values in kg/m^3 corresponding to the dates.",
         gt=0.0, lt=600.0,
     )]]
+    interpolation_method: Literal["linear"] = Field(
+        description="Temporal interpolation method",
+
+    )
     snow_density_uncertainty: float = Field(
         ...,
         description="The uncertainty associated with the snow density in kg/m^3.",
@@ -139,11 +145,11 @@ class SeasonalSnowDensityConfig(BaseModel):
         return v
 
 
-class SeasonalSnowDensity(AuxDataLoader):
+class SeasonalSnowDensityClimatology(AuxDataLoader):
 
     def __init__(self, cfg: Dict[str, Any]) -> None:
-        super(SeasonalSnowDensity, self).__init__()
-        self.cfg = SeasonalSnowDensityConfig(**cfg)
+        super(SeasonalSnowDensityClimatology, self).__init__()
+        self.cfg = SeasonalSnowDensityConfig(**cfg.options)
 
     def apply(self, l1, l2) -> AuxDataExitFlag:
         """

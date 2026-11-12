@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from loguru import logger
 from pathlib import Path
 
+import re
 import numpy as np
-
 
 from pysiral.auxdata import GridTrackInterpol, AuxDataLoader, AuxDataExitFlag
 from pysiral.auxdata.snow_depth._data import SnowParameterContainer
@@ -37,7 +38,7 @@ class ICDCSouthernClimatology(AuxDataLoader):
         self.update_external_data()
 
         # Check if error with file I/O
-        if self.error.status or self._data is None:
+        if self._data is None:
             # This will return an empty container
             snow = SnowParameterContainer()
             snow.set_dummy(l2.n_records)
@@ -80,18 +81,20 @@ class ICDCSouthernClimatology(AuxDataLoader):
         # Validation
         if not path.is_file():
             msg = "%s: File not found: %s " % (self.__class__.__name__, path)
-            self.add_handler_message(msg)
-            self.error.add_error("auxdata_missing_snow", msg)
+            logger.error(msg)
             return AuxDataExitFlag.ERROR_CONTINUE
 
         # Store the netCDF data object
         self._data = ReadNC(path)
+        return AuxDataExitFlag.NOMINAL
 
     def _get_snow_track(self, l2):
         """ Extract snow depth from grid """
 
         # Extract from grid
-        griddef = self.cfg.options[l2.hemisphere]
+        hemisphere_code_dict = {"nh": "north", "sh": "south"}
+        hemisphere_code = hemisphere_code_dict.get(l2.hemisphere, l2.hemisphere)
+        griddef = self.cfg.options[hemisphere_code]
         grid_lons, grid_lats = self._data.lon, self._data.lat
         grid2track = GridTrackInterpol(l2.track.longitude, l2.track.latitude, grid_lons, grid_lats, griddef)
 
@@ -108,3 +111,28 @@ class ICDCSouthernClimatology(AuxDataLoader):
         snow_depth_uncertainty[snow_depth_uncertainty < 0.0] = np.nan
 
         return snow_depth, snow_depth_uncertainty
+
+    @property
+    def requested_filepath(self) -> "Path":
+        """
+        Returns the local file path for the requested date
+        :return:
+        """
+
+        # Main directory
+        path = Path(self.cfg.local_repository)
+
+        # Add the sub-folders
+        for subfolder_tag in self.cfg.subfolders:
+            subfolder = getattr(self, subfolder_tag)
+            path = path / subfolder
+
+        # Get the period dict (will be constructed from filenaming)
+        period_dict = {}
+        attrs = re.findall("{.*?}", self.cfg.filenaming)
+        for attr_def in attrs:
+            attr_name = attr_def[1:-1]
+            period_dict[attr_name] = getattr(self, attr_name)
+        filename = self.cfg.filenaming.format(**period_dict)
+        path = path / filename
+        return path
