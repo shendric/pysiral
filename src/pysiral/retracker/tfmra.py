@@ -157,11 +157,11 @@ class cTFMRA(BaseRetracker):
                     kwargs = oversampling_kwargs.copy()
                     kwargs.update({"window_size": oversampling_kwargs.get("window_size", [11, 11, 51])[radar_mode[i]]})
                     filt_rng, filt_wfm, norm = self.get_filtered_wfm(rng[i, :], wfm[i, :], **kwargs)
-                case "zeropadding":
+                case "zero_padding":
                     filt_rng, filt_wfm, norm = self.get_zeropadded_wfm(rng[i, :], wfm[i, :], **oversampling_kwargs)
                 case _:
                     raise ValueError(
-                        f"Invalid oversampling method: {oversampling_method} [`smoothed_linear` or `zeropadding`]"
+                        f"Invalid oversampling method: {oversampling_method} [`smoothed_linear` or `zero_padding`]"
                     )
 
             # Get noise level in normalized units
@@ -538,11 +538,9 @@ class cTFMRA(BaseRetracker):
             return oversampling_method, oversampling_kwargs
 
         oversampling = options.get("oversampling")
-        oversampling_method = oversampling.get("method", "smoothed_linear")
-        oversampling_kwargs = oversampling.get("options", {
-            "oversampling_factor": options.get("wfm_oversampling_factor", 10),
-            "window_size": options.get("wfm_smoothing_window_size", [11, 11, 51])
-        })
+        oversampling_method = oversampling.get("method", "")
+        oversampling_kwargs = oversampling.get("options", {})
+
         return oversampling_method, oversampling_kwargs
 
 
