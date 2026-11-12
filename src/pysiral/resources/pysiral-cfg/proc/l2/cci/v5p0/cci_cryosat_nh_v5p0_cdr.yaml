@@ -203,9 +203,9 @@ algorithms:
                   threshold: 0.5
                   offset: 0.0
                   noise_level_range_bin_idx: [0, 5]
-                  wfm_oversampling_factor: 10
-                  wfm_oversampling_method: zeropadding
-                  wfm_smoothing_window_size: [11, 11, 21]
+                  oversampling:
+                    method: zero_padding
+                    factor: 16
                   first_maximum_normalized_threshold: [0.15, 0.15, 0.45]
                   first_maximum_local_order: 1
                   first_maximum_ignore_leading_bins: 0
@@ -220,9 +220,9 @@ algorithms:
                   threshold: 0.5
                   offset: 0.0
                   noise_level_range_bin_idx: [0, 5]
-                  wfm_oversampling_factor: 10
-                  wfm_oversampling_method: zeropadding
-                  wfm_smoothing_window_size: [11, 11, 21]
+                  oversampling:
+                    method: zero_padding
+                    factor: 16
                   first_maximum_normalized_threshold: [0.15, 0.15, 0.45]
                   first_maximum_local_order: 1
                   first_maximum_ignore_leading_bins: 0

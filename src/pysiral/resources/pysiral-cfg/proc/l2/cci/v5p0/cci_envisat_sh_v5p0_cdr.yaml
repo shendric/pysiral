@@ -30,24 +30,43 @@ auxdata:
           latitude_range: [-90.0, -45.]
 
     - type: sic
-      name: c3s
+      name: osi-cdr-icdr
       options:
-          version: v3p0
+          version:
+              cdr: "v3p1"
+              icdr: "v3p0-amsr"
           exception_on_error: False
+          send_skip_signal_on_no_sea_ice: False
 
     - type: sitype
       name: fyi_default
       options:
-          uncertainty_default: 0.1
+        uncertainty_default: 0.1
 
     - type: snow
       name: icdc_climatology_south
       options:
-          snow_density: 300.
-          snow_density_uncertainty: 50.
-          smooth_snow_depth: true
-          smooth_filter_width_m: 25000.0
-          exception_on_error: False
+        snow_density: 300.
+        snow_density_uncertainty: 50.
+        smooth_snow_depth: true
+        smooth_filter_width_m: 25000.0
+        exception_on_error: True
+
+    - type: snow
+      name: seasonal_snow_density
+      options:
+        date_list: ["15-07", "15-10", "15-01", "15-04"]
+        value_list: [330., 310., 360.0, 350.]
+        interpolation_method: linear
+        snow_density_uncertainty: 50.
+
+    - type: sea_ice
+      name: seasonal_sea_ice_density
+      options:
+        date_list: ["15-07", "15-10", "15-01", "15-04"]
+        value_list: [920., 915., 875.0, 900.]
+        interpolation_method: linear
+        sea_ice_density_uncertainty: 50.
 
     # Ingest machine learned models
     - type: ml
@@ -179,9 +198,9 @@ algorithms:
                       value: 0.95
                   offset: 0.0
                   noise_level_range_bin_idx: [10, 20]
-                  wfm_oversampling_factor: 10
-                  wfm_oversampling_method: linear
-                  wfm_smoothing_window_size: [11, 11, 21]
+                  oversampling:
+                    method: zero_padding
+                    factor: 16
                   first_maximum_normalized_threshold: [0.15, 0.15, 0.45]
                   first_maximum_local_order: 1
                   first_maximum_ignore_leading_bins: 10
@@ -196,9 +215,9 @@ algorithms:
                       variable_name: tfmra_threshold_iceml
                   offset: 0.0
                   noise_level_range_bin_idx: [10, 20]
-                  wfm_oversampling_factor: 10
-                  wfm_oversampling_method: linear
-                  wfm_smoothing_window_size: [11, 11, 21]
+                  oversampling:
+                    method: zero_padding
+                    factor: 16
                   first_maximum_normalized_threshold: [0.15, 0.15, 0.45]
                   first_maximum_local_order: 1
                   first_maximum_ignore_leading_bins: 10
