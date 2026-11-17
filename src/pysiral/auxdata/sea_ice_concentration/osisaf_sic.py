@@ -29,6 +29,7 @@ e.g., this code line is mandatory for ``get_l2_track_vars`` (uncertainty can be 
 """
 
 
+from loguru import logger
 from pathlib import Path
 from typing import List, Tuple
 
@@ -160,9 +161,7 @@ class OsiSafSIC(AuxDataLoader):
 
         #  --- Validation ---
         if not path.is_file():
-            msg = f"{self.pyclass}: File not found: {path} "
-            self.add_handler_message(msg)
-            self.error.add_error("auxdata_missing_sic", msg)
+            logger.error(f"{self.__class__.__name__}: File not found: {path}")
             return
 
         # --- Read the data ---
