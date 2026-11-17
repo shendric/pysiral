@@ -225,6 +225,7 @@ algorithms:
                   # if arrays than [lrm, sar, sin]
                   threshold: 0.5
                   offset: 0.0
+                  noise_level_range_bin_idx: [0, 5]
                   oversampling:
                     method: zero_padding
                     factor: 16
