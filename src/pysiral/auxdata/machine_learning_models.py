@@ -39,9 +39,10 @@ from typing import Any, Iterable
 import bottleneck as bn
 import numpy as np
 
-from pysiral.auxdata import AuxDataLoader
+from pysiral.auxdata import AuxDataLoader, AuxDataExitFlag
 
 from pysiral._exceptions import OptionalImportError
+from pysiral.l1 import Level1bData
 
 try:
     import torch
@@ -53,8 +54,7 @@ except ImportError as ie:
 
 from loguru import logger
 
-from pysiral import get_cls
-from pysiral.auxdata import AuxdataBaseClass
+
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
@@ -65,7 +65,7 @@ class RetrackerThresholdModel(AuxDataLoader):
     as pysiral's ML/AI framework for retracker-threshold models
     """
 
-    def __init__(self, cfg, **kwargs: Iterable[Any]) -> None:
+    def __init__(self, cfg) -> None:
         """
         Initialiaze the class. This step includes establishing the model by parsing the
         model parameter file as specified in the Level-2 processor definition file.
@@ -80,15 +80,11 @@ class RetrackerThresholdModel(AuxDataLoader):
         self.n_total_waveforms = None
         self.model_file = self.cfg.options.get("model_file", None)
         if self.model_file is None:
-            msg = f"Missing option `model_file` in auxiliary data configuration {self.cfg.options}"
-            self.error.add_error("missing-option", msg)
-            self.error.raise_on_error()
+            raise ValueError(f"Missing option `model_file` in auxiliary data configuration {self.cfg.options}")
 
         self.model_filepath = Path(self.cfg.local_repository) / self.model_file
         if self.model_file is None:
-            msg = f"Model file {self.model_filepath} not found"
-            self.error.add_error("missing-file", msg)
-            self.error.raise_on_error()
+            raise ValueError(f"Model file {self.model_filepath} not found")
 
         # The model uses waveform power as input
         self.waveform_for_prediction = None
@@ -98,21 +94,19 @@ class RetrackerThresholdModel(AuxDataLoader):
         # REQ: Needs to be part of this file
         torch_model_class = self.cfg.options.get("model_class", None)
         if torch_model_class is None:
-            msg = "PyTorch model class not specified (options.torch_class missing)"
-            self.error.add_error("missing-option", msg)
-            self.error.raise_on_error()
-        model_class, err = get_cls("pysiral.auxdata.ml", torch_model_class)
+            raise ValueError("PyTorch model class not specified (options.torch_class missing)")
+        model_class = globals().get(torch_model_class)
         # retrieve number of input layer neurons, defaults to 45 (the Envisat standard)
+
         input_neurons = self.cfg.options.get("input_neurons", 45)
         if model_class is None:
-            msg = f"PyTorch model class not found: pysiral.auxdata.ml.{torch_model_class}"
-            self.error.add_error("class-not-found", msg)
-            self.error.raise_on_error()
+            raise ValueError(f"PyTorch model class not found: pysiral.auxdata.ml.{torch_model_class}")
+
         self.model = model_class()
         self.model.load_state_dict(torch.load(self.model_filepath, map_location=torch.device('cpu')))
         self.model.eval()
 
-    def apply(self, l1, l2):
+    def apply(self, l1, l2) -> AuxDataExitFlag:
         """
         [Mandatory class method] Add the model prediction for the tfmra retracker threshold to the
         Level-2 data object. The model evaluation depends solely on waveform power.
@@ -125,6 +119,7 @@ class RetrackerThresholdModel(AuxDataLoader):
         # Receive the L1P input and prepare for prediction
         self.receive_l1p_input(l1)
         self.get_l2_track_vars(l2)
+        return AuxDataExitFlag.NOMINAL
 
     def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
         """
@@ -777,29 +772,26 @@ class TorchFunctionalWaveformModelCNN(nn.Module):
         return x
 
 
-class RetrackerThresholdModelTorch(AuxdataBaseClass):
+class RetrackerThresholdModelTorch(AuxDataLoader):
 
-    def __init__(self, *args: Iterable[Any], **kwargs: Iterable[Any]) -> None:
+    def __init__(self, cfg) -> None:
         """
-        Initialiaze the class. This step includes establishing the model by parsing the
+        Initialize the class. This step includes establishing the model by parsing the
         model parameter file as specified in the Level-2 processor definition file.
-        :param args:
-        :param kwargs:
         """
-        super(RetrackerThresholdModelTorch, self).__init__(*args, **kwargs)
+        super(RetrackerThresholdModelTorch, self).__init__()
+        self.cfg = cfg
 
         # Retrieve requested model files
         self.model_file = self.cfg.options.get("model_file", None)
         if self.model_file is None:
             msg = f"Missing option `model_file` in auxiliary data configuration {self.cfg.options}"
-            self.error.add_error("missing-option", msg)
-            self.error.raise_on_error()
+            raise ValueError(msg)
 
         self.model_filepath = Path(self.cfg.local_repository) / self.model_file
         if self.model_file is None:
             msg = f"Model file {self.model_filepath} not found"
-            self.error.add_error("missing-file", msg)
-            self.error.raise_on_error()
+            raise ValueError(msg)
 
         # The model uses waveform power as input
         self.waveform_for_prediction = None
@@ -809,18 +801,17 @@ class RetrackerThresholdModelTorch(AuxdataBaseClass):
         torch_model_class = self.cfg.options.get("torch_class", None)
         if torch_model_class is None:
             msg = "PyTorch model class not specified (options.torch_class missing)"
-            self.error.add_error("missing-option", msg)
-            self.error.raise_on_error()
-        model_class, _ = get_cls("pysiral.auxdata.ml", torch_model_class)
+            raise ValueError(msg)
+
+        model_class = globals().get(torch_model_class)
         # retrieve number of input layer neurons, defaults to 45 (the Envisat standard)
         input_neurons = self.cfg.options.get("input_neurons", 45)
         if model_class is None:
             msg = f"PyTorch model class not found: pysiral.auxdata.ml.{torch_model_class}"
-            self.error.add_error("class-not-found", msg)
-            self.error.raise_on_error()
+            raise ValueError(msg)
+
         self.model = model_class(input_neurons)
-        self.model.load_state_dict(torch.load(self.model_filepath,
-                                              map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load(self.model_filepath, map_location=torch.device('cpu')))
         self.model.eval()
 
     def receive_l1p_input(self, l1p: 'L1bdataNCFile') -> None:
@@ -892,7 +883,7 @@ class RetrackerThresholdModelTorch(AuxdataBaseClass):
 
     #        self.waveform_for_prediction = torch.tensor(normed_waveform_power.astype('float32'))
 
-    def get_l2_track_vars(self, l2: 'Level2Data') -> None:
+    def apply(self, l1: "Level1bData", l2: 'Level2Data') -> AuxDataExitFlag:
         """
         [Mandatory class method] Add the model prediction for the tfmra retracker threshold to the
         Level-2 data object. The model evaluation depends solely on waveform power.
@@ -903,6 +894,10 @@ class RetrackerThresholdModelTorch(AuxdataBaseClass):
 
         :raises: None
         """
+
+        exit_status = AuxDataExitFlag.NOMINAL
+
+        self.receive_l1p_input(l1)
 
         # Predict the waveform range
         with torch.no_grad():
@@ -917,3 +912,5 @@ class RetrackerThresholdModelTorch(AuxdataBaseClass):
         # Add prediction to the Level-2 data object
         var_id, var_name = self.cfg.options.get("output_parameter", ["tfmrathrs_ml", "tfmra_threshold_ml"])
         l2.set_auxiliary_parameter(var_id, var_name, tfmra_threshold_predicted)
+
+        return exit_status

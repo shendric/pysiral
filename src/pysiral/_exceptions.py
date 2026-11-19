@@ -5,9 +5,12 @@
 
 __author__ = "Stefan Hendricks <stefan.hendricks@awi.de>"
 
+from loguru import logger
+
 
 class OptionalImportError(ImportError):
     """
     Exception for optional imports
     """
-    pass
+    def __init__(self, msg):
+        logger.warning(msg)

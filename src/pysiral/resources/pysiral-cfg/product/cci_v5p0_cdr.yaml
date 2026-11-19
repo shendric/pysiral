@@ -39,9 +39,9 @@ dynamic_variables:
     sentinel3b: "l2_lan_si_rep"
 
   l1p_version:  # -> l1p_version[PLATFORM] -> variable L1P_VERSION
-    ers1: "sgdr:v1p0"
-    ers2: "sgdr:v1p0"
-    envisat: "sgdr:v1p0"
+    ers1: "sgdr:v1p4"
+    ers2: "sgdr:v1p4"
+    envisat: "sgdr:v1p2"
     cryosat2: "esa_pds_ipf1e:v1p1"
     sentinel3a: "l2_lan:v1p1"
     sentinel3b: "l2_lan:v1p1"
