@@ -301,14 +301,15 @@ processing_items:
       class_name: Level3StatusFlag
       options:
         retrieval_status_target: sea_ice_thickness
-        sic_thrs: 70.
+        sic_thrs: 15.
         flag_values:
+            has_retrieval: 0
             no_data: 1
             is_below_sic_thrs: 2
             is_pole_hole: 3
             is_land: 4
             retrieval_failed: 5
-            has_retrieval: 0
+
 
     # Compute the quality flag
     - label: "Get quality flag"

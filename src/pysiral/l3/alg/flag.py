@@ -57,6 +57,7 @@ class Level3StatusFlag(Level3ProcessorItem):
 
         # Get sea ice mask
         is_below_sic_thrs = np.logical_and(sic >= 0., sic < self.sic_thrs)
+        is_above_sic_thrs = np.logical_and(sic >= self.sic_thrs, np.isfinite(sic))
 
         # Get the pole hole information
         mission_ids = self.l3grid.metadata.mission_ids.split(",")
@@ -77,8 +78,9 @@ class Level3StatusFlag(Level3ProcessorItem):
         has_data = nvw > 0
         has_retrieval = np.isfinite(par)
         retrieval_failed = np.logical_and(
-            np.logical_and(has_data, np.logical_not(is_below_sic_thrs)),
-            np.logical_not(has_retrieval))
+            is_above_sic_thrs,
+            np.logical_not(has_retrieval)
+        )
 
         # Set sic threshold
         sf[np.where(is_below_sic_thrs)] = flag_values["is_below_sic_thrs"]
