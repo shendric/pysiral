@@ -61,11 +61,15 @@ class Level3StatusFlag(Level3ProcessorItem):
         # Get the pole hole information
         mission_ids = self.l3grid.metadata.mission_ids.split(",")
         orbit_inclinations = [PSRLCFG.platforms.get_orbit_inclination(mission_id) for mission_id in mission_ids]
+        min_orbit_inclination = np.min(orbit_inclinations)
+
+        # TODO: This is a temporary fix for data with missing platform information.
+        min_orbit_inclination = min_orbit_inclination if min_orbit_inclination is not None else 90.0
 
         # NOTE: due to varying grid cell size, it is no sufficient to just check which grid cell coordinate
         #       is outside the orbit coverage
         is_pole_hole = np.logical_and(
-            np.abs(self.l3grid.vars["latitude"]) > (np.amin(orbit_inclinations)-1.0),
+            np.abs(self.l3grid.vars["latitude"]) > (min_orbit_inclination-1.0),
             flag_values["no_data"])
 
         # Check where the retrieval has failed

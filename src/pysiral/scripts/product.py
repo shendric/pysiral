@@ -56,10 +56,10 @@ def product(
     }
     if processing_level in ["l1", "l2"]:
         product_l1_l2(**kwargs)
-    elif processing_level in ["l2p"]:
+    elif processing_level in ["l2p", "l3s", "l3c"]:
         kwargs.pop("use_multiprocessing")
         kwargs.pop("multiprocessing_num_cores")
-        product_l2p(**kwargs)
+        product_l2p_l3(**kwargs)
     else:
         raise ValueError(f"Invalid processing level {processing_level}")
 
@@ -134,7 +134,7 @@ def product_l1_l2(
 
 
 # TODO: Rethink logic here (Maybe add platforms to override)
-def product_l2p(
+def product_l2p_l3(
     processing_level: str,
     product_id: str,
     processing_period: DatePeriod,
@@ -162,8 +162,14 @@ def product_l2p(
         "product_id": product_id,
         "hemisphere": hemisphere,
     }
-    proc_settings = PSRLCFG.get_product_settings(processing_level, product_id, context)
 
+    # TODO: Quickfix for processor levels, vs product levels (l3s, l3c) --- For later ---
+    processor_level_dict = {
+        "l3s": "l3",
+        "l3c": "l3"
+    }
+    processor_level = processor_level_dict.get(processing_level, processing_level)
+    proc_settings = PSRLCFG.get_product_settings(processor_level, product_id, context)
 
     # Update settings with pass-through variables
     pass_through_keyw = {
@@ -174,7 +180,7 @@ def product_l2p(
 
     # Check if some settings file need to be resolved to a full path
     # TODO: This hack is needed due to some inconsistencies between `l1` and `l1p`
-    data_level = {"l1p": "l1"}.get(processing_level, processing_level)
+    data_level = {"l1p": "l1", "l3s": "l3", "l3c": "l3"}.get(processing_level, processing_level)
     for key in ["l1p_settings", "l2_settings", "l3_settings"]:
         if key in proc_settings and proc_settings[key] is not None:
             proc_settings[key] = PSRLCFG.get_settings_file("proc", data_level, proc_settings[key])
@@ -191,7 +197,7 @@ def product_l2p(
         hemisphere /
         "l2i" for platform in proc_settings["platforms"]
     ]
-    proc_settings["l2i_product_dirs"] = l2i_product_dirs
+    proc_settings["l2_product_directory"] = l2i_product_dirs
     proc_settings.pop("platforms")
 
     output_directory = (
@@ -201,13 +207,13 @@ def product_l2p(
         "multi-mission" /
         product_attributes.version /
         hemisphere /
-        "l2p"
+        processing_level
     )
     proc_settings["output_directory"] = output_directory
 
     # Check if some settings file need to be resolved to a full path
     output_processing_level = {"l2_outputs": "l2i", "l2p_outputs": "l2p", "l3_outputs": "l3"}
-    for output_key in ["l2p_outputs"]:
+    for output_key in ["l2p_outputs", "l3_outputs"]:
         if output_key in proc_settings and proc_settings[output_key] is not None:
             for i, output in enumerate(proc_settings[output_key]):
                 proc_settings[output_key][i] = PSRLCFG.get_settings_file(
@@ -216,6 +222,8 @@ def product_l2p(
 
     processors = {
         "l2p": l2preproc,
+        "l3s": l3proc,
+        "l3c": l3proc
     }
     # Run the appropriate processor with the settings obtained from the product definition
     processors[processing_level](**proc_settings)

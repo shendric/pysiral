@@ -23,10 +23,10 @@ from pysiral.scripts.parser_items import (
 def l3proc(
         processing_period: DatePeriod = None,
         l2_product_directory: List[Path] = None,
-        l3_product_directory: Union[str, Path] = None,
+        output_directory: Union[str, Path] = None,
         l3_settings: Union[str, Path] = None,
         l3_grid_id: str = None,
-        l3_output: List[Union[str, Path]] = None,
+        l3_outputs: List[Union[str, Path]] = None,
         duration: DurationType = DurationType.P1M,
         doi: str = None,
         processing_level: ProductProcessingLevels = ProductProcessingLevels.LEVEL3_COLLATED,
@@ -37,10 +37,10 @@ def l3proc(
 
     :param processing_period:
     :param l2_product_directory:
-    :param l3_product_directory:
+    :param output_directory:
     :param l3_settings:
     :param l3_grid_id:
-    :param l3_output:
+    :param l3_outputs:
     :param duration:
     :param doi:
     :param processing_level:
@@ -72,11 +72,12 @@ def l3proc(
     # Initialize the output handler
     # Currently,  overwrite protection is disabled per default
     output = []
-    for l3_output_file in l3_output:
+    for l3_output_file in l3_outputs:
         output_handler = Level3OutputHandler(
             output_def=l3_output_file,
-            base_directory=l3_product_directory,
+            base_directory=output_directory,
             period=duration,
+            grid_id=l3_grid_id,
             doi=doi,
             data_record_type=data_record,
             overwrite_protection=False

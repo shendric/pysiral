@@ -21,6 +21,7 @@ from pathlib import Path
 
 import numpy as np
 from loguru import logger
+from typing import Optional
 
 from pysiral import __version__, get_cls, PSRLCFG
 from pysiral.core.config import get_yaml_config
@@ -773,8 +774,14 @@ class L3MetaData(object):
         Get a list of missions that went into the stack
         (must be a list, since multi-mission grids are supported)
         """
-        missions = np.unique(stack.mission)
-        mission_sensor = [PSRLCFG.platforms.get_sensor(mission.lower()) for mission in missions]
+        try:
+            missions = np.unique(stack.mission)
+        except TypeError:
+            missions = ["unknown"]
+        try:
+            mission_sensor = [PSRLCFG.platforms.get_sensor(mission.lower()) for mission in missions]
+        except TypeError:
+            mission_sensor = ["unknown"]
 
         try:
             self.set_attribute("mission_ids", ",".join(missions))
@@ -865,10 +872,11 @@ class Level3OutputHandler(OutputHandlerBase):
             self,
             output_def="default",
             base_directory="l3proc_default",
-            overwrite_protection=True,
+            overwrite_protection: bool = False,
             period="default",
-            doi=None,
-            data_record_type="none"
+            grid_id: Optional[str] = None,
+            doi: Optional[str] = None,
+            data_record_type: str="none"
     ):
 
         if output_def == "default":
@@ -881,6 +889,7 @@ class Level3OutputHandler(OutputHandlerBase):
         self.error.caller_id = self.__class__.__name__
         logger.name = self.__class__.__name__
 
+        self._grid_id = grid_id
         self._period = period
         self._doi = doi
         self.overwrite_protection = overwrite_protection
@@ -950,10 +959,10 @@ class Level3OutputHandler(OutputHandlerBase):
             basedir = Path(base_directory_or_id)
         # argument is id
         else:
-            basedir = Path(self.pysiral_config.local_machine.product_repository) / base_directory_or_id
+            basedir = Path(PSRLCFG.local_machine["product_repository"]) / base_directory_or_id
         # add product level subfolder
         # period_id = dict(month="monthly", isoweek="weekly")
-        basedir = basedir / self._period
+        basedir = basedir / self._grid_id / self._period / self.product_level_subfolder
         # optional (subfolder with current time)
         if self.overwrite_protection:
             basedir = basedir / self.now_directory

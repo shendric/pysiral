@@ -75,8 +75,8 @@ processors:
 
   l3:
     l3_settings: "l3_cci_v5p0"
-    platform: *platforms
-    grid_id: "{l3_grid[hemisphere]}"
-    period: "P1M"
+    platforms: *platforms
+    l3_grid_id: "{l3_grid[hemisphere]}"
+    duration: "P1M"
     doi: "{doi_l3s[hemisphere]}"
-    l3_output: ["l3_cci_v5p0", "l3_cci_v5p0-internal"]
+    l3_outputs: ["l3_cci_v5p0", "l3_cci_v5p0-internal"]

@@ -176,7 +176,7 @@ class Level3LoadCCILandMask(Level3ProcessorItem):
 
         # Get mask target path:
         mask_tag = self.cfg["local_machine_def_mask_tag"]
-        lookup_directory = PSRLCFG.local_machine.auxdata_repository.mask.get(mask_tag, None)
+        lookup_directory = PSRLCFG.local_machine["auxdata_repository"]["mask"].get(mask_tag, None)
         if lookup_directory is None:
             msg = "Missing local machine def tag: auxdata_repository.mask.{}".format(mask_tag)
             self.error.add_error("invalid-local-machine-def", msg)
