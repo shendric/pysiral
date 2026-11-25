@@ -187,7 +187,9 @@ algorithms:
     # Apply ERS pulse deblurring correction
     - class_name: ERSPulseDeblurring
       options:
-        slope: 5.0
+        slope:
+          ers1: -3.5
+          ers2: -5.0
         target_variables:
             - elevation
 

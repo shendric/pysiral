@@ -250,10 +250,10 @@ variables:
     long_name: Marginal Ice Zone Flag
     standard_name: "quality_flag"
     units: "1"
-    valid_min: -1
-    valid_max: 3
-    flag_values: "-1 0 1 2 3"
-    flag_meanings: "no_data not_in_miz miz_low_bias miz_potential_bias miz_bias"
+    valid_min: 0
+    valid_max: 2
+    flag_values: "-1 0 1 2"
+    flag_meanings: "no_data not_in_miz miz_no_bias_detected miz_bias_detected"
     grid_mapping: "Lambert_Azimuthal_Grid"
     coordinates: "time lat lon"
     coverage_content_type: qualityInformation

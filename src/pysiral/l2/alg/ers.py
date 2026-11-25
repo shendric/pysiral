@@ -40,11 +40,15 @@ class ERSPulseDeblurring(L2Algorithm):
         eps = l2.epss * 0.5 * 299792458.
 
         # Compute and apply pulse deblurring correction
-        slope = self.constant_slope
+        try:
+            slope = self.constant_slope[l2.info.mission]
+        except KeyError:
+            raise ValueError(f"Unknown ERS mission: {l2.info.mission}. Cannot apply pulse deblurring correction.")
+
         pulse_deblurring_correction = np.array(eps < 0.).astype(float) * eps / slope
         for target_variable in self.target_variables:
             var = l2.get_parameter_by_name(target_variable)
-            var[:] = var[:] + pulse_deblurring_correction
+            var[:] = var[:] - pulse_deblurring_correction
             l2.set_parameter(target_variable, var[:], var.uncertainty[:])
 
         # Add pulse deblurring correction to level-2 auxiliary data
