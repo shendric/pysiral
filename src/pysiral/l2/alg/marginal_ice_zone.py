@@ -261,6 +261,7 @@ class MarginalIceZoneFilterFlag(L2Algorithm):
 
         # Merge the two filter_flags
         filter_flag = np.maximum(filter_flag_01, filter_flag_02)
+        filter_flag[sea_ice_concentration < 15] = 0
 
         return filter_flag, miz_segments
 
@@ -285,7 +286,7 @@ class MarginalIceZoneFilterFlag(L2Algorithm):
         """
 
         # Get the initial filter_flag
-        filter_flag = np.full(sea_ice_freeboard.shape[0], -1, dtype=int)
+        filter_flag = np.full(sea_ice_freeboard.shape[0], 0, dtype=int)
 
         # Step 1: Detect ice edge(s) in the trajectory data.
         ice_edge_segments = self.get_marginal_ice_zone_segments(
@@ -326,7 +327,7 @@ class MarginalIceZoneFilterFlag(L2Algorithm):
             for flag_value in [1, 2]:
                 flag = ANDCondition()
                 flag.add(miz_segment.filter_flag == flag_value)
-                flag.add(filter_flag == -1)
+                flag.add(filter_flag == 0)
                 filter_flag[flag.indices] = flag_value
 
         return filter_flag, miz_segments
@@ -603,7 +604,7 @@ class MarginalIceZoneFilterFlag(L2Algorithm):
         :return:
         """
 
-        filter_flag = np.full(sea_ice_concentration.shape[0], -1, dtype=int)
+        filter_flag = np.full(sea_ice_concentration.shape[0], 0, dtype=int)
 
         # Get properties
         opt = self.cfg.options.get("ice_edge_proximity", None)
@@ -626,12 +627,12 @@ class MarginalIceZoneFilterFlag(L2Algorithm):
         miz_threshold_filter.add(pulse_peakiness_rolling_sdev <= opt["pulse_peakiness_rolling_sdev_max"])
 
         filter_flag[miz_threshold_filter.indices] = 2
+
         return filter_flag
 
     @staticmethod
     def get_default_filter_flag(n_records: int, boolean_flag_values: bool) -> np.ndarray:
-        fill_value = 0 if boolean_flag_values else -1
-        return np.full(n_records, fill_value).astype(np.byte)
+        return np.full(n_records, 0).astype(np.byte)
 
     @property
     def l2_dependencies(self):

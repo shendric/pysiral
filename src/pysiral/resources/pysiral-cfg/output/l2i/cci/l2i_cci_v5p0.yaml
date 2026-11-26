@@ -494,7 +494,7 @@ variables:
     comment: "Flag indicating potential freeboard bias by wave penetration into the marginal ice zone"
     units: "1"
     valid_min: 0
-    valid_max: 3
+    valid_max: 2
     flag_values: "0, 1, 2"
     flag_meanings: "not_in_miz, miz_no_bias_detected, miz_bias_detected"
     coordinates: time
